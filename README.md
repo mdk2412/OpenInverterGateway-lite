@@ -6,10 +6,6 @@ Lite version of original OpenInverterGateway-Firmware without graphical charts a
 
 # How to install
 
-* Download a precompiled release from [here](https://github.com/OpenInverterGateway/OpenInverterGateway/releases) (hardcoded to default [settings](https://github.com/OpenInverterGateway/OpenInverterGateway/blob/master/SRC/ShineWiFi-ModBus/Config.h.example)/growatt protocol 1.24)
-
-Or
-
 * Checkout this repo
 * Setup platform.io
 * Open the project folder and choose the correct env for your hardware
