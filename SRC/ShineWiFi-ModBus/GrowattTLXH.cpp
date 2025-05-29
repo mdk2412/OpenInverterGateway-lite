@@ -316,6 +316,8 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.InputRegisters[P3000_OPFULLWATT] = sGrowattModbusReg_t{
       3102,    0,    SIZE_32BIT, F("OutputMaxpowerLimited"), 0.1, 0.1,
       POWER_W, true, true};
+  Protocol.InputRegisters[P3000_STANDBY_FLAG] = sGrowattModbusReg_t{
+      3104, 0, SIZE_16BIT, F("InverterStandbyFlag"), 1, 1, NONE, true, false};      
   Protocol.InputRegisters[P3000_FAULT_MAINCODE] = sGrowattModbusReg_t{
       3105, 0, SIZE_16BIT, F("InverterFaultMaincode"), 1, 1, NONE, true, false};
   Protocol.InputRegisters[P3000_WARN_MAINCODE] = sGrowattModbusReg_t{
