@@ -158,7 +158,7 @@ void WiFi_Reconnect()
 
         // todo: use Log
         WiFi.printDiag(Serial);
-        Log.print(F("local IP:"));
+        Log.print(F("Local IP: "));
         Log.println(WiFi.localIP());
         Log.print(F("Hostname: "));
         Log.println(Config.hostname);
@@ -180,9 +180,9 @@ void InverterReconnect(void)
     Inverter.begin(Serial);
 
     if (Inverter.GetWiFiStickType() == ShineWiFi_S)
-        Log.println(F("ShineWiFi-S (Serial) found"));
+        Log.println(F("Shine WiFi-S (Serial) found"));
     else if (Inverter.GetWiFiStickType() == ShineWiFi_X)
-        Log.println(F("ShineWiFi-X (USB) found"));
+        Log.println(F("Shine WiFi-X (USB) found"));
     else
         Log.println(F("Error: Unknown Shine Stick"));
 }
@@ -202,7 +202,7 @@ void loadConfig()
 #if MQTT_SUPPORTED == 1
     Config.mqtt.server = prefs.getString(ConfigFiles.mqtt_server, "");
     Config.mqtt.port = prefs.getString(ConfigFiles.mqtt_port, "1883");
-    Config.mqtt.topic = prefs.getString(ConfigFiles.mqtt_topic, "energy/solar");
+    Config.mqtt.topic = prefs.getString(ConfigFiles.mqtt_topic, "");
     Config.mqtt.user = prefs.getString(ConfigFiles.mqtt_user, "");
     Config.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
 #endif
@@ -284,7 +284,7 @@ void configureLogging() {
         //syslogStream.setRaw(true);
         const std::shared_ptr<LOGBase> syslogStreamPtr = std::make_shared<SyslogStream>(syslogStream);
         Log.addPrintStream(syslogStreamPtr);
-        Log.print(F("syslog server ip: "));
+        Log.print(F("Syslog Server IP: "));
         Log.println(Config.syslog_ip);
     }
 }
@@ -303,7 +303,7 @@ void setupWifiHost()
     #if OTA_SUPPORTED == 0
         MDNS.begin(Config.hostname);
     #endif
-    Log.print(F("setupWifiHost: hostname "));
+    Log.print(F("SetupWiFiHost: hostname "));
     Log.println(Config.hostname);
 }
 
@@ -334,7 +334,7 @@ void handleWdtReset(boolean mqttSuccess)
 void resetWdt() 
 {
     #ifdef ESP32
-    Log.println("WDT reset ...");
+    Log.println("WDT reset...");
     esp_task_wdt_reset();
     #endif
 }
@@ -351,7 +351,7 @@ void setup()
         drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
     #endif
 
-    prefs.begin("ShineWifi");
+    prefs.begin("ShineWiFi");
 
     loadConfig();
     configureLogging();
@@ -433,14 +433,14 @@ void setup()
 
     if (!res)
     {
-        Log.println(F("Failed to connect WIFI"));
+        Log.println(F("Failed to connect WiFi!"));
         ESP.restart();
     }
     else
     {
         digitalWrite(LED_BL, 0);
         //if you get here you have connected to the WiFi
-        Log.println(F("WIFI connected...yeey :)"));
+        Log.println(F("WiFi connected"));
     }
 
     while (WiFi.status() != WL_CONNECTED)
@@ -498,7 +498,7 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
     customWMParams.mqtt_user = new WiFiManagerParameter("mqttusername", "username", Config.mqtt.user.c_str(), 40);
     customWMParams.mqtt_pwd = new WiFiManagerParameter("mqttpassword", "password", Config.mqtt.pwd.c_str(), 64);
 #endif
-    customWMParams.syslog_ip = new WiFiManagerParameter("syslogip", "syslog server IP (leave blank for none)", Config.syslog_ip.c_str(), 15);
+    customWMParams.syslog_ip = new WiFiManagerParameter("syslogip", "Syslog Server IP (leave blank for none)", Config.syslog_ip.c_str(), 15);
     wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
     wm.addParameter(new WiFiManagerParameter("<p><b>MQTT Settings</b> (leave server blank to disable)</p>"));
@@ -607,7 +607,7 @@ void startConfigAccessPoint(void)
 {
     char msg[384];
 
-    snprintf_P(msg, sizeof(msg), PSTR("<html><body>Configuration access point started ...<br /><br />Connect to Wifi: \"GrowattConfig\" with your password (default: \"growsolar\") and visit <a href='http://192.168.4.1'>192.168.4.1</a><br />The Stick will automatically go back to normal operation after a %d seconds</body></html>"), CONFIG_PORTAL_MAX_TIME_SECONDS);
+    snprintf_P(msg, sizeof(msg), PSTR("<html><body>Configuration Access Point started...<br /><br />Connect to WiFi \"GrowattConfig\" with your password (default: \"growsolar\") and visit <a href='http://192.168.4.1'>192.168.4.1</a><br /><br />The Stick will automatically go back to normal operation after a %d seconds</body></html>"), CONFIG_PORTAL_MAX_TIME_SECONDS);
     httpServer.send(200, "text/html", msg);
     delay(2000);
     StartedConfigAfterBoot = true;
@@ -658,22 +658,22 @@ void handlePostData()
                 {
                     if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(), &u16Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 16b input register %ld with value %d"), httpServer.arg("reg").toInt(), u16Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 16b input register %ld"), httpServer.arg("reg").toInt(), u16Tmp);
                     }
                     else
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 16b input register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
+                        snprintf_P(msg, sizeof(msg), PSTR("Reading from 16b input register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
                     }
                 }
                 else
                 {
                     if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(), &u32Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 32b input register %ld with value %d"), httpServer.arg("reg").toInt(), u32Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 32b input register %ld"), httpServer.arg("reg").toInt(), u32Tmp);
                     }
                     else
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 32b input register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
+                        snprintf_P(msg, sizeof(msg), PSTR("Reading from 32b input register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
                     }
                 }
             }
@@ -683,22 +683,22 @@ void handlePostData()
                 {
                     if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(), &u16Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 16b holding register %ld with value %d"), httpServer.arg("reg").toInt(), u16Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 16b holding register %ld"), httpServer.arg("reg").toInt(), u16Tmp);
                     }
                     else
                     {
-                        snprintf_P(msg, sizeof(msg),PSTR("Read 16b holding register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
+                        snprintf_P(msg, sizeof(msg),PSTR("Reading from 16b holding register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
                     }
                 }
                 else
                 {
                     if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(), &u32Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 32b holding register %ld with value %d"), httpServer.arg("reg").toInt(), u32Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 32b holding register %ld"), httpServer.arg("reg").toInt(), u32Tmp);
                     }
                     else
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read 32b holding register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
+                        snprintf_P(msg, sizeof(msg), PSTR("Reading from 32b holding register %ld impossible - not connected?"), httpServer.arg("reg").toInt());
                     }
                 }
             }
@@ -711,11 +711,11 @@ void handlePostData()
                 {
                     if (Inverter.WriteHoldingReg(httpServer.arg(F("reg")).toInt(), httpServer.arg(F("val")).toInt()))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Wrote holding register %ld to a value of %ld!"), httpServer.arg("reg").toInt(), httpServer.arg("val").toInt());
+                        snprintf_P(msg, sizeof(msg), PSTR("Written value %ld to holding register %ld"), httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
                     }
                     else
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Writing holding register %ld to a value of %ld failed"), httpServer.arg("reg").toInt(), httpServer.arg("val").toInt());
+                        snprintf_P(msg, sizeof(msg), PSTR("Writing value %ld to holding register %ld failed!"), httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
                     }
                 }
                 else
