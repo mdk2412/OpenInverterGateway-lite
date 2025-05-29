@@ -25,7 +25,6 @@ Implemented Features:
 * The inverter is queried using Modbus Protocol
 * The data received will be transmitted by MQTT to a server of your choice.
 * The data received is also provided as JSON and Prometheus format
-* Show a simple live graph visualization  (`http://<ip>`) with help from highcharts.com
 * Firmware update via wifiManager
 * It supports basic access to arbitrary modbus data
 * It tries to autodetect which stick type to use
