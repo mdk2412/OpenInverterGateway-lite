@@ -2,6 +2,8 @@
 
 Firmware replacement for Growatt ShineWiFi-S (serial), ShineWiFi-X (USB) or custom build sticks (ESP8266/ESP32).
 
+Lite version of original OpenInverterGateway-Firmware without graphical charts and live values on web interface. Intended use as middleware for Iobroker etc.
+
 # How to install
 
 * Download a precompiled release from [here](https://github.com/OpenInverterGateway/OpenInverterGateway/releases) (hardcoded to default [settings](https://github.com/OpenInverterGateway/OpenInverterGateway/blob/master/SRC/ShineWiFi-ModBus/Config.h.example)/growatt protocol 1.24)
