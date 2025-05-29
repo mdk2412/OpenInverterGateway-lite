@@ -421,7 +421,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.InputReadFragments[Protocol.InputFragmentCount++] =
       sGrowattReadFragment_t{3125, 61};
 
-  Protocol.HoldingRegisterCount = P3000_HOLING_REGISTER_COUNT;
+  Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
   // FRAGMENT 1: BEGIN
   Protocol.HoldingRegisters[P3000_ACTIVE_P_RATE] = sGrowattModbusReg_t{
@@ -452,7 +452,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3049, 0, SIZE_16BIT, F("BDCChargeACEnabled"), 1, 1, NONE, true, false};
   // FRAGMENT 2: END
 
-  Protocol.HoldingRegisterCount = P3000_HOLING_REGISTER_COUNT;
+  Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
   Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
       sGrowattReadFragment_t{3, 1};

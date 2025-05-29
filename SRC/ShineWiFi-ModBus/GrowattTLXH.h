@@ -112,7 +112,7 @@ typedef enum {
   P3000_BDC_CHARGE_P_RATE,
   P3000_BDC_CHARGE_STOPSOC,
   P3000_BDC_CHARGE_AC_ENABLED,
-  P3000_HOLING_REGISTER_COUNT
+  P3000_HOLDING_REGISTER_COUNT
 } eP3000HoldingRegisters_t;
 
 void init_growattTLXH(sProtocolDefinition_t &Protocol, Growatt &inverter);
