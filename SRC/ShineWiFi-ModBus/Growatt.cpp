@@ -560,7 +560,6 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
     JsonArray arr = doc.createNestedArray("Hostname");
     arr.add(Hostname);
     arr.add("");
-    arr.add(false);
   }
 
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
