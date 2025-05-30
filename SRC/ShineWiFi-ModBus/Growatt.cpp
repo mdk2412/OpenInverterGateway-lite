@@ -564,8 +564,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   }
 
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    if (_Protocol.InputRegisters[i].frontend == true ||
-        _Protocol.InputRegisters[i].plot == true) {
+    if (_Protocol.InputRegisters[i].frontend == true) {
       JsonArray arr = doc.createNestedArray(_Protocol.InputRegisters[i].name);
 
       // value
@@ -585,12 +584,10 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
       } else {
         arr.add(unitStr[_Protocol.InputRegisters[i].unit]);  // unit
       }
-      arr.add(_Protocol.InputRegisters[i].plot);  // should be plotted
     }
   }
   for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    if (_Protocol.HoldingRegisters[i].frontend == true ||
-        _Protocol.HoldingRegisters[i].plot == true) {
+    if (_Protocol.HoldingRegisters[i].frontend == true) {
       JsonArray arr = doc.createNestedArray(_Protocol.HoldingRegisters[i].name);
 
       // value
@@ -603,7 +600,6 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
       } else {
         arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);  // unit
       }
-      arr.add(_Protocol.HoldingRegisters[i].plot);  // should be plotted
     }
   }
 #else
