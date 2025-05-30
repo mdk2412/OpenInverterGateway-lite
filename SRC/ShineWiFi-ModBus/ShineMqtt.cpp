@@ -81,7 +81,7 @@ bool ShineMqtt::mqttReconnect() {
     } else {
       Log.print(F("failed, rc="));
       Log.print(this->mqttclient.state());
-      Log.println(F("try again in 5 seconds"));
+      Log.println(F(", trying again in 5 seconds"));
       Log.println(F("MQTT connect failed"));
       previousConnectTryMillis = millis();
     }
