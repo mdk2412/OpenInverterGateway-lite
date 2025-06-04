@@ -30,6 +30,11 @@
 // Enable direct modbus read/write support via the WebGUI. Enabling this is a potential security issue.
 #define ENABLE_MODBUS_COMMUNICATION 0
 
+// Enable a Modbus/TCP proxy on the stick. When enabled the device listens on
+// MODBUS_TCP_PORT (default 502) and forwards requests to the inverter.
+#define MODBUS_TCP_PROXY 0
+#define MODBUS_TCP_PORT 502
+
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
 // TZ Info can be found at: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 #define DEFAULT_NTP_SERVER "europe.pool.ntp.org"

@@ -7,6 +7,7 @@
 #include <TLog.h>
 #include "Index.h"
 #include "Growatt.h"
+#include "ModbusTcpProxy.h"
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
@@ -473,6 +474,9 @@ void setup()
     Inverter.InitProtocol();
     InverterReconnect();
     httpServer.begin();
+    #if MODBUS_TCP_PROXY == 1
+        ModbusTcpProxySetup();
+    #endif
 
     #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
         #ifdef ESP32
@@ -847,6 +851,9 @@ void loop()
     #endif
 
     httpServer.handleClient();
+    #if MODBUS_TCP_PROXY == 1
+        ModbusTcpProxyLoop();
+    #endif
 
     // Toggle green LED with 1 Hz (alive)
     // ------------------------------------------------------------

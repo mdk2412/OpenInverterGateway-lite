@@ -1,4 +1,4 @@
-name: Clang format check and autofix
+name: Clang Format AutoFix
 
 on:
   workflow_dispatch:
@@ -6,31 +6,35 @@ on:
     branches:
       - master
   pull_request:
-    types: [assigned, opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]
 
 jobs:
-  formatting-check:
-    name: Formatting Check & Autofix
+  format-autofix:
+    name: Auto-fix Formatting
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for pushing changes
+      contents: write  # Needed to push to PR branches
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install clang-format
-      run: sudo apt-get install -y clang-format-14
+    - name: Install clang-format 15
+      run: sudo apt-get update && sudo apt-get install -y clang-format-15
 
-    - name: Run clang-format and detect changes
+    - name: Run clang-format
       run: |
-        find SRC -regex '.*\.\(c\|cpp\|h\|hpp\)' -exec clang-format-14 -i {} +
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        find SRC -regex '.*\.\(c\|cpp\|h\|hpp\)' -exec clang-format-15 -i {} +
+
+    - name: Commit and push formatting fixes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
         if ! git diff --quiet; then
-          git add .
-          git commit -m "chore: autoformat with clang-format"
+          git add SRC
+          git commit -m "chore: autoformat code using clang-format"
           git push
         else
-          echo "No formatting changes needed."
+          echo "No formatting changes necessary."
         fi
