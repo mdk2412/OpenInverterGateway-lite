@@ -32,7 +32,8 @@
 
 // Enable a Modbus/TCP proxy on the stick. When enabled the device listens on
 // MODBUS_TCP_PORT (default 502) and forwards requests to the inverter.
-#define MODBUS_TCP_PROXY 0
+// Comment out to use the default value from the application.
+#define MODBUS_TCP_PROXY 1
 #define MODBUS_TCP_PORT 502
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
