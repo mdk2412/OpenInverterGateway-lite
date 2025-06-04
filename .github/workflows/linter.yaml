@@ -1,27 +1,40 @@
-name: Clang format check
+name: Clang Format AutoFix
 
 on:
-  workflow_dispatch: null
+  workflow_dispatch:
   push:
     branches:
       - master
   pull_request:
-    types: [assigned, opened, synchronize, reopened]
+    types: [opened, synchronize, reopened]
 
 jobs:
-  formatting-check:
-    name: Formatting Check
+  format-autofix:
+    name: Auto-fix Formatting
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to push to PR branches
+
     steps:
-    - uses: actions/checkout@v4
-    - uses: DoozyX/clang-format-lint-action@v0.14
-      with:
-        source: 'SRC'
-        clangFormatVersion: 14
-    - name: Display how to fix
-      if: failure()
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install clang-format 15
+      run: sudo apt-get update && sudo apt-get install -y clang-format-15
+
+    - name: Run clang-format
       run: |
-        echo "::notice::Run the following commands to autofix the linter error and commit the changes:"
-        echo "::notice::docker build -t clang-format-lint github.com/DoozyX/clang-format-lint-action"
-        echo "::notice::docker run -it --rm --workdir /src -v \$(pwd):/src clang-format-lint --clang-format-executable /clang-format/clang-format15 -r -i true SRC"
-        /bin/false
+        find SRC -regex '.*\.\(c\|cpp\|h\|hpp\)' -exec clang-format-15 -i {} +
+
+    - name: Commit and push formatting fixes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        if ! git diff --quiet; then
+          git add SRC
+          git commit -m "chore: autoformat code using clang-format"
+          git push
+        else
+          echo "No formatting changes necessary."
+        fi
