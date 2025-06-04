@@ -13,112 +13,112 @@ static WiFiServer modbusServer(MODBUS_TCP_PORT);
 extern Growatt Inverter;
 
 void ModbusTcpProxySetup() {
-    modbusServer.begin();
-    Log.println(F("Modbus TCP proxy started"));
+  modbusServer.begin();
+  Log.println(F("Modbus TCP proxy started"));
 }
 
 static void sendException(WiFiClient &client, uint16_t transId, uint8_t unitId,
                           uint8_t function, uint8_t code) {
-    uint8_t resp[9];
-    resp[0] = transId >> 8;
-    resp[1] = transId & 0xFF;
-    resp[2] = 0; // protocol
-    resp[3] = 0;
-    resp[4] = 0;
-    resp[5] = 3; // len
-    resp[6] = unitId;
-    resp[7] = function | 0x80;
-    resp[8] = code;
-    client.write(resp, 9);
+  uint8_t resp[9];
+  resp[0] = transId >> 8;
+  resp[1] = transId & 0xFF;
+  resp[2] = 0;  // protocol
+  resp[3] = 0;
+  resp[4] = 0;
+  resp[5] = 3;  // len
+  resp[6] = unitId;
+  resp[7] = function | 0x80;
+  resp[8] = code;
+  client.write(resp, 9);
 }
 
 static void handleClient(WiFiClient &client) {
-    if (client.available() < 8) return;
+  if (client.available() < 8) return;
 
-    uint8_t header[7];
-    client.readBytes(header, 7);
-    uint16_t transId = (header[0] << 8) | header[1];
-    uint16_t length = (header[4] << 8) | header[5];
-    uint8_t unitId = header[6];
+  uint8_t header[7];
+  client.readBytes(header, 7);
+  uint16_t transId = (header[0] << 8) | header[1];
+  uint16_t length = (header[4] << 8) | header[5];
+  uint8_t unitId = header[6];
 
-    if (length == 0 || client.available() < length) return;
+  if (length == 0 || client.available() < length) return;
 
-    uint8_t pdu[256];
-    if (length > sizeof(pdu)) {
-        sendException(client, transId, unitId, 0, 3);
-        return;
+  uint8_t pdu[256];
+  if (length > sizeof(pdu)) {
+    sendException(client, transId, unitId, 0, 3);
+    return;
+  }
+  client.readBytes(pdu, length);
+  uint8_t function = pdu[0];
+
+  if (function == 3 || function == 4) {
+    uint16_t start = (pdu[1] << 8) | pdu[2];
+    uint16_t count = (pdu[3] << 8) | pdu[4];
+    if (count == 0 || count > 125) {
+      sendException(client, transId, unitId, function, 3);
+      return;
     }
-    client.readBytes(pdu, length);
-    uint8_t function = pdu[0];
-
-    if (function == 3 || function == 4) {
-        uint16_t start = (pdu[1] << 8) | pdu[2];
-        uint16_t count = (pdu[3] << 8) | pdu[4];
-        if (count == 0 || count > 125) {
-            sendException(client, transId, unitId, function, 3);
-            return;
-        }
-        uint16_t values[125];
-        bool ok = false;
-        if (function == 3) {
-            ok = Inverter.ReadHoldingRegFrag(start, count, values);
-        } else {
-            ok = Inverter.ReadInputRegFrag(start, count, values);
-        }
-        if (!ok) {
-            sendException(client, transId, unitId, function, 4);
-            return;
-        }
-        uint8_t resp[260];
-        uint16_t respLen = 9 + count * 2;
-        resp[0] = transId >> 8;
-        resp[1] = transId & 0xFF;
-        resp[2] = 0;
-        resp[3] = 0;
-        resp[4] = (respLen - 6) >> 8;
-        resp[5] = (respLen - 6) & 0xFF;
-        resp[6] = unitId;
-        resp[7] = function;
-        resp[8] = count * 2;
-        for (uint16_t i = 0; i < count; ++i) {
-            resp[9 + i * 2] = values[i] >> 8;
-            resp[10 + i * 2] = values[i] & 0xFF;
-        }
-        client.write(resp, respLen);
-    } else if (function == 6) {
-        uint16_t adr = (pdu[1] << 8) | pdu[2];
-        uint16_t val = (pdu[3] << 8) | pdu[4];
-        if (!Inverter.WriteHoldingReg(adr, val)) {
-            sendException(client, transId, unitId, function, 4);
-            return;
-        }
-        uint8_t resp[12];
-        resp[0] = transId >> 8;
-        resp[1] = transId & 0xFF;
-        resp[2] = 0;
-        resp[3] = 0;
-        resp[4] = 0;
-        resp[5] = 6;
-        resp[6] = unitId;
-        resp[7] = function;
-        resp[8] = pdu[1];
-        resp[9] = pdu[2];
-        resp[10] = pdu[3];
-        resp[11] = pdu[4];
-        client.write(resp, 12);
+    uint16_t values[125];
+    bool ok = false;
+    if (function == 3) {
+      ok = Inverter.ReadHoldingRegFrag(start, count, values);
     } else {
-        sendException(client, transId, unitId, function, 1);
+      ok = Inverter.ReadInputRegFrag(start, count, values);
     }
+    if (!ok) {
+      sendException(client, transId, unitId, function, 4);
+      return;
+    }
+    uint8_t resp[260];
+    uint16_t respLen = 9 + count * 2;
+    resp[0] = transId >> 8;
+    resp[1] = transId & 0xFF;
+    resp[2] = 0;
+    resp[3] = 0;
+    resp[4] = (respLen - 6) >> 8;
+    resp[5] = (respLen - 6) & 0xFF;
+    resp[6] = unitId;
+    resp[7] = function;
+    resp[8] = count * 2;
+    for (uint16_t i = 0; i < count; ++i) {
+      resp[9 + i * 2] = values[i] >> 8;
+      resp[10 + i * 2] = values[i] & 0xFF;
+    }
+    client.write(resp, respLen);
+  } else if (function == 6) {
+    uint16_t adr = (pdu[1] << 8) | pdu[2];
+    uint16_t val = (pdu[3] << 8) | pdu[4];
+    if (!Inverter.WriteHoldingReg(adr, val)) {
+      sendException(client, transId, unitId, function, 4);
+      return;
+    }
+    uint8_t resp[12];
+    resp[0] = transId >> 8;
+    resp[1] = transId & 0xFF;
+    resp[2] = 0;
+    resp[3] = 0;
+    resp[4] = 0;
+    resp[5] = 6;
+    resp[6] = unitId;
+    resp[7] = function;
+    resp[8] = pdu[1];
+    resp[9] = pdu[2];
+    resp[10] = pdu[3];
+    resp[11] = pdu[4];
+    client.write(resp, 12);
+  } else {
+    sendException(client, transId, unitId, function, 1);
+  }
 }
 
 void ModbusTcpProxyLoop() {
-    WiFiClient client = modbusServer.available();
-    if (client) {
-        handleClient(client);
-        if (!client.connected()) {
-            client.stop();
-        }
+  WiFiClient client = modbusServer.available();
+  if (client) {
+    handleClient(client);
+    if (!client.connected()) {
+      client.stop();
     }
+  }
 }
 
 #endif
