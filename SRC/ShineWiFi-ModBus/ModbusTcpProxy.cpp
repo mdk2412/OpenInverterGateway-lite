@@ -1,5 +1,4 @@
 #include "ModbusTcpProxy.h"
-#if MODBUS_TCP_PROXY == 1
 #include <TLog.h>
 
 #ifdef ESP8266
@@ -8,13 +7,17 @@
 #include <WiFi.h>
 #endif
 
-static WiFiServer modbusServer(MODBUS_TCP_PORT);
+  static WiFiServer modbusServer(MODBUS_TCP_PORT);
+  bool modbusTcpProxyRunning = (MODBUS_TCP_PROXY == 1);
 
 extern Growatt Inverter;
 
 void ModbusTcpProxySetup() {
-  modbusServer.begin();
-  Log.println(F("Modbus TCP proxy started"));
+  if (modbusTcpProxyRunning) {
+    modbusServer.begin();
+    Log.print(F("Modbus TCP proxy started on port "));
+    Log.println(MODBUS_TCP_PORT);
+  }
 }
 
 static void sendException(WiFiClient &client, uint16_t transId, uint8_t unitId,
@@ -33,6 +36,8 @@ static void sendException(WiFiClient &client, uint16_t transId, uint8_t unitId,
 }
 
 static void handleClient(WiFiClient &client) {
+  Log.print(F("Modbus request from "));
+  Log.println(client.remoteIP());
   if (client.available() < 8) return;
 
   uint8_t header[7];
@@ -52,6 +57,8 @@ static void handleClient(WiFiClient &client) {
   uint8_t function = pdu[0];
 
   if (function == 3 || function == 4) {
+    Log.printf("Function %d start %u count %u\n", function,
+               (pdu[1] << 8) | pdu[2], (pdu[3] << 8) | pdu[4]);
     uint16_t start = (pdu[1] << 8) | pdu[2];
     uint16_t count = (pdu[3] << 8) | pdu[4];
     if (count == 0 || count > 125) {
@@ -112,13 +119,34 @@ static void handleClient(WiFiClient &client) {
 }
 
 void ModbusTcpProxyLoop() {
+  if (!modbusTcpProxyRunning) return;
   WiFiClient client = modbusServer.available();
   if (client) {
+    Log.print(F("Modbus client connected: "));
+    Log.println(client.remoteIP());
     handleClient(client);
     if (!client.connected()) {
       client.stop();
+      Log.println(F("Modbus client disconnected"));
     }
   }
 }
 
-#endif
+void ModbusTcpProxyStart() {
+  if (!modbusTcpProxyRunning) {
+    modbusServer.begin();
+    modbusTcpProxyRunning = true;
+    Log.print(F("Modbus TCP proxy started on port "));
+    Log.println(MODBUS_TCP_PORT);
+  }
+}
+
+void ModbusTcpProxyStop() {
+  if (modbusTcpProxyRunning) {
+    modbusServer.close();
+    modbusTcpProxyRunning = false;
+    Log.println(F("Modbus TCP proxy stopped"));
+  }
+}
+
+bool ModbusTcpProxyIsRunning() { return modbusTcpProxyRunning; }
