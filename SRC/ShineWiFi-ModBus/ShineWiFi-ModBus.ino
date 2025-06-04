@@ -461,6 +461,8 @@ void setup()
     httpServer.on("/metrics", sendMetrics);
     httpServer.on("/startAp", startConfigAccessPoint);
     httpServer.on("/reboot", rebootESP);
+    httpServer.on("/startModbusProxy", startModbusProxy);
+    httpServer.on("/stopModbusProxy", stopModbusProxy);
     #if ENABLE_MODBUS_COMMUNICATION == 1
     httpServer.on("/postCommunicationModbus", sendPostSite);
     httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
@@ -474,9 +476,7 @@ void setup()
     Inverter.InitProtocol();
     InverterReconnect();
     httpServer.begin();
-    #if MODBUS_TCP_PROXY == 1
-        ModbusTcpProxySetup();
-    #endif
+    ModbusTcpProxySetup();
 
     #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
         #ifdef ESP32
@@ -623,6 +623,16 @@ void rebootESP(void) {
     ESP.restart();
 }
 
+void startModbusProxy(void) {
+    ModbusTcpProxyStart();
+    httpServer.send(200, F("text/html"), F("<html><body>Modbus proxy started</body></html>"));
+}
+
+void stopModbusProxy(void) {
+    ModbusTcpProxyStop();
+    httpServer.send(200, F("text/html"), F("<html><body>Modbus proxy stopped</body></html>"));
+}
+
 #ifdef ENABLE_WEB_DEBUG
 void sendDebug(void) {
     httpServer.sendHeader("Location", "http://" + WiFi.localIP().toString() + ":8080/", true);
@@ -638,6 +648,27 @@ void sendMainPage(void)
 void sendPostSite(void)
 {
     httpServer.send(200, "text/html", SendPostSite_page);
+}
+
+#ifdef ESP8266
+static String ipToString(const IPAddress &ip) { return ip.toString(); }
+#else
+static String ipToString(const IPAddress &ip) { return ip.toString(); }
+#endif
+
+void logWifiStats() {
+    Log.print(F("WiFi RSSI: "));
+    Log.print(WiFi.RSSI());
+    Log.print(F(" dBm, IP: "));
+    Log.println(ipToString(WiFi.localIP()));
+}
+
+void logInverterData() {
+    DynamicJsonDocument doc(JSON_DOCUMENT_SIZE);
+    Inverter.CreateJson(doc, WiFi.macAddress(), Config.hostname);
+    String json;
+    serializeJson(doc, json);
+    Log.println(json);
 }
 
 void handlePostData()
@@ -851,9 +882,7 @@ void loop()
     #endif
 
     httpServer.handleClient();
-    #if MODBUS_TCP_PROXY == 1
-        ModbusTcpProxyLoop();
-    #endif
+    ModbusTcpProxyLoop();
 
     // Toggle green LED with 1 Hz (alive)
     // ------------------------------------------------------------
@@ -889,10 +918,13 @@ void loop()
                 #if SIMULATE_INVERTER == 1
                 if (1) // do it always
                 #else
+                Log.println(F("loop: calling Inverter.ReadData()"));
                 if (Inverter.ReadData()) // get new data from inverter
                 #endif
                 {
                     Log.println(F("ReadData() successful"));
+                    logInverterData();
+                    logWifiStats();
                     u16PacketCnt++;
                     u8RetryCounter = NUM_OF_RETRIES;
                     boolean mqttSuccess = false;
@@ -910,6 +942,7 @@ void loop()
                 else
                 {
                     Log.println(F("ReadData() NOT successful"));
+                    logWifiStats();
                     if (u8RetryCounter)
                     {
                         u8RetryCounter--;

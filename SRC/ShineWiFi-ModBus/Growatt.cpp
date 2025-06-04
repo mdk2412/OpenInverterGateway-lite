@@ -410,6 +410,57 @@ bool Growatt::ReadInputReg(uint16_t adr, uint32_t* result) {
 #endif
 }
 
+bool Growatt::ReadInputRegFrag(uint16_t adr, uint8_t size, uint16_t* result) {
+  /**
+   * @brief read 16b input register fragment
+   * @param adr address of the register
+   * @param size size of the register
+   * @param result pointer to the result
+   * @returns true if successful
+   */
+#if SIMULATE_INVERTER != 1
+  uint8_t res = Modbus.readInputRegisters(adr, size);
+  if (res == Modbus.ku8MBSuccess) {
+    for (int i = 0; i < size; i++) {
+      result[i] = Modbus.getResponseBuffer(i);
+    }
+    return true;
+  }
+  return false;
+#else
+  for (int i = 0; i < size; i++) {
+    result[i] = 0;
+  }
+  return true;
+#endif
+}
+
+bool Growatt::ReadInputRegFrag(uint16_t adr, uint8_t size, uint32_t* result) {
+  /**
+   * @brief read 32b input register fragment
+   * @param adr address of the register
+   * @param size size of the register
+   * @param result pointer to the result
+   * @returns true if successful
+   */
+#if SIMULATE_INVERTER != 1
+  uint8_t res = Modbus.readInputRegisters(adr, size * 2);
+  if (res == Modbus.ku8MBSuccess) {
+    for (int i = 0; i < size; i++) {
+      result[i] = (Modbus.getResponseBuffer(i * 2) << 16) +
+                  Modbus.getResponseBuffer(i * 2 + 1);
+    }
+    return true;
+  }
+  return false;
+#else
+  for (int i = 0; i < size; i++) {
+    result[i] = 0;
+  }
+  return true;
+#endif
+}
+
 double Growatt::roundByResolution(const double& value,
                                   const float& resolution) {
   double res = 1 / resolution;
