@@ -12,6 +12,7 @@
 #define MODBUS_TCP_PORT 502
 #endif
 
+
 void ModbusTcpProxySetup();
 void ModbusTcpProxyLoop();
 void ModbusTcpProxyStart();
