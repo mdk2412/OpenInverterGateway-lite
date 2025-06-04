@@ -7,8 +7,9 @@
 #include <WiFi.h>
 #endif
 
-  static WiFiServer modbusServer(MODBUS_TCP_PORT);
-  bool modbusTcpProxyRunning = (MODBUS_TCP_PROXY == 1);
+
+static WiFiServer modbusServer(MODBUS_TCP_PORT);
+bool modbusTcpProxyRunning = (MODBUS_TCP_PROXY == 1);
 
 extern Growatt Inverter;
 
