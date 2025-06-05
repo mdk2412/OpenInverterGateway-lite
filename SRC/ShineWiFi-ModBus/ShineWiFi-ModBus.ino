@@ -658,7 +658,7 @@ void handlePostData()
                 {
                     if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(), &u16Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 16b input register %ld"), httpServer.arg("reg").toInt(), u16Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 16b input register %ld"), u16Tmp, httpServer.arg("reg").toInt());
                     }
                     else
                     {
@@ -669,7 +669,7 @@ void handlePostData()
                 {
                     if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(), &u32Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 32b input register %ld"), httpServer.arg("reg").toInt(), u32Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 32b input register %ld"), u32Tmp, httpServer.arg("reg").toInt());
                     }
                     else
                     {
@@ -683,7 +683,7 @@ void handlePostData()
                 {
                     if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(), &u16Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 16b holding register %ld"), httpServer.arg("reg").toInt(), u16Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 16b holding register %ld"), u16Tmp, httpServer.arg("reg").toInt());
                     }
                     else
                     {
@@ -694,7 +694,7 @@ void handlePostData()
                 {
                     if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(), &u32Tmp))
                     {
-                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 32b holding register %ld"), httpServer.arg("reg").toInt(), u32Tmp);
+                        snprintf_P(msg, sizeof(msg), PSTR("Read value %d from 32b holding register %ld"), u32Tmp, httpServer.arg("reg").toInt());
                     }
                     else
                     {
