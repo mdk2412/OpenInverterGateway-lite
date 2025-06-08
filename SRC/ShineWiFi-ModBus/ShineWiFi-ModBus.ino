@@ -11,6 +11,11 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 
+// battery standby
+#if ENABLE_BATTERY_STANDBY == 1
+    #include "GrowattTLXH.h"
+#endif
+
 #ifdef ESP32
     #include <esp_task_wdt.h>
 #endif
@@ -787,6 +792,38 @@ void handleNTPSync() {
 }
 #endif
 
+// battery standby
+#if ENABLE_BATTERY_STANDBY == 1
+void batteryStandby() {
+    if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {   
+        //Log.print(F("SoC: "));
+        //Log.println(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value);
+        if (Inverter._Protocol.InputRegisters[P3000_PPV].value > WAKE_PV_THRESHOLD) {
+            if (Inverter.WriteHoldingReg(0, 3)) {
+                Log.println(F("battery woke up"));
+            }
+            else {   
+                Log.println(F("battery still sleeping!"));
+            }
+        }
+    }
+
+    if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
+        Log.print(F("SoC: "));
+        Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value); 
+        Log.println(" %");       
+        if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <= Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) && (Inverter._Protocol.InputRegisters[P3000_PPV].value < SLEEP_PV_THRESHOLD)){
+            if (Inverter.WriteHoldingReg(0, 2)) {
+                Log.println(F("battery put to sleep"));
+            }   
+            else {
+                Log.println(F("battery still awake!"));
+            }
+        }
+    }
+}
+#endif
+
 // -------------------------------------------------------
 // Main loop
 // -------------------------------------------------------
@@ -794,6 +831,10 @@ unsigned long ButtonTimer = 0;
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
+
+#if ENABLE_BATTERY_STANDBY == 1
+    unsigned long BatteryStandbyTimer = 0; // battery standby
+#endif
 
 void loop()
 {
@@ -925,5 +966,12 @@ void loop()
             // Handle MDNS requests on ESP8266
             MDNS.update();
         #endif
+    #endif
+
+    #if ENABLE_BATTERY_STANDBY == 1
+        if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
+            batteryStandby();                  
+            BatteryStandbyTimer = now;
+        }
     #endif
 }
