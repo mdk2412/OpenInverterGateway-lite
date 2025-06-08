@@ -31,12 +31,12 @@
 #define ENABLE_MODBUS_COMMUNICATION 1
 
 // Enable standby for battery to save power 
-// if SoC <= BDCDischargeStopSOC & PVTotalPower < SLEEP_PV_THRESHOLD battery is put to sleep 
-// if PVTotalPower > WAKE_PV_THRESHOLD battery is woken up
+// if SoC <= BDCDischargeStopSOC & PVTotalPower < sleep PV threshold (configure in WiFiManager) battery is put to sleep 
+// if PVTotalPower > wake PV threshold (configure in WiFiManager) battery is woken up
 #define ENABLE_BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000 // 60s default
-#define SLEEP_PV_THRESHOLD 20
-#define WAKE_PV_THRESHOLD 30
+//#define SLEEP_PV_THRESHOLD 20
+//#define WAKE_PV_THRESHOLD 30
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
 // TZ Info can be found at: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
