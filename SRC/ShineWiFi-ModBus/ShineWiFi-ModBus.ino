@@ -798,7 +798,7 @@ void handleNTPSync() {
     //Log.println(Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value);
     if ((Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1) && (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value == 1)) {
         int targetpowerrate;
-        targetpowerrate = (Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value + Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value - Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) / 25;
+        targetpowerrate = (Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value + Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value - Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) / 25;
         targetpowerrate = (targetpowerrate + Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
         targetpowerrate = std::clamp(targetpowerrate, 0, 100);
         //Log.print("Target power rate: ");
@@ -811,7 +811,7 @@ void handleNTPSync() {
                 Log.println(" %");
             }
             else {
-                Log.println(F("Failed to set AC charge power rate!)"));   
+                Log.println(F("Failed to set AC charge power rate!"));   
             }
         }
     }    
