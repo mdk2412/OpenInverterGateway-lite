@@ -11,6 +11,10 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 
+#if ACCHARGE_POWERRATE == 1
+    #include "GrowattTLXH.h"
+#endif
+
 #ifdef ESP32
     #include <esp_task_wdt.h>
 #endif
@@ -787,6 +791,33 @@ void handleNTPSync() {
 }
 #endif
 
+#if ACCHARGE_POWERRATE == 1
+    void acchargePowerrate() {
+    //Log.println("ACCharge power rate enabled");
+    //Log.println(Inverter._Protocol.InputRegisters[P3000_PRIORITY].value);
+    //Log.println(Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value);
+    if ((Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1) && (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value == 1)) {
+        int targetpowerrate;
+        targetpowerrate = (Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value + Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value - Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) / 25;
+        targetpowerrate = (targetpowerrate + Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
+        targetpowerrate = std::clamp(targetpowerrate, 0, 100);
+        //Log.print("Target power rate: ");
+        //Log.print(targetpowerrate);
+        //Log.println(" %");
+        if (Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value != targetpowerrate) {
+            if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
+                Log.print(F("Set AC charge power rate to "));
+                Log.print(targetpowerrate);
+                Log.println(" %");
+            }
+            else {
+                Log.println(F("Failed to set AC charge power rate!)"));   
+            }
+        }
+    }    
+}
+#endif
+
 // -------------------------------------------------------
 // Main loop
 // -------------------------------------------------------
@@ -794,6 +825,7 @@ unsigned long ButtonTimer = 0;
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
+unsigned long ACChargeTimer = 0;
 
 void loop()
 {
@@ -925,5 +957,13 @@ void loop()
             // Handle MDNS requests on ESP8266
             MDNS.update();
         #endif
+    #endif
+
+    #if ACCHARGE_POWERRATE == 1
+        if ((now - ACChargeTimer) > ACCHARGE_TIMER) 
+        {
+            acchargePowerrate();                  
+            ACChargeTimer = now;
+        }
     #endif
 }
