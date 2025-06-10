@@ -538,7 +538,8 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 #endif
 
   if (doc.overflowed()) {
-    Log.println(F("CreateJson: JsonDocument overflowed! Output will be truncated."));
+    Log.println(
+        F("CreateJson: JsonDocument overflowed! Output will be truncated."));
   }
 }
 
@@ -652,7 +653,8 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
 #endif  // SIMULATE_INVERTER
 
   if (doc.overflowed()) {
-    Log.println(F("CreateUIJson: JsonDocument overflowed! Output will be truncated."));
+    Log.println(
+        F("CreateUIJson: JsonDocument overflowed! Output will be truncated."));
   }
 }
 
