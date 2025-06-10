@@ -793,25 +793,19 @@ void handleNTPSync() {
 
 #if ACCHARGE_POWERRATE == 1
     void acchargePowerrate() {
-    //Log.println("ACCharge power rate enabled");
-    //Log.println(Inverter._Protocol.InputRegisters[P3000_PRIORITY].value);
-    //Log.println(Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value);
     if ((Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1) && (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value == 1)) {
         int targetpowerrate;
-        targetpowerrate = (Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value + Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value - Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) / 25;
-        targetpowerrate = (targetpowerrate + Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
-        targetpowerrate = std::clamp(targetpowerrate, 0, 100);
-        //Log.print("Target power rate: ");
-        //Log.print(targetpowerrate);
-        //Log.println(" %");
-        if (Inverter._Protocol.InputRegisters[P3000_BDC_CHARGE_P_RATE].value != targetpowerrate) {
+        targetpowerrate = ((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) + (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) - (Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value * 0.1)) / 25;
+        //targetpowerrate = (targetpowerrate + Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
+        targetpowerrate = std::clamp((targetpowerrate - 1), 0, 100); // 1 % offset
+        if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value != targetpowerrate) {
             if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
-                Log.print(F("Set AC charge power rate to "));
+                Log.print(F("Setting AC charge power rate to "));
                 Log.print(targetpowerrate);
                 Log.println(" %");
             }
             else {
-                Log.println(F("Failed to set AC charge power rate!"));   
+                Log.println(F("Setting AC charge power rate failed!"));   
             }
         }
     }    

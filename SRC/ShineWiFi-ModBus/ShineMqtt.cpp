@@ -60,7 +60,7 @@ bool ShineMqtt::mqttReconnect() {
     Log.println(this->mqttconfig.user.c_str());
     Log.print(F("MqttTopic: "));
     Log.println(this->mqttconfig.topic.c_str());
-    Log.print(F("Attempting MQTT connection..."));
+    Log.print(F("Attempting MQTT connection... "));
 
     // Run only once every 5 seconds
     this->previousConnectTryMillis = millis();
@@ -96,7 +96,7 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
     return false;
   }
 
-  Log.print(F("publish MQTT message... "));
+  Log.print(F("Publishing MQTT message... "));
   if (this->mqttclient.connected()) {
     bool res = this->mqttclient.publish(this->mqttconfig.topic.c_str(),
                                         jsonString.c_str(), true);
@@ -111,7 +111,7 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
 }
 
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
-  Log.print(F("publish MQTT message... "));
+  Log.print(F("Publishing MQTT message... "));
 
   if (topic.isEmpty()) {
     topic = this->mqttconfig.topic;
