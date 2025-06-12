@@ -226,8 +226,8 @@ void loadConfig()
 #endif
     Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
 #if ENABLE_BATTERY_STANDBY == 1
-    Config.sleep_pv_threshold = prefs.getString(ConfigFiles.sleep_pv_threshold, "20");
-    Config.wake_pv_threshold = prefs.getString(ConfigFiles.wake_pv_threshold, "30");
+    Config.sleep_pv_threshold = prefs.getString(ConfigFiles.sleep_pv_threshold, "10");
+    Config.wake_pv_threshold = prefs.getString(ConfigFiles.wake_pv_threshold, "40");
 #endif    
     Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
@@ -529,8 +529,8 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
 #endif
     customWMParams.syslog_ip = new WiFiManagerParameter("syslogip", "Syslog Server IP (leave blank for none)", Config.syslog_ip.c_str(), 15);
 #if ENABLE_BATTERY_STANDBY == 1
-    customWMParams.sleep_pv_threshold = new WiFiManagerParameter("sleeppvthreshold", "sleep pv threshold", Config.sleep_pv_threshold.c_str(), 6);
-    customWMParams.wake_pv_threshold = new WiFiManagerParameter("wakepvthreshold", "wake pv threshold", Config.wake_pv_threshold.c_str(), 6);
+    customWMParams.sleep_pv_threshold = new WiFiManagerParameter("sleeppvthreshold", "sleep pv threshold", Config.sleep_pv_threshold.c_str(), 4);
+    customWMParams.wake_pv_threshold = new WiFiManagerParameter("wakepvthreshold", "wake pv threshold", Config.wake_pv_threshold.c_str(), 4);
 #endif    
     wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
@@ -825,36 +825,33 @@ void handleNTPSync() {
 // battery standby
 #if ENABLE_BATTERY_STANDBY == 1
 void batteryStandby() {
-    Log.print(F("Configured sleep PV threshold: ")); 
-    Log.print(Config.sleep_pv_threshold);
-    Log.println(" V");
-    Log.print(F("Configured wake PV threshold: ")); 
-    Log.print(Config.wake_pv_threshold);
-    Log.println(" V");
+    // Log.print(F("Configured sleep PV threshold: ")); 
+    // Log.print(Config.sleep_pv_threshold);
+    // Log.println(" V");
+    // Log.print(F("Configured wake PV threshold: ")); 
+    // Log.print(Config.wake_pv_threshold);
+    // Log.println(" V");
     if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-        Log.print(F("SoC: "));
-        Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value); 
-        Log.println(" %"); 
-        if (Inverter._Protocol.InputRegisters[P3000_PPV].value > (uint)Config.wake_pv_threshold.c_str()) {
+        if (Inverter._Protocol.InputRegisters[P3000_PPV].value > (uint8)Config.wake_pv_threshold.c_str()) {
             if (Inverter.WriteHoldingReg(0, 3)) {
-                Log.println(F("battery woke up"));
+                Log.println(F("Battery woke up"));
             }
             else {   
-                Log.println(F("battery still sleeping!"));
+                Log.println(F("Battery still sleeping!"));
             }
         }
     }
 
     if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-        Log.print(F("SoC: "));
-        Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value); 
-        Log.println(" %");     
-        if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <= Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) && (Inverter._Protocol.InputRegisters[P3000_PPV].value < (uint)Config.sleep_pv_threshold.c_str())){
+        // Log.print(F("SoC: "));
+        // Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value); 
+        // Log.println(" %");     
+        if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <= Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) && (Inverter._Protocol.InputRegisters[P3000_PPV].value < (uint8)Config.sleep_pv_threshold.c_str())){
             if (Inverter.WriteHoldingReg(0, 2)) {
-                Log.println(F("battery put to sleep"));
+                Log.println(F("Battery put to sleep"));
             }   
             else {
-                Log.println(F("battery still awake!"));
+                Log.println(F("Battery still awake!"));
             }
         }
     }
@@ -898,7 +895,7 @@ void loop()
             {
                 btnPressed++;
             }
-            Log.print(F("Btn pressed"));
+            Log.print(F("Button pressed"));
         }
         else
         {
