@@ -798,7 +798,7 @@ void acchargePowerrate() {
   if ((Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1) &&
       (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
        1)) {
-    int targetpowerrate;
+    uint8 targetpowerrate;
     targetpowerrate =
         ((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
          (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) -
