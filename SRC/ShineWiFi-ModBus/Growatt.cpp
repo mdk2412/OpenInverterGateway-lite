@@ -129,7 +129,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
   // read each fragment separately
   for (; i < _Protocol.InputFragmentCount; i++) {
 #ifdef DEBUG_MODBUS_OUTPUT
-    Log.printf("Modbus: read Segment from 0x%02X with len: %d ...",
+    Log.printf("Modbus: reading segment from 0x%02X with lenght %d ...",
                _Protocol.InputReadFragments[i].StartAddress,
                _Protocol.InputReadFragments[i].FragmentSize);
 #endif
