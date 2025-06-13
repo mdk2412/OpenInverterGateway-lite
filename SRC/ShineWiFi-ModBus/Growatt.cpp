@@ -129,7 +129,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
   // read each fragment separately
   for (; i < _Protocol.InputFragmentCount; i++) {
 #ifdef DEBUG_MODBUS_OUTPUT
-    Log.printf("Modbus: reading segment from 0x%02X with length %d ... ",
+    Log.printf("Modbus: reading segment from 0x%02X with lenght %d ...",
                _Protocol.InputReadFragments[i].StartAddress,
                _Protocol.InputReadFragments[i].FragmentSize);
 #endif
@@ -253,9 +253,9 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   }
   _GotData = retryCnt < maxRetries;
   if (_GotData) {
-    Log.print(F("Reading Modbus data successful after "));
+    Log.print(F("ReadData() successful after "));
   } else {
-    Log.print(F("Reading Modbus data not successful after "));
+    Log.print(F("ReadData() NOT successful after "));
   }
   Log.print(retryCnt);
   Log.print(F(" retries in "));
@@ -295,17 +295,14 @@ bool Growatt::ReadHoldingReg(uint16_t adr, uint16_t* result) {
  * @param result pointer to the result
  * @returns true if successful
  */
-#if SIMULATE_INVERTER != 1
+
   uint8_t res = Modbus.readHoldingRegisters(adr, 1);
   if (res == Modbus.ku8MBSuccess) {
     *result = Modbus.getResponseBuffer(0);
     return true;
   }
   return false;
-#else
-  *result = 0;
-  return true;
-#endif
+
 }
 
 bool Growatt::ReadHoldingReg(uint16_t adr, uint32_t* result) {
@@ -539,7 +536,8 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 
   if (doc.overflowed()) {
     Log.println(
-        F("CreateJson: JsonDocument overflowed! Output will be truncated."));
+        F("WARN CreateJson: JsonDocument overflowed! Output will be "
+          "truncated."));
   }
 }
 
@@ -552,7 +550,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   const char* priorityStr[] = {"(Load First)", "(Battery First)",
                                "(Grid First)"};
   const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
-  const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
+  const char* bdcModeStr[] = {"(idle)", "(charging)", "(discharging)"};
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
   if (!Hostname.isEmpty()) {
@@ -654,7 +652,8 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
 
   if (doc.overflowed()) {
     Log.println(
-        F("CreateUIJson: JsonDocument overflowed! Output will be truncated."));
+        F("WARN CreateUIJson: JsonDocument overflowed! Output will be "
+          "truncated."));
   }
 }
 
@@ -890,7 +889,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 
   if (type == "32b") {
     return std::make_tuple(
-        false, "Writing to double (32b) registers is currently not supported");
+        false, "writing to double (32b) registers is not currently supported");
   }
 
   if (type != "16b") {
@@ -905,7 +904,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 
   if (registerType == "I") {
     return std::make_tuple(false,
-                           "It is not possible to write into input registers");
+                           "it is not possible to write into input registers");
   }
 
   if (registerType != "H") {
@@ -922,7 +921,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 
 #if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(id, value)) {
-    return std::make_tuple(false, "Failed to write into holding register");
+    return std::make_tuple(false, "failed to write holding register");
   }
 #endif
 
