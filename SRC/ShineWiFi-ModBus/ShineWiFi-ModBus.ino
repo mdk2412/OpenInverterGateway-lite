@@ -803,7 +803,7 @@ void acchargePowerrate() {
         ((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
          (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) -
          (Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value * 0.1)) /
-        25;
+        ACCHARGE_MAXPOWER / 100;
     // targetpowerrate = (targetpowerrate +
     // Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
     targetpowerrate = std::clamp((targetpowerrate - 1), 0, 100);  // 1 % offset

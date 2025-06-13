@@ -33,6 +33,7 @@
 // AC Charge power rate
 #define ACCHARGE_POWERRATE 1
 #define ACCHARGE_TIMER 2000 // 2s default
+#define ACCHARGE_MAXPOWER 2500 // maximum output power of inverter in W
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
 // TZ Info can be found at: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
