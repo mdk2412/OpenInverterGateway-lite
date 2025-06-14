@@ -96,7 +96,7 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
     return false;
   }
 
-  Log.print(F("publish MQTT message... "));
+  Log.print(F("Publishing MQTT message... "));
   if (this->mqttclient.connected()) {
     bool res = this->mqttclient.publish(this->mqttconfig.topic.c_str(),
                                         jsonString.c_str(), true);
@@ -111,7 +111,7 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
 }
 
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
-  Log.print(F("publish MQTT message... "));
+  Log.print(F("Publishing MQTT message... "));
 
   if (topic.isEmpty()) {
     topic = this->mqttconfig.topic;
