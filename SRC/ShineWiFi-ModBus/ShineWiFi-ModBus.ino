@@ -798,7 +798,7 @@ void acchargePowerrate() {
   if ((Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1) &&
       (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
        1)) {
-    uint8 targetpowerrate;
+    int targetpowerrate;
     targetpowerrate =
         ((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
          (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) -
@@ -806,8 +806,8 @@ void acchargePowerrate() {
         ACCHARGE_MAXPOWER / 100;
     // targetpowerrate = (targetpowerrate +
     // Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
-    //targetpowerrate = std::clamp((targetpowerrate - 1), 0, 100);  // 1 % offset
-    targetpowerrate = std::floor(targetpowerrate, 0, 100);
+    targetpowerrate = std::floor(targetpowerrate);
+    targetpowerrate = std::clamp(targetpowerrate, 0, 100);    
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
       if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
