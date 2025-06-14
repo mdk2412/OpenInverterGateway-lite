@@ -820,7 +820,7 @@ void loop()
             {
                 btnPressed++;
             }
-            Log.print(F("Btn pressed"));
+            Log.print(F("Button pressed"));
         }
         else
         {
