@@ -68,9 +68,9 @@ const char MAIN_page[] PROGMEM = R"=====(
         <a href="./status" class="linkButton">JSON</a>
         <a href="./uiStatus" class="linkButton">UI JSON</a>
         <a href="./metrics" class="linkButton">Metrics</a>
-        <a href="./debug" class="linkButton">Log</a>
+        <a href="./debug" class="linkButton">Log</a><br>
         <a onClick="return confirm('Start Config AP?');" href="./startAp" class="linkButton yellow">Start Config AP</a>
-        <a onClick="return confirm('Reboot?');" href="./reboot" class="linkButton yellow">Reboot</a>
+        <a onClick="return confirm('Reboot?');" href="./reboot" class="linkButton yellow">Reboot</a><br>
         <a href="./postCommunicationModbus" class="linkButton red">RW Modbus</a>
     </div>
 </body>
