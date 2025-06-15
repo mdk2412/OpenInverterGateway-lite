@@ -22,10 +22,10 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   Log.println(this->mqttconfig.topic);
 
   this->mqttclient.setServer(this->mqttconfig.server.c_str(), intPort);
-  this->mqttclient.setCallback(
-      [this](char* topic, byte* payload, unsigned int length) {
-        this->onMqttMessage(topic, payload, length);
-      });
+  // this->mqttclient.setCallback(
+  //     [this](char* topic, byte* payload, unsigned int length) {
+  //       this->onMqttMessage(topic, payload, length);
+  //     });
 }
 
 String ShineMqtt::getId() {
@@ -71,12 +71,12 @@ bool ShineMqtt::mqttReconnect() {
                                  "{\"InverterStatus\": -1 }")) {
       Log.println(F("connected"));
 
-      String commandTopic = this->mqttconfig.topic + "/command/#";
-      if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
-        Log.println("Subscribed to " + commandTopic);
-      } else {
-        Log.println("Failed to subscribe to " + commandTopic);
-      }
+      // String commandTopic = this->mqttconfig.topic + "/command/#";
+      // if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
+      //   Log.println("Subscribed to " + commandTopic);
+      // } else {
+      //   Log.println("Failed to subscribe to " + commandTopic);
+      // }
       return true;
     } else {
       Log.print(F("failed, rc="));
@@ -135,24 +135,24 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   }
 }
 
-void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  StaticJsonDocument<1024> req;
-  StaticJsonDocument<1024> res;
-  String strTopic(topic);
+// void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
+//   StaticJsonDocument<1024> req;
+//   StaticJsonDocument<1024> res;
+//   String strTopic(topic);
 
-  Log.print(F("MQTT message arrived ["));
-  Log.print(strTopic);
-  Log.print(F("] "));
+//   Log.print(F("MQTT message arrived ["));
+//   Log.print(strTopic);
+//   Log.print(F("] "));
 
-  String command =
-      strTopic.substring(String(this->mqttconfig.topic + "/command/").length());
-  if (command.isEmpty()) {
-    return;
-  }
+//   String command =
+//       strTopic.substring(String(this->mqttconfig.topic + "/command/").length());
+//   if (command.isEmpty()) {
+//     return;
+//   }
 
-  this->inverter.HandleCommand(command, payload, length, req, res);
-  mqttPublish(res, this->mqttconfig.topic + "/result");
-}
+//   this->inverter.HandleCommand(command, payload, length, req, res);
+//   mqttPublish(res, this->mqttconfig.topic + "/result");
+// }
 
 void ShineMqtt::loop() { this->mqttclient.loop(); }
 #endif
