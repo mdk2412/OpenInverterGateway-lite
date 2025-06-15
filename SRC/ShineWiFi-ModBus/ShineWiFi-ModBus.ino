@@ -800,18 +800,11 @@ void acchargePowerrate() {
        1)) {
     int targetpowerrate;
     targetpowerrate =
-        ((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
-         (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) -
-         (Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value * 0.1)) /
-        (int)ACCHARGE_MAXPOWER / 100;
-    Log.println(ACCHARGE_MAXPOWER);
-    Log.println(targetpowerrate);
-    // targetpowerrate = (targetpowerrate +
-    // Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value) / 2;
-    targetpowerrate = std::floor(targetpowerrate);
-    Log.println(targetpowerrate);
-    targetpowerrate = std::clamp(targetpowerrate, 0, 100);
-    Log.println(targetpowerrate);    
+         (((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
+          (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) -
+          (Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value * 0.1)) /
+           ACCHARGE_MAXPOWER) * 100;
+    targetpowerrate = std::clamp((targetpowerrate - ACCHARGE_OFFSET), 0, 100); 
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
       if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
