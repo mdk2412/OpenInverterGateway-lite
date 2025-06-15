@@ -71,12 +71,12 @@ bool ShineMqtt::mqttReconnect() {
                                  "{\"InverterStatus\": -1 }")) {
       Log.println(F("connected"));
 
-      String commandTopic = this->mqttconfig.topic + "/command/#";
-      if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
-        Log.println("Subscribed to " + commandTopic);
-      } else {
-        Log.println("Failed to subscribe to " + commandTopic);
-      }
+      // String commandTopic = this->mqttconfig.topic + "/command/#";
+      // if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
+      //   Log.println("Subscribed to " + commandTopic);
+      // } else {
+      //   Log.println("Failed to subscribe to " + commandTopic);
+      // }
       return true;
     } else {
       Log.print(F("failed, rc="));
