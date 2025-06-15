@@ -11,11 +11,7 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 
-#if ENABLE_BATTERY_STANDBY == 1
-#include "GrowattTLXH.h"
-#endif
-
-#if ACCHARGE_POWERRATE == 1
+#if (ENABLE_BATTERY_STANDBY == 1 || ACCHARGE_POWERRATE == 1)
 #include "GrowattTLXH.h"
 #endif
 
