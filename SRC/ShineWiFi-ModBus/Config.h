@@ -36,7 +36,8 @@
 #define ENABLE_BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000 // 60s default
 
-// AC Charge power rate
+// AC charge power rate
+// If there are other inverters in the system only load the surplus via AC charging
 #define ACCHARGE_POWERRATE 1
 #define ACCHARGE_TIMER 2000 // 2s default
 #define ACCHARGE_MAXPOWER 2500 // maximum output power of inverter in W
