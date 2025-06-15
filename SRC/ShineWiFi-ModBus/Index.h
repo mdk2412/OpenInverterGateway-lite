@@ -71,6 +71,9 @@ const char MAIN_page[] PROGMEM = R"=====(
         <a href="./debug" class="linkButton">Log</a><br>
         <a onClick="return confirm('Start Config AP?');" href="./startAp" class="linkButton yellow">Start Config AP</a>
         <a onClick="return confirm('Reboot?');" href="./reboot" class="linkButton yellow">Reboot</a><br>
+        <a onClick="return confirm('Set priority to load first?');" href="./loadfirst" class="linkButton red">Load First</a>
+        <a onClick="return confirm('Set priority to battery first?');" href="./batteryfirst" class="linkButton red">Battery First</a>
+        <a onClick="return confirm('Set priority to grid first?');" href="./gridfirst" class="linkButton red">Grid First</a>
         <a href="./postCommunicationModbus" class="linkButton red">RW Modbus</a>
     </div>
 </body>

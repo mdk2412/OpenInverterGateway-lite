@@ -482,6 +482,9 @@ void setup() {
   httpServer.on("/metrics", sendMetrics);
   httpServer.on("/startAp", startConfigAccessPoint);
   httpServer.on("/reboot", rebootESP);
+  httpServer.on("/loadfirst", loadFirst);
+  httpServer.on("/batteryfirst", batteryFirst);
+  httpServer.on("/gridfirst", gridFirst);
 #if ENABLE_MODBUS_COMMUNICATION == 1
   httpServer.on("/postCommunicationModbus", sendPostSite);
   httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
@@ -665,6 +668,48 @@ void rebootESP(void) {
                   F("<html><body>Rebooting...</body></html>"));
   delay(2000);
   ESP.restart();
+}
+
+void loadFirst(void) {
+  httpServer.send(
+      200, F("text/html"),
+      F("<html><body>Setting priority mode to load first...</body></html>"));
+  uint16_t mode_low = 8192;
+  uint16_t mode_high = 5947;
+  if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
+      (Inverter.WriteHoldingReg(3041, mode_high))) {
+    Log.println(F("Setting priority mode to load first"));
+  } else {
+    Log.println(F("Setting priority mode to load first failed!"));
+  }
+}
+
+void batteryFirst(void) {
+  httpServer.send(
+      200, F("text/html"),
+      F("<html><body>Setting priority mode to battery first...</body></html>"));
+  uint16_t mode_low = 40960;
+  uint16_t mode_high = 5947;
+  if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
+      (Inverter.WriteHoldingReg(3041, mode_high))) {
+    Log.println(F("Setting priority mode to battery first"));
+  } else {
+    Log.println(F("Setting priority mode to battery first failed!"));
+  }
+}
+
+void gridFirst(void) {
+  httpServer.send(
+      200, F("text/html"),
+      F("<html><body>Setting priority mode to grid first...</body></html>"));
+  uint16_t mode_low = 49152;
+  uint16_t mode_high = 5947;
+  if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
+      (Inverter.WriteHoldingReg(3041, mode_high))) {
+    Log.println(F("Setting priority mode to grid first"));
+  } else {
+    Log.println(F("Setting priority mode to grid first failed!"));
+  }
 }
 
 #ifdef ENABLE_WEB_DEBUG
