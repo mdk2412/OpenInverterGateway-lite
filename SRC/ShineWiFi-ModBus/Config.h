@@ -30,6 +30,12 @@
 // Enable direct modbus read/write support via the WebGUI. Enabling this is a potential security issue.
 #define ENABLE_MODBUS_COMMUNICATION 1
 
+// AC Charge power rate
+#define ACCHARGE_POWERRATE 1
+#define ACCHARGE_TIMER 2000 // 2s default
+#define ACCHARGE_MAXPOWER 2500 // maximum output power of inverter in W
+#define ACCHARGE_OFFSET 2 // offset in % to be subtracted from target power rate to ensure 0 power draw from grid
+
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
 // TZ Info can be found at: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 #define DEFAULT_NTP_SERVER "europe.pool.ntp.org"
