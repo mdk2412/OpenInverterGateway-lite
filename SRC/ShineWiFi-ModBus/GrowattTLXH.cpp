@@ -482,7 +482,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
 
   Log.print(F("init_growattTLXH: "));
   Log.print(Protocol.InputRegisterCount);
-  Log.print(F("input registers, ")); 
+  Log.print(F(" input registers, ")); 
   Log.print(Protocol.HoldingRegisterCount);
   Log.println(F(" holding registers "));
   
