@@ -11,6 +11,10 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 
+#if ENABLE_BATTERY_STANDBY == 1
+#include "GrowattTLXH.h"
+#endif
+
 #if ACCHARGE_POWERRATE == 1
 #include "GrowattTLXH.h"
 #endif
@@ -91,6 +95,10 @@ struct {
   WiFiManagerParameter* mqtt_pwd = NULL;
 #endif
   WiFiManagerParameter* syslog_ip = NULL;
+#if ENABLE_BATTERY_STANDBY == 1
+  WiFiManagerParameter* sleep_pv_threshold = NULL;
+  WiFiManagerParameter* wake_pv_threshold = NULL;
+#endif
 } customWMParams;
 
 static const struct {
@@ -108,6 +116,10 @@ static const struct {
 #endif
   const char* syslog_ip = "/syslogip";
   const char* force_ap = "/forceap";
+#if ENABLE_BATTERY_STANDBY == 1
+  const char* sleep_pv_threshold = "/sleeppvthreshold";
+  const char* wake_pv_threshold = "/wakepvthreshold";
+#endif
 } ConfigFiles;
 
 struct {
@@ -120,6 +132,10 @@ struct {
   MqttConfig mqtt;
 #endif
   String syslog_ip;
+#if ENABLE_BATTERY_STANDBY == 1
+  String sleep_pv_threshold;
+  String wake_pv_threshold;
+#endif
   bool force_ap;
 } Config;
 
@@ -209,6 +225,10 @@ void loadConfig() {
   Config.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
 #endif
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
+#if ENABLE_BATTERY_STANDBY == 1
+  Config.sleep_pv_threshold = prefs.getString(ConfigFiles.sleep_pv_threshold, "10");
+  Config.wake_pv_threshold = prefs.getString(ConfigFiles.wake_pv_threshold, "40");
+#endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
 
@@ -226,6 +246,10 @@ void saveConfig() {
   prefs.putString(ConfigFiles.mqtt_pwd, Config.mqtt.pwd);
 #endif
   prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
+#if ENABLE_BATTERY_STANDBY == 1
+  prefs.putString(ConfigFiles.sleep_pv_threshold, Config.sleep_pv_threshold);
+  prefs.putString(ConfigFiles.wake_pv_threshold, Config.wake_pv_threshold);
+#endif
 }
 
 void saveParamCallback() {
@@ -247,6 +271,10 @@ void saveParamCallback() {
   Config.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
 #endif
   Config.syslog_ip = customWMParams.syslog_ip->getValue();
+#if ENABLE_BATTERY_STANDBY == 1
+  Config.sleep_pv_threshold = customWMParams.sleep_pv_threshold->getValue();
+  Config.wake_pv_threshold = customWMParams.wake_pv_threshold->getValue();
+#endif
 
   saveConfig();
 
@@ -505,6 +533,14 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   customWMParams.syslog_ip = new WiFiManagerParameter(
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
+#if ENABLE_BATTERY_STANDBY == 1
+  customWMParams.sleep_pv_threshold =
+      new WiFiManagerParameter("sleeppvthreshold", "sleep pv threshold",
+                               Config.sleep_pv_threshold.c_str(), 4);
+  customWMParams.wake_pv_threshold =
+      new WiFiManagerParameter("wakepvthreshold", "wake pv threshold",
+                               Config.wake_pv_threshold.c_str(), 4);
+#endif
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
   wm.addParameter(new WiFiManagerParameter(
@@ -523,6 +559,8 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
+  wm.addParameter(customWMParams.sleep_pv_threshold);
+  wm.addParameter(customWMParams.wake_pv_threshold);
 
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -793,6 +831,46 @@ void handleNTPSync() {
 }
 #endif
 
+// battery standby
+#if ENABLE_BATTERY_STANDBY == 1
+void batteryStandby() {
+  // Log.print(F("Configured sleep PV threshold: "));
+  // Log.print(Config.sleep_pv_threshold);
+  // Log.println(" V");
+  // Log.print(F("Configured wake PV threshold: "));
+  // Log.print(Config.wake_pv_threshold);
+  // Log.println(" V");
+  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
+    if (Inverter._Protocol.InputRegisters[P3000_PPV].value >
+        (uint)Config.wake_pv_threshold.c_str()) {
+      if (Inverter.WriteHoldingReg(0, 3)) {
+        Log.println(F("Battery woke up"));
+      } else {
+        Log.println(F("Battery still sleeping!"));
+      }
+    }
+  }
+
+  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
+    // Log.print(F("SoC: "));
+    // Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value);
+    // Log.println(" %");
+    if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
+         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+             .value) &&
+        (Inverter._Protocol.InputRegisters[P3000_PPV].value <
+         (uint)Config.sleep_pv_threshold.c_str())) {
+      if (Inverter.WriteHoldingReg(0, 2)) {
+        Log.println(F("Battery put to sleep"));
+      } else {
+        Log.println(F("Battery still awake!"));
+      }
+    }
+  }
+}
+#endif
+
+// ac charge power rate
 #if ACCHARGE_POWERRATE == 1
 void acchargePowerrate() {
   if ((Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1) &&
@@ -828,7 +906,12 @@ unsigned long ButtonTimer = 0;
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
-unsigned long ACChargeTimer = 0;
+#if ENABLE_BATTERY_STANDBY == 1
+    unsigned long BatteryStandbyTimer = 0; // battery standby
+#endif
+#if ACCHARGE_POWERRATE == 1
+unsigned long ACChargeTimer = 0; // ac charge power rate
+#endif
 
 void loop() {
 #if ENABLE_DOUBLE_RESET
@@ -943,6 +1026,13 @@ void loop() {
   // Handle MDNS requests on ESP8266
   MDNS.update();
 #endif
+#endif
+
+#if ENABLE_BATTERY_STANDBY == 1
+  if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
+    batteryStandby();
+    BatteryStandbyTimer = now;
+  }
 #endif
 
 #if ACCHARGE_POWERRATE == 1

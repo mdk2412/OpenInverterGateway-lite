@@ -30,6 +30,12 @@
 // Enable direct modbus read/write support via the WebGUI. Enabling this is a potential security issue.
 #define ENABLE_MODBUS_COMMUNICATION 1
 
+// Enable standby for battery to save power 
+// if SoC <= BDCDischargeStopSOC & PVTotalPower < sleep PV threshold (configure in WiFiManager) battery is put to sleep 
+// if PVTotalPower > wake PV threshold (configure in WiFiManager) battery is woken up
+#define ENABLE_BATTERY_STANDBY 1
+#define BATTERY_STANDBY_TIMER 60000 // 60s default
+
 // AC Charge power rate
 #define ACCHARGE_POWERRATE 1
 #define ACCHARGE_TIMER 2000 // 2s default
