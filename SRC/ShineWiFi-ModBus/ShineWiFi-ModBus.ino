@@ -667,43 +667,52 @@ void rebootESP(void) {
 }
 
 void loadFirst(void) {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Setting priority mode to load first...</body></html>"));
   uint16_t mode_low = 8192;
   uint16_t mode_high = 5947;
   if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
       (Inverter.WriteHoldingReg(3041, mode_high))) {
+    httpServer.send(
+        200, F("text/html"),
+        F("<html><body>Setting priority mode to load first</body></html>"));
     Log.println(F("Setting priority mode to load first"));
   } else {
+    httpServer.send(200, F("text/html"),
+                    F("<html><body>Setting priority mode to load first "
+                      "failed!</body></html>"));
     Log.println(F("Setting priority mode to load first failed!"));
   }
 }
 
 void batteryFirst(void) {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Setting priority mode to battery first...</body></html>"));
   uint16_t mode_low = 40960;
   uint16_t mode_high = 5947;
   if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
       (Inverter.WriteHoldingReg(3041, mode_high))) {
+    httpServer.send(
+        200, F("text/html"),
+        F("<html><body>Setting priority mode to battery first</body></html>"));
     Log.println(F("Setting priority mode to battery first"));
   } else {
+    httpServer.send(200, F("text/html"),
+                    F("<html><body>Setting priority mode to battery first "
+                      "failed!</body></html>"));
     Log.println(F("Setting priority mode to battery first failed!"));
   }
 }
 
 void gridFirst(void) {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Setting priority mode to grid first...</body></html>"));
   uint16_t mode_low = 49152;
   uint16_t mode_high = 5947;
   if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
       (Inverter.WriteHoldingReg(3041, mode_high))) {
+    httpServer.send(
+        200, F("text/html"),
+        F("<html><body>Setting priority mode to grid first</body></html>"));
     Log.println(F("Setting priority mode to grid first"));
   } else {
+    httpServer.send(200, F("text/html"),
+                    F("<html><body>Setting priority mode to grid first "
+                      "failed!</body></html>"));
     Log.println(F("Setting priority mode to grid first failed!"));
   }
 }
