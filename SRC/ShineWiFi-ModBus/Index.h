@@ -14,7 +14,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             margin: 0 auto;
             font-family: Arial;
         }
-        h2 {
+        h1 {
             font-size: 2.5rem;
             text-align: center;
         }
@@ -63,7 +63,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     </style>
 </head>
 <body>
-    <h2>Growatt MIN TL-XH</h2>
+    <h1>Growatt MIN TL-XH</h1>
     <div class="linkButtonBar">
         <a href="./status" class="linkButton">JSON</a>
         <a href="./uiStatus" class="linkButton">UI JSON</a>
@@ -88,7 +88,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
   <title>Growatt MIN TL-XH</title>
 </head>
 <body>
-  <h2>POST Communication Modbus</h2>
+  <h1>POST Communication Modbus</h1>
   <form action="/postCommunicationModbus_p" method="POST">
     <input type="text" name="reg" placeholder="Register ID"><br>
     <input type="text" name="val" placeholder="Input Value (16-bit only!)"><br>
