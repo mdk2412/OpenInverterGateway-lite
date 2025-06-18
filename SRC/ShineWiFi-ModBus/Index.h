@@ -18,6 +18,9 @@ const char MAIN_page[] PROGMEM = R"=====(
             font-size: 2.5rem;
             text-align: center;
         }
+        h3 {
+            font-family: 'Times New Roman', sans-serif;
+        }
         div {
             font-size: 1rem;
             padding: 10px 0px 10px 0px;
@@ -64,39 +67,39 @@ const char MAIN_page[] PROGMEM = R"=====(
 </head>
 <body>
     <h2>Growatt MIN TL-XH</h2>
-<h3>Output Power: <span id="outputPower">Lade...</span></h3>
-<h3>Priority Mode: <span id="priorityMode">Lade...</span></h3>
-<h3>PV Total Power: <span id="pvTotalPower">Lade...</span></h3>
-<h3>State of Charge: <span id="stateofCharge">Lade...</span></h3>
+<h3>Output Power: <span id="outputPower">Loading...</span></h3>
+<h3>Priority Mode: <span id="priorityMode">Loading...</span></h3>
+<h3>PV Total Power: <span id="pvTotalPower">Loading...</span></h3>
+<h3>State of Charge: <span id="stateofCharge">Loading...</span></h3>
 
 <script>
-  async function ladeDaten() {
+  async function loadData() {
     try {
       const response = await fetch("/status");
-      const daten = await response.json();
+      const data = await response.json();
 
-      document.getElementById("outputPower").textContent = daten.OutputPower + " W";
+      document.getElementById("outputPower").textContent = data.OutputPower + " W";
       const priorityMap = {
       0: "Load First",
       1: "Battery First",
       2: "Grid First"
       };
 
-      document.getElementById("priorityMode").textContent = priorityMap[daten.Priority] || "Unbekannt";
+      document.getElementById("priorityMode").textContent = priorityMap[data.Priority] || "Unknown";
 
-      document.getElementById("pvTotalPower").textContent = daten.PVTotalPower + " V";
-      document.getElementById("stateofCharge").textContent = daten.BDCStateOfCharge + " %";
+      document.getElementById("pvTotalPower").textContent = data.PVTotalPower + " V";
+      document.getElementById("stateofCharge").textContent = data.BDCStateOfCharge + " %";
     } catch (err) {
-      console.error("Fehler beim Abrufen der Daten:", err);
-      document.getElementById("outputPower").textContent = "Fehler";
-      document.getElementById("priorityMode").textContent = "Fehler";
-      document.getElementById("pvTotalPower").textContent = "Fehler";
-      document.getElementById("stateofCharge").textContent = "Fehler";
+      console.error("Error loading data:", err);
+      document.getElementById("outputPower").textContent = "error";
+      document.getElementById("priorityMode").textContent = "error";
+      document.getElementById("pvTotalPower").textContent = "error";
+      document.getElementById("stateofCharge").textContent = "error";
     }
   }
 
-  ladeDaten();
-  setInterval(ladeDaten, 5000); // alle 5 Sekunden aktualisieren
+  loadData();
+  setInterval(loadData, 1000); 
 </script>
 
     <div class="linkButtonBar">
