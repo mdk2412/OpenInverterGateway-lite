@@ -14,7 +14,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             margin: 0 auto;
             font-family: Arial;
         }
-        h1 {
+        h2 {
             font-size: 2.5rem;
             text-align: center;
         }
@@ -63,7 +63,42 @@ const char MAIN_page[] PROGMEM = R"=====(
     </style>
 </head>
 <body>
-    <h1>Growatt MIN TL-XH</h1>
+    <h2>Growatt MIN TL-XH</h2>
+<h3>Output Power: <span id="outputPower">Lade...</span></h3>
+<h3>Priority Mode: <span id="priorityMode">Lade...</span></h3>
+<h3>PV Total Power: <span id="pvTotalPower">Lade...</span></h3>
+<h3>State of Charge: <span id="stateofCharge">Lade...</span></h3>
+
+<script>
+  async function ladeDaten() {
+    try {
+      const response = await fetch("/status");
+      const daten = await response.json();
+
+      document.getElementById("outputPower").textContent = daten.OutputPower + " W";
+      const priorityMap = {
+      0: "Load First",
+      1: "Battery First",
+      2: "Grid First"
+      };
+
+      document.getElementById("priorityMode").textContent = priorityMap[daten.Priority] || "Unbekannt";
+
+      document.getElementById("pvTotalPower").textContent = daten.PVTotalPower + " V";
+      document.getElementById("stateofCharge").textContent = daten.BDCStateOfCharge + " %";
+    } catch (err) {
+      console.error("Fehler beim Abrufen der Daten:", err);
+      document.getElementById("outputPower").textContent = "Fehler";
+      document.getElementById("priorityMode").textContent = "Fehler";
+      document.getElementById("pvTotalPower").textContent = "Fehler";
+      document.getElementById("stateofCharge").textContent = "Fehler";
+    }
+  }
+
+  ladeDaten();
+  setInterval(ladeDaten, 5000); // alle 5 Sekunden aktualisieren
+</script>
+
     <div class="linkButtonBar">
         <a href="./status" class="linkButton">JSON</a>
         <a href="./uiStatus" class="linkButton">UI JSON</a>
@@ -88,7 +123,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
   <title>Growatt MIN TL-XH</title>
 </head>
 <body>
-  <h1>POST Communication Modbus</h1>
+  <h2>POST Communication Modbus</h2>
   <form action="/postCommunicationModbus_p" method="POST">
     <input type="text" name="reg" placeholder="Register ID"><br>
     <input type="text" name="val" placeholder="Input Value (16-bit only!)"><br>
