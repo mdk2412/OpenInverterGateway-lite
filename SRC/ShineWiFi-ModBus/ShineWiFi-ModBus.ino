@@ -742,7 +742,7 @@ void gridFirst(void) {
   // }
   // alternative #2
   uint16_t mode_raw[2] = {0};
-  mode_raw[0] = 40960;
+  mode_raw[0] = 49152;
   mode_raw[1] = 5947;
   int attempts = 0;
   const int maxAttempts = 3;
