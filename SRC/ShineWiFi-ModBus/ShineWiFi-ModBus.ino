@@ -691,12 +691,7 @@ void loadFirst(void) {
   while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
          attempts < maxAttempts) {
     attempts++;
-    delay(1000);  
-  }
-  if (attempts < maxAttempts) {
-    Log.print(F("Set priority mode to load first"));
-  } else {
-    Log.print(F("Setting priority mode to load first failed!"));
+    delay(1000);
   }
 }
 
@@ -725,12 +720,7 @@ void batteryFirst(void) {
   while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
          attempts < maxAttempts) {
     attempts++;
-    delay(1000);  
-  }
-  if (attempts < maxAttempts) {
-    Log.print(F("Set priority mode to battery first"));
-  } else {
-    Log.print(F("Setting priority mode to battery first failed!"));
+    delay(1000);
   }
 }
 
@@ -759,12 +749,7 @@ void gridFirst(void) {
   while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
          attempts < maxAttempts) {
     attempts++;
-    delay(1000);  
-  }
-  if (attempts < maxAttempts) {
-    Log.print(F("Set priority mode to grid first"));
-  } else {
-    Log.print(F("Setting priority mode to grid first failed!"));
+    delay(1000);
   }
 }
 
