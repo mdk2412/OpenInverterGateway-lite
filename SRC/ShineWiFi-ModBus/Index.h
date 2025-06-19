@@ -67,13 +67,13 @@ const char MAIN_page[] PROGMEM = R"=====(
 </head>
 <body>
     <h2>Growatt MIN TL-XH</h2>
-<h3>Output Power: <span id="outputPower">Loading...</span></h3>
-<h3>Priority Mode: <span id="priorityMode">Loading...</span></h3>
-<h3>PV Total Power: <span id="pvTotalPower">Loading...</span></h3>
-<h3>State of Charge: <span id="stateofCharge">Loading...</span></h3>
-<h3>Battery Charging Power: <span id="batteryCharge">Loading...</span></h3>
-<h3>Battery Discharging Power: <span id="batteryDischarge">Loading...</span></h3>
-<h3>Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">Output Power: <span id="outputPower">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">Priority Mode: <span id="priorityMode">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">PV Total Power: <span id="pvTotalPower">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">State of Charge: <span id="stateofCharge">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">Battery Charging Power: <span id="batteryCharge">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">Battery Discharging Power: <span id="batteryDischarge">Loading...</span></h3>
+<h3 style="position: relative; left: 20px;">Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
 
 <script>
   async function loadData() {
