@@ -73,6 +73,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 <h3>State of Charge: <span id="stateofCharge">Loading...</span></h3>
 <h3>Battery Charging Power: <span id="batteryCharge">Loading...</span></h3>
 <h3>Battery Discharging Power: <span id="batteryDischarge">Loading...</span></h3>
+<h3>Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
 
 <script>
   async function loadData() {
@@ -85,6 +86,7 @@ const char MAIN_page[] PROGMEM = R"=====(
       document.getElementById("stateofCharge").textContent = data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
       document.getElementById("batteryCharge").textContent = data.BDCChargePower[0] + " " + data.BDCChargePower[1];
       document.getElementById("batteryDischarge").textContent = data.BDCDischargePower[0] + " " + data.BDCDischargePower[1];
+      document.getElementById("inverterTemperature").textContent = data.InverterTemperature[0] + " " + data.InverterTemperature[1];
       } 
     finally {
     }
