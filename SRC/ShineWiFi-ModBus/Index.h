@@ -75,26 +75,14 @@ const char MAIN_page[] PROGMEM = R"=====(
 <script>
   async function loadData() {
     try {
-      const response = await fetch("/status");
+      const response = await fetch("/uiStatus");
       const data = await response.json();
-
-      document.getElementById("outputPower").textContent = data.OutputPower + " W";
-      const priorityMap = {
-      0: "Load First",
-      1: "Battery First",
-      2: "Grid First"
-      };
-
-      document.getElementById("priorityMode").textContent = priorityMap[data.Priority] || "Unknown";
-
-      document.getElementById("pvTotalPower").textContent = data.PVTotalPower + " V";
-      document.getElementById("stateofCharge").textContent = data.BDCStateOfCharge + " %";
-    } catch (err) {
-      console.error("Error loading data:", err);
-      document.getElementById("outputPower").textContent = "error";
-      document.getElementById("priorityMode").textContent = "error";
-      document.getElementById("pvTotalPower").textContent = "error";
-      document.getElementById("stateofCharge").textContent = "error";
+      document.getElementById("outputPower").textContent = data.OutputPower[0] + " " + data.OutputPower[1];
+      document.getElementById("priorityMode").textContent = data.Priority[0] + " " + data.Priority[1]
+      document.getElementById("pvTotalPower").textContent = data.PVTotalPower[0] + " " + data.PVTotalPower[1]
+      document.getElementById("stateofCharge").textContent = data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1]
+    } 
+    finally {
     }
   }
 
