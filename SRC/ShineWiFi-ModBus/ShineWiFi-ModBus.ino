@@ -686,15 +686,17 @@ void loadFirst(void) {
   uint16_t mode_raw[2] = {0};
   mode_raw[0] = 8192;
   mode_raw[1] = 5947;
-  if (Inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Set priority mode to load first</body></html>"));
+  int attempts = 0;
+  const int maxAttempts = 3;
+  while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
+         attempts < maxAttempts) {
+    attempts++;
+    delay(1000);  
   }
-  else {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Setting priority mode to load first failed!</body></html>"));
+  if (attempts < maxAttempts) {
+    Log.print(F("Set priority mode to load first"));
+  } else {
+    Log.print(F("Setting priority mode to load first failed!"));
   }
 }
 
@@ -718,15 +720,17 @@ void batteryFirst(void) {
   uint16_t mode_raw[2] = {0};
   mode_raw[0] = 40960;
   mode_raw[1] = 5947;
-  if (Inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Set priority mode to battery first</body></html>"));
+  int attempts = 0;
+  const int maxAttempts = 3;
+  while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
+         attempts < maxAttempts) {
+    attempts++;
+    delay(1000);  
   }
-  else {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Setting priority mode to battery first failed!</body></html>"));
+  if (attempts < maxAttempts) {
+    Log.print(F("Set priority mode to battery first"));
+  } else {
+    Log.print(F("Setting priority mode to battery first failed!"));
   }
 }
 
@@ -750,15 +754,17 @@ void gridFirst(void) {
   uint16_t mode_raw[2] = {0};
   mode_raw[0] = 40960;
   mode_raw[1] = 5947;
-  if (Inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Set priority mode to grid first</body></html>"));
+  int attempts = 0;
+  const int maxAttempts = 3;
+  while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
+         attempts < maxAttempts) {
+    attempts++;
+    delay(1000);  
   }
-  else {
-  httpServer.send(
-      200, F("text/html"),
-      F("<html><body>Setting priority mode to grid first failed!</body></html>")); 
+  if (attempts < maxAttempts) {
+    Log.print(F("Set priority mode to grid first"));
+  } else {
+    Log.print(F("Setting priority mode to grid first failed!"));
   }
 }
 
