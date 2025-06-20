@@ -60,7 +60,7 @@ bool ShineMqtt::mqttReconnect() {
     Log.println(this->mqttconfig.user.c_str());
     Log.print(F("MqttTopic: "));
     Log.println(this->mqttconfig.topic.c_str());
-    Log.print(F("Attempting MQTT connection..."));
+    Log.print(F("Attempting MQTT connection... "));
 
     // Run only once every 5 seconds
     this->previousConnectTryMillis = millis();
@@ -82,7 +82,7 @@ bool ShineMqtt::mqttReconnect() {
       Log.print(F("failed, rc="));
       Log.print(this->mqttclient.state());
       Log.println(F(", trying again in 5 seconds"));
-      Log.println(F("MQTT connect failed"));
+      Log.println(F("MQTT connect failed!"));
       previousConnectTryMillis = millis();
     }
   }
@@ -91,27 +91,27 @@ bool ShineMqtt::mqttReconnect() {
 
 boolean ShineMqtt::mqttPublish(const String& jsonString) {
   if (jsonString.length() >= BUFFER_SIZE) {
-    Log.println(F("MQTT message too long for buffer"));
+    Log.println(F("MQTT message too long for buffer!"));
 
     return false;
   }
 
-  Log.print(F("Publishing MQTT message... "));
+  //Log.print(F("Publishing MQTT message... "));
   if (this->mqttclient.connected()) {
     bool res = this->mqttclient.publish(this->mqttconfig.topic.c_str(),
                                         jsonString.c_str(), true);
-    Log.println(res ? "succeeded" : "failed");
+    //Log.println(res ? "succeeded" : "failed");
 
     return res;
   } else {
-    Log.println(F("not connected"));
+    Log.println(F("not connected!"));
 
     return false;
   }
 }
 
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
-  Log.print(F("Publishing MQTT message... "));
+  //Log.print(F("Publishing MQTT message... "));
 
   if (topic.isEmpty()) {
     topic = this->mqttconfig.topic;
@@ -125,11 +125,11 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
     bufferedClient.flush();
     this->mqttclient.endPublish();
 
-    Log.println(res ? "succeeded" : "failed");
+    //Log.println(res ? "succeeded" : "failed");
 
     return res;
   } else {
-    Log.println(F("not connected"));
+    Log.println(F("not connected!"));
 
     return false;
   }
