@@ -165,7 +165,7 @@ void WiFi_Reconnect() {
 
     while (WiFi.status() != WL_CONNECTED) {
       delay(200);
-      Log.print(F("x"));
+      Log.print(F("."));
       digitalWrite(LED_RT,
                    !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
     }

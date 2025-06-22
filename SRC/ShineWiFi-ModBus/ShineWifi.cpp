@@ -5,7 +5,7 @@ bool ShineWifiDisconnect() {
   if ((WiFi.getMode() & WIFI_STA) != 0) {
     bool ret;
 #ifdef WM_DEBUG_LEVEL
-    Log.print(F("WiFi station disconnect"));
+    Log.print(F("WiFi station disconnected"));
 #endif
     ETS_UART_INTR_DISABLE();  // @todo possibly not needed
     ret = wifi_station_disconnect();
@@ -15,7 +15,7 @@ bool ShineWifiDisconnect() {
   }
 #elif defined(ESP32)
 #ifdef WM_DEBUG_LEVEL
-  Log.print("WiFi station disconnect");
+  Log.print("WiFi station disconnected");
 #endif
   WiFi.mode(WIFI_OFF);
   return WiFi.disconnect();  // not persistent atm
