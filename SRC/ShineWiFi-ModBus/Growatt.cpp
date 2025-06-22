@@ -255,14 +255,14 @@ bool Growatt::ReadData(uint8_t maxRetries) {
 
   if (retryCnt > 0) {
     if (_GotData) {
-      Log.print(F("Reading Modbus data successful after "));
+      // Log.print(F("Reading Modbus data successful after "));
+      // Log.print(retryCnt);
+      // Log.print(F(" retries in "));
+      // Log.print(millis() - readStart);
+      // Log.println(F("ms"));
     } else {
-      Log.print(F("Reading Modbus data not successful after "));
+      Log.println(F("Reading Modbus data not successful!"));
     }
-    Log.print(retryCnt);
-    Log.print(F(" retries in "));
-    Log.print(millis() - readStart);
-    Log.println(F("ms"));
   }
 
   return _GotData;
