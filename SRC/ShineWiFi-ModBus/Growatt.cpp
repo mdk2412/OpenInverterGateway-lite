@@ -231,7 +231,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   uint8_t inputFragOffs = 0;
   uint8_t holdingFragOffs = 0;
   uint8_t retryCnt = 0;
-  unsigned long readStart = millis();
+  //unsigned long readStart = millis();
   bool res;
   while (inputFragOffs < _Protocol.InputFragmentCount &&
          retryCnt < maxRetries) {
