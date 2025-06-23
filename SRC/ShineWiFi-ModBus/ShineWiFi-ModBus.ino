@@ -688,7 +688,8 @@ void loadFirst(void) {
   mode_raw[1] = 5947;
   int attempts = 0;
   const int maxAttempts = 3;
-  while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
+  while ((!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) ||
+         !Inverter.WriteHoldingReg(3047, 100)) &&
          attempts < maxAttempts) {
     attempts++;
     delay(250);

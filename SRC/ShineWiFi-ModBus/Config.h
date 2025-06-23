@@ -39,7 +39,7 @@
 // AC charge power rate
 // If there are other inverters in the system only load the surplus via AC charging
 #define ACCHARGE_POWERRATE 1
-#define ACCHARGE_TIMER 2000 // 2s default
+#define ACCHARGE_TIMER 3000 // 2s default
 #define ACCHARGE_MAXPOWER 2500 // maximum output power of inverter in W
 #define ACCHARGE_OFFSET 2 // offset in % to be subtracted from target power rate to ensure 0 power draw from grid
 
