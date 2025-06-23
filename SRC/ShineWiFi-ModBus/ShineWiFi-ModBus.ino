@@ -332,7 +332,7 @@ void setupWifiHost() {
 
 void startWdt() {
 #ifdef ESP32
-  Log.println("Configuring WDT...");
+  Log.println(F("Configuring WDT..."));
   esp_task_wdt_init(WDT_TIMEOUT, true);
   esp_task_wdt_add(NULL);
 #endif
@@ -354,7 +354,7 @@ void handleWdtReset(boolean mqttSuccess) {
 
 void resetWdt() {
 #ifdef ESP32
-  Log.println("WDT reset...");
+  Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
 #endif
 }
@@ -362,7 +362,7 @@ void resetWdt() {
 void setup() {
   WiFiManager wm;
 
-  Log.println("Setup()");
+  Log.println(F("Setup()"));
 
   setupGPIO();
 
@@ -940,7 +940,7 @@ void batteryStandby() {
     }
   }
 
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
+  else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
     // Log.print(F("SoC: "));
     // Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value);
     // Log.println(F(" %"));
@@ -979,7 +979,7 @@ void acchargePowerrate() {
       if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
         Log.print(F("Setting AC charge power rate to "));
         Log.print(targetpowerrate);
-        Log.println(" %");
+        Log.println(F(" %"));
       } else {
         Log.println(F("Setting AC charge power rate failed!"));
       }
@@ -1029,7 +1029,7 @@ void loop() {
 #endif
 
   if (StartedConfigAfterBoot == true) {
-    Log.println("StartedConfigAfterBoot");
+    Log.println(F("StartedConfigAfterBoot"));
     prefs.putBool(ConfigFiles.force_ap, true);
     delay(3000);
     ESP.restart();
