@@ -989,9 +989,9 @@ void acchargePowerrate() {
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
       if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
-        Log.print(F("Setting AC charge power rate to "));
-        Log.print(targetpowerrate);
-        Log.println(F(" %"));
+        // Log.print(F("Setting AC charge power rate to "));
+        // Log.print(targetpowerrate);
+        // Log.println(F(" %"));
       } else {
         Log.println(F("Setting AC charge power rate failed!"));
       }
