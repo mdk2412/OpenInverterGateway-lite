@@ -92,8 +92,8 @@ struct {
 #endif
   WiFiManagerParameter* syslog_ip = NULL;
 #if ENABLE_BATTERY_STANDBY == 1
-  WiFiManagerParameter* sleep_pv_threshold = NULL;
-  WiFiManagerParameter* wake_pv_threshold = NULL;
+  WiFiManagerParameter* sleep_battery_threshold = NULL;
+  WiFiManagerParameter* wake_battery_threshold = NULL;
 #endif
 } customWMParams;
 
@@ -113,8 +113,8 @@ static const struct {
   const char* syslog_ip = "/syslogip";
   const char* force_ap = "/forceap";
 #if ENABLE_BATTERY_STANDBY == 1
-  const char* sleep_pv_threshold = "/sleeppvthreshold";
-  const char* wake_pv_threshold = "/wakepvthreshold";
+  const char* sleep_battery_threshold = "/sleepbatterythreshold";
+  const char* wake_battery_threshold = "/wakebatterythreshold";
 #endif
 } ConfigFiles;
 
@@ -129,8 +129,8 @@ struct {
 #endif
   String syslog_ip;
 #if ENABLE_BATTERY_STANDBY == 1
-  String sleep_pv_threshold;
-  String wake_pv_threshold;
+  String sleep_battery_threshold;
+  String wake_battery_threshold;
 #endif
   bool force_ap;
 } Config;
@@ -222,8 +222,8 @@ void loadConfig() {
 #endif
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
 #if ENABLE_BATTERY_STANDBY == 1
-  Config.sleep_pv_threshold = prefs.getString(ConfigFiles.sleep_pv_threshold, "10");
-  Config.wake_pv_threshold = prefs.getString(ConfigFiles.wake_pv_threshold, "40");
+  Config.sleep_battery_threshold = prefs.getString(ConfigFiles.sleep_battery_threshold, "10");
+  Config.wake_battery_threshold = prefs.getString(ConfigFiles.wake_battery_threshold, "50");
 #endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
@@ -243,8 +243,8 @@ void saveConfig() {
 #endif
   prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
 #if ENABLE_BATTERY_STANDBY == 1
-  prefs.putString(ConfigFiles.sleep_pv_threshold, Config.sleep_pv_threshold);
-  prefs.putString(ConfigFiles.wake_pv_threshold, Config.wake_pv_threshold);
+  prefs.putString(ConfigFiles.sleep_battery_threshold, Config.sleep_battery_threshold);
+  prefs.putString(ConfigFiles.wake_battery_threshold, Config.wake_battery_threshold);
 #endif
 }
 
@@ -268,8 +268,8 @@ void saveParamCallback() {
 #endif
   Config.syslog_ip = customWMParams.syslog_ip->getValue();
 #if ENABLE_BATTERY_STANDBY == 1
-  Config.sleep_pv_threshold = customWMParams.sleep_pv_threshold->getValue();
-  Config.wake_pv_threshold = customWMParams.wake_pv_threshold->getValue();
+  Config.sleep_battery_threshold = customWMParams.sleep_battery_threshold->getValue();
+  Config.wake_battery_threshold = customWMParams.wake_battery_threshold->getValue();
 #endif
 
   saveConfig();
@@ -533,12 +533,12 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
 #if ENABLE_BATTERY_STANDBY == 1
-  customWMParams.sleep_pv_threshold =
-      new WiFiManagerParameter("sleeppvthreshold", "sleep pv threshold",
-                               Config.sleep_pv_threshold.c_str(), 4);
-  customWMParams.wake_pv_threshold =
-      new WiFiManagerParameter("wakepvthreshold", "wake pv threshold",
-                               Config.wake_pv_threshold.c_str(), 4);
+  customWMParams.sleep_battery_threshold =
+      new WiFiManagerParameter("sleepbatterythreshold", "sleep battery threshold",
+                               Config.sleep_battery_threshold.c_str(), 4);
+  customWMParams.wake_battery_threshold =
+      new WiFiManagerParameter("wakebatterythreshold", "wake battery threshold",
+                               Config.wake_battery_threshold.c_str(), 4);
 #endif
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
@@ -558,8 +558,8 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
-  wm.addParameter(customWMParams.sleep_pv_threshold);
-  wm.addParameter(customWMParams.wake_pv_threshold);
+  wm.addParameter(customWMParams.sleep_battery_threshold);
+  wm.addParameter(customWMParams.wake_battery_threshold);
 
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -921,16 +921,18 @@ void handleNTPSync() {
 // battery standby
 #if ENABLE_BATTERY_STANDBY == 1
 void batteryStandby() {
-  unsigned int wake_threshold = atoi(Config.wake_pv_threshold.c_str());
-  unsigned int sleep_threshold = atoi(Config.sleep_pv_threshold.c_str());
+  unsigned int wake_threshold = atoi(Config.wake_battery_threshold.c_str());
+  unsigned int sleep_threshold = atoi(Config.sleep_battery_threshold.c_str());
   // Log.print(F("Configured sleep PV threshold: "));
-  // Log.print(Config.sleep_pv_threshold);
+  // Log.print(Config.sleep_battery_threshold);
   // Log.println(F(" V"));
   // Log.print(F("Configured wake PV threshold: "));
-  // Log.print(Config.wake_pv_threshold);
+  // Log.print(Config.wake_battery_threshold);
   // Log.println(F(" V"));
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if ((Inverter._Protocol.InputRegisters[P3000_PPV].value * 0.1) >
+    //alternative threshold value
+    //if ((Inverter._Protocol.InputRegisters[P3000_PPV].value * 0.1) >
+    if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) >
         wake_threshold) {
       if (Inverter.WriteHoldingReg(0, 3)) {
         Log.println(F("Battery woke up"));
@@ -966,6 +968,16 @@ void acchargePowerrate() {
       (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
        1)) {
     int targetpowerrate;
+    // targetpowerrate =
+    //     (((((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
+    //         (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value *
+    //          0.1) -
+    //         (Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value *
+    //          0.1)) +
+    //        (Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1)) /
+    //       2) /
+    //      ACCHARGE_MAXPOWER) *
+    //     100;
     targetpowerrate =
         (((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value * 0.1) +
           (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) -
