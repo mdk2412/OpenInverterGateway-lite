@@ -67,28 +67,30 @@ const char MAIN_page[] PROGMEM = R"=====(
 </head>
 <body>
     <h2>Growatt MIN TL-XH</h2>
-<h3 style="position: relative; left: 20px;">Output Power: <span id="outputPower">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">Priority Mode: <span id="priorityMode">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">PV2 Power: <span id="pv2Power">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">PV2 Voltage: <span id="pv2Voltage">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">State of Charge: <span id="stateofCharge">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">Battery Charging Power: <span id="batteryCharge">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">Battery Discharging Power: <span id="batteryDischarge">Loading...</span></h3>
-<h3 style="position: relative; left: 20px;">Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Priority Mode: <span id="priorityMode">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Output Power: <span id="outputPower">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">PV2 Power: <span id="pv2Power">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">PV2 Voltage: <span id="pv2Voltage">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Battery State of Charge: <span id="stateofCharge">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Battery Charging Power: <span id="batteryCharge">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Battery Discharging Power: <span id="batteryDischarge">Loading...</span></h3>    
+    <h3 style="position: relative; left: 20px;">Battery Temperature: <span id="batteryTemperature">Loading...</span></h3>
 
 <script>
   async function loadData() {
     try {
       const response = await fetch("/uiStatus");
       const data = await response.json();
-      document.getElementById("outputPower").textContent = data.OutputPower[0] + " " + data.OutputPower[1];
       document.getElementById("priorityMode").textContent = data.Priority[0] + " " + data.Priority[1];
+      document.getElementById("outputPower").textContent = data.OutputPower[0] + " " + data.OutputPower[1];
       document.getElementById("pv2Power").textContent = data.PV2Power[0] + " " + data.PV2Power[1];
       document.getElementById("pv2Voltage").textContent = data.PV2Voltage[0] + " " + data.PV2Voltage[1];
+      document.getElementById("inverterTemperature").textContent = data.InverterTemperature[0] + " " + data.InverterTemperature[1];
       document.getElementById("stateofCharge").textContent = data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
       document.getElementById("batteryCharge").textContent = data.BDCChargePower[0] + " " + data.BDCChargePower[1] + " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
       document.getElementById("batteryDischarge").textContent = data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] + " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
-      document.getElementById("inverterTemperature").textContent = data.InverterTemperature[0] + " " + data.InverterTemperature[1];
+      document.getElementById("batteryTemperature").textContent = data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];          
       } 
     finally {
     }
