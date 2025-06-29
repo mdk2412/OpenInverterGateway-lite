@@ -10,6 +10,17 @@
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
+#include <time.h>
+
+#define LOG_PRINTLN_TS(msg) { \
+  time_t now = time(nullptr); \
+  struct tm* t = localtime(&now); \
+  char timestamp[20]; \
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t); \
+  char buffer[256]; \
+  snprintf(buffer, sizeof(buffer), "[%s] %s", timestamp, msg); \
+  Log.println(buffer); \
+}
 
 #if (ENABLE_BATTERY_STANDBY == 1 || ACCHARGE_POWERRATE == 1)
 #include "GrowattTLXH.h"
@@ -935,9 +946,11 @@ void batteryStandby() {
     if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value * 0.1) >
         wake_threshold) {
       if (Inverter.WriteHoldingReg(0, 3)) {
-        Log.println(F("Battery woke up"));
+        LOG_PRINTLN_TS("Battery woke up");
+        // Log.println(F("Battery woke up"));
       } else {
-        Log.println(F("Battery still sleeping!"));
+        LOG_PRINTLN_TS("Battery still sleeping!");
+        //Log.println(F("Battery still sleeping!"));
       }
     }
   }
@@ -952,9 +965,11 @@ void batteryStandby() {
         ((Inverter._Protocol.InputRegisters[P3000_PPV].value * 0.1) <
          sleep_threshold)) {
       if (Inverter.WriteHoldingReg(0, 2)) {
-        Log.println(F("Battery put to sleep"));
+        LOG_PRINTLN_TS("Battery put to sleep");      
+        //Log.println(F("Battery put to sleep"));
       } else {
-        Log.println(F("Battery still awake!"));
+        LOG_PRINTLN_TS("Battery still awake!");        
+        //Log.println(F("Battery still awake!"));
       }
     }
   }

@@ -72,9 +72,9 @@ const char MAIN_page[] PROGMEM = R"=====(
     <h3 style="position: relative; left: 20px;">PV2 Power: <span id="pv2Power">Loading...</span></h3>
     <h3 style="position: relative; left: 20px;">PV2 Voltage: <span id="pv2Voltage">Loading...</span></h3>
     <h3 style="position: relative; left: 20px;">Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
-    <h3 style="position: relative; left: 20px;">Battery State of Charge: <span id="stateofCharge">Loading...</span></h3>
-    <h3 style="position: relative; left: 20px;">Battery Charging Power: <span id="batteryCharge">Loading...</span></h3>
-    <h3 style="position: relative; left: 20px;">Battery Discharging Power: <span id="batteryDischarge">Loading...</span></h3>    
+    <h3 style="position: relative; left: 20px;">State of Charge: <span id="stateofCharge">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Charging Power: <span id="batteryCharge">Loading...</span></h3>
+    <h3 style="position: relative; left: 20px;">Discharging Power: <span id="batteryDischarge">Loading...</span></h3>    
     <h3 style="position: relative; left: 20px;">Battery Temperature: <span id="batteryTemperature">Loading...</span></h3>
 
 <script>
