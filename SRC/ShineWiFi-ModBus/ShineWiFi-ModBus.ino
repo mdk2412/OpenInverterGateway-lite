@@ -678,91 +678,27 @@ void rebootESP(void) {
 }
 
 void loadFirst(void) {
-  // alternative #1
-  // uint16_t mode_low = 8192;
-  // uint16_t mode_high = 5947;
-  // if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
-  //     (Inverter.WriteHoldingReg(3041, mode_high))) {
-  //   httpServer.send(
-  //       200, F("text/html"),
-  //       F("<html><body>Set priority mode to load first</body></html>"));
-  //   Log.println(F("Set priority mode to load first"));
-  // } else {
-  //   httpServer.send(200, F("text/html"),
-  //                   F("<html><body>Setting priority mode to load first "
-  //                     "failed!</body></html>"));
-  //   Log.println(F("Setting priority mode to load first failed!"));
-  // }
-  // alternative #2
-  uint16_t mode_raw[2] = {0};
-  mode_raw[0] = 8192;
-  mode_raw[1] = 5947;
-  int attempts = 0;
-  const int maxAttempts = 3;
-  while ((!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) ||
-         !Inverter.WriteHoldingReg(3047, 100)) &&
-         attempts < maxAttempts) {
-    attempts++;
-    delay(250);
-  }
+  StaticJsonDocument<64> req, res;
+  const char* payload = "{\"mode\": 0}";
+  Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
+                         req, res);
+  Serial.println(res["message"].as<String>());
 }
 
 void batteryFirst(void) {
-  // alternative #1
-  // uint16_t mode_low = 40960;
-  // uint16_t mode_high = 5947;
-  // if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
-  //     (Inverter.WriteHoldingReg(3041, mode_high))) {
-  //   httpServer.send(
-  //       200, F("text/html"),
-  //       F("<html><body>Setting priority mode to battery first</body></html>"));
-  //   Log.println(F("Setting priority mode to battery first"));
-  // } else {
-  //   httpServer.send(200, F("text/html"),
-  //                   F("<html><body>Setting priority mode to battery first "
-  //                     "failed!</body></html>"));
-  //   Log.println(F("Setting priority mode to battery first failed!"));
-  // }
-  // alternative #2
-  uint16_t mode_raw[2] = {0};
-  mode_raw[0] = 40960;
-  mode_raw[1] = 5947;
-  int attempts = 0;
-  const int maxAttempts = 3;
-  while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
-         attempts < maxAttempts) {
-    attempts++;
-    delay(250);
-  }
+  StaticJsonDocument<64> req, res;
+  const char* payload = "{\"mode\": 1}";
+  Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
+                         req, res);
+  Serial.println(res["message"].as<String>());
 }
 
 void gridFirst(void) {
-  // alternative #1
-  // uint16_t mode_low = 49152;
-  // uint16_t mode_high = 5947;
-  // if ((Inverter.WriteHoldingReg(3040, mode_low)) &&
-  //     (Inverter.WriteHoldingReg(3041, mode_high))) {
-  //   httpServer.send(
-  //       200, F("text/html"),
-  //       F("<html><body>Setting priority mode to grid first</body></html>"));
-  //   Log.println(F("Setting priority mode to grid first"));
-  // } else {
-  //   httpServer.send(200, F("text/html"),
-  //                   F("<html><body>Setting priority mode to grid first "
-  //                     "failed!</body></html>"));
-  //   Log.println(F("Setting priority mode to grid first failed!"));
-  // }
-  // alternative #2
-  uint16_t mode_raw[2] = {0};
-  mode_raw[0] = 49152;
-  mode_raw[1] = 5947;
-  int attempts = 0;
-  const int maxAttempts = 3;
-  while (!Inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
-         attempts < maxAttempts) {
-    attempts++;
-    delay(250);
-  }
+  StaticJsonDocument<64> req, res;
+  const char* payload = "{\"mode\": 2}";
+  Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
+                         req, res);
+  Serial.println(res["message"].as<String>());
 }
 
 #ifdef ENABLE_WEB_DEBUG

@@ -39,13 +39,13 @@
 // AC charge power rate
 // If there are other inverters in the system only load the surplus via AC charging
 #define ACCHARGE_POWERRATE 1
-#define ACCHARGE_TIMER 5000 // 2s default
+#define ACCHARGE_TIMER 5000 // 5s default
 #define ACCHARGE_MAXPOWER 2500 // maximum output power of inverter in W
 #define ACCHARGE_OFFSET 1 // offset in % to be subtracted from target power rate to ensure 0 power draw from grid
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
 // TZ Info can be found at: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
-#define DEFAULT_NTP_SERVER "europe.pool.ntp.org"
+#define DEFAULT_NTP_SERVER "de.pool.ntp.org"
 #define DEFAULT_TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
 
 // Setting this define to 1 will ping the default gateway periodically

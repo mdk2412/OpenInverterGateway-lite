@@ -125,6 +125,10 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
   }
 
   uint16_t mode_raw[2] = {0};
+  if (mode == 0) {
+    mode_raw[0] = 8192;
+    mode_raw[1] = 5947;
+  }
   if (mode == 1) {
     mode_raw[0] = 40960;
     mode_raw[1] = 5947;
@@ -134,7 +138,7 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
     mode_raw[1] = 5947;
   }
 
-  if (!inverter.WriteHoldingRegFrag(3038, 2, mode_raw)) {
+  if (!inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
     return std::make_tuple(false, "Failed to set priority mode");
   }
 
