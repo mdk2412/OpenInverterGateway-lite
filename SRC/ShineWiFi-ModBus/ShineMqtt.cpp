@@ -132,7 +132,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
 
     return res;
   } else {
-    Log.println(F("not connected!"));
+    //Log.println(F("not connected!"));
+    Log.print(F("."));
 
     return false;
   }
