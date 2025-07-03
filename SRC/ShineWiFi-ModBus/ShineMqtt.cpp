@@ -14,15 +14,15 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   uint16_t intPort = this->mqttconfig.port.toInt();
   if (intPort == 0) intPort = 1883;
 
-  Log.print(F("MqttServer: "));
+  Log.print(F("MQTT Server: "));
   Log.println(this->mqttconfig.server);
   if (!this->mqttconfig.user.isEmpty()) {
-    Log.print(F("MqttUser: "));
+    Log.print(F("MQTT User: "));
     Log.println(this->mqttconfig.user.c_str());
   }
-  Log.print(F("MqttPort: "));
+  Log.print(F("MQTT Port: "));
   Log.println(intPort);
-  Log.print(F("MqttTopic: "));
+  Log.print(F("MQTT Topic: "));
   Log.println(this->mqttconfig.topic);
 
   this->mqttclient.setServer(this->mqttconfig.server.c_str(), intPort);
@@ -66,7 +66,7 @@ bool ShineMqtt::mqttReconnect() {
     // }    
     // Log.print(F("MqttTopic: "));
     // Log.println(this->mqttconfig.topic.c_str());
-    Log.print(F("MQTT connection... "));
+    Log.print(F("MQTT Connection... "));
 
     // Run only once every 5 seconds
     this->previousConnectTryMillis = millis();
@@ -75,7 +75,7 @@ bool ShineMqtt::mqttReconnect() {
                                  this->mqttconfig.pwd.c_str(),
                                  this->mqttconfig.topic.c_str(), 1, 1,
                                  "{\"InverterStatus\": -1 }")) {
-      Log.println(F("connected"));
+      Log.println(F("succeeded"));
 
       // String commandTopic = this->mqttconfig.topic + "/command/#";
       // if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {

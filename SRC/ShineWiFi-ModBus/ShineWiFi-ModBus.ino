@@ -206,9 +206,9 @@ void InverterReconnect(void) {
   Inverter.begin(Serial);
 
   if (Inverter.GetWiFiStickType() == ShineWiFi_S)
-    Log.println(F("Shine WiFi-S (Serial) found"));
+    Log.println(F("ShineWiFi-S (Serial) found"));
   else if (Inverter.GetWiFiStickType() == ShineWiFi_X)
-    Log.println(F("Shine WiFi-X (USB) found"));
+    Log.println(F("ShineWiFi-X (USB) found"));
   else
     Log.println(F("Error: Unknown Shine Stick"));
 }
@@ -856,10 +856,12 @@ void handleNTPSync() {
       struct tm tm;
       time_t t = time(NULL);
       localtime_r(&t, &tm);
-      strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
+      strftime(buff, sizeof(buff), "%Y-%m-%d %T\"}", &tm);
       Log.print(F("Trying to set inverter datetime: "));
       Log.println(buff);
-      Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req,
+      char json[64];
+      snprintf(json, sizeof(json), "{\"value\":\"%s\"}", buff);
+      Inverter.HandleCommand("datetime/set", (byte*)&json, strlen(json), req,
                              res);
       Log.println(res["message"].as<String>());
     }
