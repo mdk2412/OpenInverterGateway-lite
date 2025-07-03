@@ -56,11 +56,13 @@ bool ShineMqtt::mqttReconnect() {
   if (millis() - this->previousConnectTryMillis >= (5000)) {
     Log.print(F("MqttServer: "));
     Log.println(this->mqttconfig.server.c_str());
-    Log.print(F("MqttUser: "));
-    Log.println(this->mqttconfig.user.c_str());
+    if (!this->mqttconfig.server.isEmpty()) {      
+      Log.print(F("MqttUser: "));
+      Log.println(this->mqttconfig.user.c_str());
+    }    
     Log.print(F("MqttTopic: "));
     Log.println(this->mqttconfig.topic.c_str());
-    Log.print(F("Attempting MQTT connection... "));
+    Log.print(F("MQTT connection... "));
 
     // Run only once every 5 seconds
     this->previousConnectTryMillis = millis();
@@ -82,7 +84,7 @@ bool ShineMqtt::mqttReconnect() {
       Log.print(F("failed, rc="));
       Log.print(this->mqttclient.state());
       Log.println(F(", trying again in 5 seconds"));
-      Log.println(F("MQTT connect failed!"));
+      //Log.println(F("MQTT connect failed!"));
       previousConnectTryMillis = millis();
     }
   }
@@ -104,7 +106,8 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
 
     return res;
   } else {
-    Log.println(F("not connected!"));
+    //Log.println(F("not connected!"));
+    Log.print(F("."));
 
     return false;
   }
