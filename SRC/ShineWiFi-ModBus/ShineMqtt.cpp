@@ -16,6 +16,10 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 
   Log.print(F("MqttServer: "));
   Log.println(this->mqttconfig.server);
+  if (!this->mqttconfig.user.isEmpty()) {
+    Log.print(F("MqttUser: "));
+    Log.println(this->mqttconfig.user.c_str());
+  }
   Log.print(F("MqttPort: "));
   Log.println(intPort);
   Log.print(F("MqttTopic: "));
@@ -54,14 +58,14 @@ bool ShineMqtt::mqttReconnect() {
   if (this->mqttclient.connected()) return true;
 
   if (millis() - this->previousConnectTryMillis >= (5000)) {
-    Log.print(F("MqttServer: "));
-    Log.println(this->mqttconfig.server.c_str());
-    if (!this->mqttconfig.user.isEmpty()) {      
-      Log.print(F("MqttUser: "));
-      Log.println(this->mqttconfig.user.c_str());
-    }    
-    Log.print(F("MqttTopic: "));
-    Log.println(this->mqttconfig.topic.c_str());
+    // Log.print(F("MqttServer: "));
+    // Log.println(this->mqttconfig.server.c_str());
+    // if (!this->mqttconfig.user.isEmpty()) {      
+    //   Log.print(F("MqttUser: "));
+    //   Log.println(this->mqttconfig.user.c_str());
+    // }    
+    // Log.print(F("MqttTopic: "));
+    // Log.println(this->mqttconfig.topic.c_str());
     Log.print(F("MQTT connection... "));
 
     // Run only once every 5 seconds
