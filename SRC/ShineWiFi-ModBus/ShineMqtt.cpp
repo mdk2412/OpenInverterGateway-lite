@@ -56,7 +56,7 @@ bool ShineMqtt::mqttReconnect() {
   if (millis() - this->previousConnectTryMillis >= (5000)) {
     Log.print(F("MqttServer: "));
     Log.println(this->mqttconfig.server.c_str());
-    if (!this->mqttconfig.server.isEmpty()) {      
+    if (!this->mqttconfig.user.isEmpty()) {      
       Log.print(F("MqttUser: "));
       Log.println(this->mqttconfig.user.c_str());
     }    
