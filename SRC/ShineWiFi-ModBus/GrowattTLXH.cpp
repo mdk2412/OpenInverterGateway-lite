@@ -120,29 +120,33 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
 
   if (mode > 2) {
     return std::make_tuple(false,
-                           "Invalid priority mode! Select either 0 (load "
+                           "Invalid Priority Mode! Select either 0 (load "
                            "first), 1 (battery first) or 2 (grid first)");
   }
 
   uint16_t mode_raw[2] = {0};
+  String mode_text = "";
   if (mode == 0) {
     mode_raw[0] = 8192;
     mode_raw[1] = 5947;
-  }
-  if (mode == 1) {
+    mode_text = "load first";
+  } else if (mode == 1) {
     mode_raw[0] = 40960;
     mode_raw[1] = 5947;
-  }
-  if (mode == 2) {
+    mode_text = "battery first";
+  } else if (mode == 2) {
     mode_raw[0] = 49152;
     mode_raw[1] = 5947;
+    mode_text = "grid first";
   }
 
   if (!inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
-    return std::make_tuple(false, "Failed to set priority mode");
+    return std::make_tuple(false, "Failed to set Priority Mode!");
+  } else {
+    String message = "Set priority mode to: " + String(mode) +
+                     " (" + mode_text + ")";
+    return std::make_tuple(true, message);
   }
-
-  return std::make_tuple(true, "success");
 }
 
 // TODO: add setters and getters for timeslots.

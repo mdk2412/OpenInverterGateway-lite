@@ -105,8 +105,8 @@ const char MAIN_page[] PROGMEM = R"=====(
         <a href="./uiStatus" class="linkButton">UI JSON</a>
         <a href="./metrics" class="linkButton">Metrics</a>
         <a href="./debug" class="linkButton">Log</a><br>
-        <a onClick="return confirm('Start Config AP?');" href="./startAp" class="linkButton yellow">Start Config AP</a>
-        <a onClick="return confirm('Reboot?');" href="./reboot" class="linkButton yellow">Reboot</a><br>
+        <a onclick="return confirm('Start Config AP?');" href="./startAp" class="linkButton yellow">Start Config AP</a>
+        <a onclick="return confirm('Reboot?');" href="./reboot" class="linkButton yellow">Reboot</a><br>
         <a href="#" onclick="if(confirm('Set priority to load first?')) fetch('/loadfirst'); return false;" class="linkButton red">Load First</a>
         <a href="#" onclick="if(confirm('Set priority to battery first?')) fetch('/batteryfirst'); return false;" class="linkButton red">Battery First</a>
         <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;" class="linkButton red">Grid First</a>

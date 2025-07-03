@@ -70,7 +70,9 @@ std::tuple<bool, String> updateDateTime(const JsonDocument& req,
   bool success = true;
 #endif
   if (success) {
-    return std::make_tuple(true, "Successfully updated date/time");
+    String message = "Successfully updated date/time to: " + datetime;
+    return std::make_tuple(true, message);
+    //return std::make_tuple(true, "Successfully updated date/time");
   } else {
     return std::make_tuple(false, "Failed to write date/time");
   }

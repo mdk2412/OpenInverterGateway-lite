@@ -678,7 +678,8 @@ void rebootESP(void) {
 }
 
 void loadFirst(void) {
-  StaticJsonDocument<64> req, res;
+  httpServer.send(200, "text/plain", "Priority set to 'Load First'");
+  StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 0}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
@@ -689,7 +690,8 @@ void loadFirst(void) {
 }
 
 void batteryFirst(void) {
-  StaticJsonDocument<64> req, res;
+  httpServer.send(200, "text/plain", "Priority set to 'Battery First'");
+  StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 1}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
@@ -697,7 +699,8 @@ void batteryFirst(void) {
 }
 
 void gridFirst(void) {
-  StaticJsonDocument<64> req, res;
+  httpServer.send(200, "text/plain", "Priority set to 'Grid First'");
+  StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
@@ -856,9 +859,9 @@ void handleNTPSync() {
       struct tm tm;
       time_t t = time(NULL);
       localtime_r(&t, &tm);
-      strftime(buff, sizeof(buff), "%Y-%m-%d %T\"}", &tm);
-      Log.print(F("Trying to set inverter datetime: "));
-      Log.println(buff);
+      strftime(buff, sizeof(buff), "%Y-%m-%d %T", &tm);
+      //Log.print(F("Trying to set inverter datetime: "));
+      //Log.println(buff);
       char json[64];
       snprintf(json, sizeof(json), "{\"value\":\"%s\"}", buff);
       Inverter.HandleCommand("datetime/set", (byte*)&json, strlen(json), req,
