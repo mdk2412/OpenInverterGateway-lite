@@ -285,7 +285,7 @@ void saveParamCallback() {
 
   saveConfig();
 
-  Serial.println(F("[CALLBACK] saveParamCallback complete"));
+  Log.println(F("[CALLBACK] saveParamCallback complete"));
 }
 
 #ifdef ENABLE_TELNET_DEBUG
@@ -682,7 +682,10 @@ void loadFirst(void) {
   const char* payload = "{\"mode\": 0}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
-  Serial.println(res["message"].as<String>());
+  Log.println(res["message"].as<String>());
+  if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value != 100) {
+    Inverter.WriteHoldingReg(3047, 100);
+  }
 }
 
 void batteryFirst(void) {
@@ -690,7 +693,7 @@ void batteryFirst(void) {
   const char* payload = "{\"mode\": 1}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
-  Serial.println(res["message"].as<String>());
+  Log.println(res["message"].as<String>());
 }
 
 void gridFirst(void) {
@@ -698,7 +701,7 @@ void gridFirst(void) {
   const char* payload = "{\"mode\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
-  Serial.println(res["message"].as<String>());
+  Log.println(res["message"].as<String>());
 }
 
 #ifdef ENABLE_WEB_DEBUG
@@ -939,13 +942,20 @@ void acchargePowerrate() {
     targetpowerrate = std::clamp((targetpowerrate - ACCHARGE_OFFSET), 0, 100);
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
-      if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
-        // Log.print(F("Setting AC charge power rate to "));
-        // Log.print(targetpowerrate);
-        // Log.println(F(" %"));
-      } else {
-        Log.println(F("Setting AC charge power rate failed!"));
-      }
+       if (Inverter.WriteHoldingReg(3047, targetpowerrate)) {
+         // Log.print(F("Setting AC charge power rate to "));
+         // Log.print(targetpowerrate);
+         // Log.println(F(" %"));
+       } else {
+         Log.println(F("Setting AC charge power rate failed!"));
+       }
+      // Alternative using internal function: 
+       StaticJsonDocument<64> req, res;
+       char payload[64];
+       snprintf(payload, sizeof(payload), "{\"value\": %d}", targetpowerrate);
+       Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
+                              strlen(payload), req, res);
+       Log.println(res["message"].as<String>());
     }
   }
 }
