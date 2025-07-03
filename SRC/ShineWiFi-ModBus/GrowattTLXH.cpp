@@ -143,7 +143,7 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
   if (!inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
     return std::make_tuple(false, "Failed to set Priority Mode!");
   } else {
-    String message = "Set priority mode to: " + String(mode) +
+    String message = "Set Priority Mode to: " + String(mode) +
                      " (" + mode_text + ")";
     return std::make_tuple(true, message);
   }
