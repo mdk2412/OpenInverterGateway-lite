@@ -22,7 +22,7 @@
 #elif GROWATT_MODBUS_VERSION == 6000
 #include "GrowattBP.h"
 #else
-#error "Unsupported Growatt Modbus version"
+#error "Unsupported Growatt Modbus Version"
 #endif
 
 ModbusMaster Modbus;
@@ -75,7 +75,7 @@ void Growatt::InitProtocol() {
 #elif GROWATT_MODBUS_VERSION == 6000
   init_growattBP(_Protocol, *this);
 #else
-#error "Unsupported Growatt Modbus version"
+#error "Unsupported Growatt Modbus Version"
 #endif
 }
 
@@ -129,7 +129,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
   // read each fragment separately
   for (; i < _Protocol.InputFragmentCount; i++) {
 #ifdef DEBUG_MODBUS_OUTPUT
-    Log.printf("Modbus: reading segment from 0x%02X with length %d ...",
+    Log.printf("Modbus: Reading Segment from 0x%02X with Length %d ...",
                _Protocol.InputReadFragments[i].StartAddress,
                _Protocol.InputReadFragments[i].FragmentSize);
 #endif
@@ -261,7 +261,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
       // Log.print(millis() - readStart);
       // Log.println(F("ms"));
     } else {
-      Log.println(F("Reading Modbus data not successful!"));
+      Log.println(F("Reading Modbus Data not successful!"));
     }
   }
 
@@ -557,7 +557,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   const char* priorityStr[] = {"(Load First)", "(Battery First)",
                                "(Grid First)"};
   const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
-  const char* bdcModeStr[] = {"(idle)", "(charging)", "(discharging)"};
+  const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
   if (!Hostname.isEmpty()) {
@@ -761,11 +761,11 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   bool success;
   String message;
   if (deserializationErr) {
-    Log.println("Failed to parse JSON request in command '" + command +
+    Log.println("Failed to parse JSON Request in Command '" + command +
                 "': " + String(deserializationErr.c_str()));
     success = false;
     message =
-        "Failed to parse JSON request: " + String(deserializationErr.c_str());
+        "Failed to parse JSON Request: " + String(deserializationErr.c_str());
   } else {
     if (req.containsKey("correlationId")) {
       res["correlationId"] = String(req["correlationId"].as<String>());
@@ -773,12 +773,12 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
 
     auto it = handlers.find(command.c_str());
     if (it != handlers.end()) {
-      Log.println("Handling command: " + command);
+      Log.println("Handling Command: " + command);
       std::tie(success, message) = it->second(req, res, *this);
     } else {
-      Log.println("Unknown command: " + command);
+      Log.println("Unknown Command: " + command);
       success = false;
-      message = "Unknown command: " + command;
+      message = "Unknown Command: " + command;
     }
   }
 
@@ -791,7 +791,7 @@ std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
   if (!req.containsKey("text")) {
-    return std::make_tuple(false, "'text' field is required");
+    return std::make_tuple(false, "'text' Field is required");
   }
   String text = req["text"].as<String>();
   res["text"] = "Echo: " + text;
@@ -812,7 +812,7 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
   if (!req.containsKey("id")) {
-    return std::make_tuple(false, "'id' field is required");
+    return std::make_tuple(false, "'id' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -820,7 +820,7 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
 #endif
 
   if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'type' field is required");
+    return std::make_tuple(false, "'type' Field is required");
   }
 
   String type = req["type"].as<String>();
@@ -845,11 +845,11 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
     uint16_t value;
     if (registerType == "H") {
       if (!inverter.ReadHoldingReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read holding register");
+        return std::make_tuple(false, "Failed to read Holding Register");
       }
     } else {
       if (!inverter.ReadInputReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read input register");
+        return std::make_tuple(false, "Failed to read Input Register");
       }
     }
     res["value"] = value;
@@ -857,11 +857,11 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
     uint32_t value;
     if (registerType == "H") {
       if (!inverter.ReadHoldingReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read holding register");
+        return std::make_tuple(false, "Failed to read Holding Register");
       }
     } else {
       if (!inverter.ReadInputReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read input register");
+        return std::make_tuple(false, "Failed to read Input Register");
       }
     }
     res["value"] = value;
@@ -881,7 +881,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
   if (!req.containsKey("id")) {
-    return std::make_tuple(false, "'id' field is required");
+    return std::make_tuple(false, "'id' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -889,14 +889,14 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 #endif
 
   if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'type' field is required");
+    return std::make_tuple(false, "'type' Field is required");
   }
 
   String type = req["type"].as<String>();
 
   if (type == "32b") {
     return std::make_tuple(
-        false, "writing to double (32b) registers is not currently supported");
+        false, "Writing to double (32b) Registers is not currently supported");
   }
 
   if (type != "16b") {
@@ -904,14 +904,14 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
   }
 
   if (!req.containsKey("registerType")) {
-    return std::make_tuple(false, "'registerType' field is required");
+    return std::make_tuple(false, "'registerType' Field is required");
   }
 
   String registerType = req["registerType"].as<String>();
 
   if (registerType == "I") {
     return std::make_tuple(false,
-                           "it is not possible to write into input registers");
+                           "It is not possible to write into Input Registers");
   }
 
   if (registerType != "H") {
@@ -919,7 +919,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
   }
 
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' field is required");
+    return std::make_tuple(false, "'value' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -928,7 +928,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 
 #if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(id, value)) {
-    return std::make_tuple(false, "failed to write holding register");
+    return std::make_tuple(false, "failed to write Holding Register");
   }
 #endif
 
