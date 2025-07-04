@@ -36,21 +36,21 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
     snprintf(buf, sizeof(buf), "%04hu-%02hu-%02hu %02hu:%02hu:%02hu", year,
              month, day, hour, minute, second);
     res["value"] = buf;
-    return std::make_tuple(true, "Successfully read date/time");
+    return std::make_tuple(true, "Read date/time");
   } else {
-    return std::make_tuple(false, "Failed to read date/time");
+    return std::make_tuple(false, "Failed to read date/time!");
   }
 };
 
 std::tuple<bool, String> updateDateTime(const JsonDocument& req,
                                         JsonDocument& res, Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' field is required");
+    return std::make_tuple(false, "'value' Field is required");
   }
 
   String datetime = req["value"].as<String>();
   if (datetime.length() != 19) {
-    return std::make_tuple(false, "Invalid datetime format");
+    return std::make_tuple(false, "Invalid datetime format!");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -70,12 +70,12 @@ std::tuple<bool, String> updateDateTime(const JsonDocument& req,
   bool success = true;
 #endif
   if (success) {
-    String message = "Successfully updated date/time to: " + datetime;
+    String message = "Updated date/time to: " + datetime;
     return std::make_tuple(true, message);
-    //return std::make_tuple(true, "Successfully updated date/time");
-  } else {
-    return std::make_tuple(false, "Failed to write date/time");
+    // return std::make_tuple(true, "Successfully updated date/time");
   }
+
+  return std::make_tuple(false, "Failed to update date/time!");
 };
 
 std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,

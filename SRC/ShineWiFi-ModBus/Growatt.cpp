@@ -543,7 +543,7 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 
   if (doc.overflowed()) {
     Log.println(
-        F("WARN CreateJson: JsonDocument overflowed! Output will be "
+        F("CreateJson: JsonDocument overflowed! Output will be "
           "truncated."));
   }
 }
@@ -659,7 +659,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
 
   if (doc.overflowed()) {
     Log.println(
-        F("WARN CreateUIJson: JsonDocument overflowed! Output will be "
+        F("CreateUIJson: JsonDocument overflowed! Output will be "
           "truncated."));
   }
 }
@@ -830,14 +830,14 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
   }
 
   if (!req.containsKey("registerType")) {
-    return std::make_tuple(false, "'registerType' field is required");
+    return std::make_tuple(false, "'registerType' Field is required");
   }
 
   String registerType = req["registerType"].as<String>();
 
   if (registerType != "H" && registerType != "I") {
     return std::make_tuple(
-        false, "'registerType' must be 'H' (holding) or 'I' (input)");
+        false, "'registerType' must be 'H' (Holding) or 'I' (Input)");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -928,7 +928,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 
 #if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(id, value)) {
-    return std::make_tuple(false, "failed to write Holding Register");
+    return std::make_tuple(false, "Failed to write into Holding Register!");
   }
 #endif
 
