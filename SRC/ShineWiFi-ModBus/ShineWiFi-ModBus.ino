@@ -859,12 +859,15 @@ void handleNTPSync() {
       struct tm tm;
       time_t t = time(NULL);
       localtime_r(&t, &tm);
-      strftime(buff, sizeof(buff), "%Y-%m-%d %T", &tm);
-      //Log.print(F("Trying to set inverter datetime: "));
-      //Log.println(buff);
-      char json[64];
-      snprintf(json, sizeof(json), "{\"value\":\"%s\"}", buff);
-      Inverter.HandleCommand("datetime/set", (byte*)&json, strlen(json), req,
+      strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
+      // strftime(buff, sizeof(buff), "%Y-%m-%d %T", &tm);
+      // //Log.print(F("Trying to set inverter datetime: "));
+      // //Log.println(buff);
+      // char json[64];
+      // snprintf(json, sizeof(json), "{\"value\":\"%s\"}", buff);
+      // Inverter.HandleCommand("datetime/set", (byte*)&json, strlen(json), req,
+      //                        res);
+      Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req,
                              res);
       Log.println(res["message"].as<String>());
     }
