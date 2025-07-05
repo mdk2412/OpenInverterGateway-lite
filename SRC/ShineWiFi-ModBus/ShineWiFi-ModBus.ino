@@ -678,7 +678,7 @@ void rebootESP(void) {
 }
 
 void loadFirst(void) {
-  httpServer.send(200, "text/plain", "");
+  httpServer.send(200, "text/plain", "Load First");
   StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 0}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
@@ -690,7 +690,7 @@ void loadFirst(void) {
 }
 
 void batteryFirst(void) {
-  httpServer.send(200, "text/plain", "");
+  httpServer.send(200, "text/plain", "Battery First");
   StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 1}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
@@ -699,7 +699,7 @@ void batteryFirst(void) {
 }
 
 void gridFirst(void) {
-  httpServer.send(200, "text/plain", "");
+  httpServer.send(200, "text/plain", "Grid First");
   StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
@@ -919,34 +919,31 @@ void batteryStandby() {
 // ac charge power rate
 #if ACCHARGE_POWERRATE == 1
 void acchargePowerrate() {
-  if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value != 1 ||
-      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value !=
+  if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
-    return;
+    u_int32_t targetpowerrate = std::clamp(
+        ((((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value +
+            Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value -
+            Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) *
+           0.1) /
+          ACCHARGE_MAXPOWER) *
+         100) -
+            ACCHARGE_OFFSET,
+        0.0, 100.0);
+
+    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value ==
+        targetpowerrate) {
+      return;
+    }
+
+    StaticJsonDocument<128> req, res;
+    char payload[64];
+    snprintf(payload, sizeof(payload), "{\"value\": %d}", targetpowerrate);
+    Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
+                           strlen(payload), req, res);
+    Log.println(res["message"].as<String>());
   }
-
-  int targetpowerrate = std::clamp(
-      static_cast<int>(round(
-          ((((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value +
-              Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value -
-              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) *
-             0.1) /
-            ACCHARGE_MAXPOWER) *
-           100) -
-          ACCHARGE_OFFSET)),
-      0, 100);
-
-  if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value ==
-      targetpowerrate) {
-    return;
-  }
-
-  StaticJsonDocument<128> req, res;
-  char payload[64];
-  snprintf(payload, sizeof(payload), "{\"value\": %d}", targetpowerrate);
-  Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
-                         strlen(payload), req, res);
-  Log.println(res["message"].as<String>());
 }
 #endif
 
