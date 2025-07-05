@@ -41,7 +41,7 @@
 #define ACCHARGE_POWERRATE 1
 #define ACCHARGE_TIMER 5000 // 5s default
 #define ACCHARGE_MAXPOWER 2500 // maximum output power of inverter in W
-#define ACCHARGE_OFFSET 1 // offset in % to be subtracted from target power rate to ensure 0 power draw from grid
+#define ACCHARGE_OFFSET 2 // offset in % to be subtracted from target power rate to ensure 0 power draw from grid
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter date/time.
 // TZ Info can be found at: https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
