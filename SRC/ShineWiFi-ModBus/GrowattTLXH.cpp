@@ -153,7 +153,7 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
   while (attempts < maxRetries) {
     if (millis() - lastAttemptTime >= retryInterval) {
       lastAttemptTime = millis();
-      success = inverter.WriteHoldingRegFrag(3040, 2, mode_raw);
+      success = inverter.WriteHoldingRegFrag(3040, 2, mode_raw) && inverter.WriteHoldingReg(3047, 100); // ensure 100 % charge rate
       if (success) break;
       attempts++;
     } 

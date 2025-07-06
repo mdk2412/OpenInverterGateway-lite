@@ -684,9 +684,6 @@ void loadFirst(void) {
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
   Log.println(res["message"].as<String>());
-  if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value != 100) {
-    Inverter.WriteHoldingReg(3047, 100);
-  }
 }
 
 void batteryFirst(void) {
