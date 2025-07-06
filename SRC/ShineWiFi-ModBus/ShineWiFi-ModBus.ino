@@ -920,29 +920,28 @@ void batteryStandby() {
 #if ACCHARGE_POWERRATE == 1
 void acchargePowerrate() {
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
-      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
-          1) {
-    double rawRate =
-        ((((Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value +
-            Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value -
-            Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value) *
-           0.1) /
-          ACCHARGE_MAXPOWER) *
-         100) -
-        ACCHARGE_OFFSET;
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value == 1) {
+    int64_t delta =
+        (static_cast<int64_t>(
+             Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value) +
+         static_cast<int64_t>(
+             Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
+         static_cast<int64_t>(
+             Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
 
-    u_int32_t targetpowerrate =
-        static_cast<u_int32_t>(std::clamp(std::round(rawRate), 0.0, 100.0));
+    int64_t rawRate = (delta * 10) / ACCHARGE_MAXPOWER - ACCHARGE_OFFSET;
 
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value ==
-            targetpowerrate ||
+    uint32_t targetpowerrate = static_cast<uint32_t>(
+        std::clamp<int64_t>(rawRate, 0, 100));
+
+    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value == targetpowerrate ||
         Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
       return;
     }
 
     StaticJsonDocument<128> req, res;
     char payload[16];
-    snprintf(payload, sizeof(payload), "{\"value\": %d}", targetpowerrate);
+    snprintf(payload, sizeof(payload), "{\"value\": %u}", targetpowerrate);
     Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
                            strlen(payload), req, res);
     Log.println(res["message"].as<String>());
