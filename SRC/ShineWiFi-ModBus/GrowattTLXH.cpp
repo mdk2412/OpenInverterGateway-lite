@@ -144,7 +144,22 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
     mode_text = "Grid First";
   }
 
-  if (!inverter.WriteHoldingRegFrag(3040, 2, mode_raw)) {
+  const int maxRetries = 5;
+  const unsigned long retryInterval = 200; // milliseconds
+  int attempts = 0;
+  bool success = false;
+  unsigned long lastAttemptTime = 0;
+
+  while (attempts < maxRetries) {
+    if (millis() - lastAttemptTime >= retryInterval) {
+      lastAttemptTime = millis();
+      success = inverter.WriteHoldingRegFrag(3040, 2, mode_raw);
+      if (success) break;
+      attempts++;
+    } 
+  }
+
+  if (!success) {
     return std::make_tuple(false, "Failed to set Priority Mode!");
   }
 
