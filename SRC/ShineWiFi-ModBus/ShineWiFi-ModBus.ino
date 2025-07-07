@@ -234,7 +234,7 @@ void loadConfig() {
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
 #if ENABLE_BATTERY_STANDBY == 1
   Config.sleep_battery_threshold = prefs.getString(ConfigFiles.sleep_battery_threshold, "10");
-  Config.wake_battery_threshold = prefs.getString(ConfigFiles.wake_battery_threshold, "50");
+  Config.wake_battery_threshold = prefs.getString(ConfigFiles.wake_battery_threshold, "75");
 #endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
@@ -862,44 +862,31 @@ void handleNTPSync() {
 // battery standby
 #if ENABLE_BATTERY_STANDBY == 1
 void batteryStandby() {
-  uint32_t wake_threshold = atoi(Config.wake_battery_threshold.c_str());
-  uint32_t sleep_threshold = atoi(Config.sleep_battery_threshold.c_str());
-  // Log.print(F("Configured sleep PV threshold: "));
-  // Log.print(Config.sleep_battery_threshold);
-  // Log.println(F(" V"));
-  // Log.print(F("Configured wake PV threshold: "));
-  // Log.print(Config.wake_battery_threshold);
-  // Log.println(F(" V"));
+  uint32_t wake_threshold =
+      strtoul(Config.wake_battery_threshold.c_str(), nullptr, 10);
+  uint32_t sleep_threshold =
+      strtoul(Config.sleep_battery_threshold.c_str(), nullptr, 10);
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    //alternative threshold value
-    //if ((Inverter._Protocol.InputRegisters[P3000_PPV].value * 0.1) >
     if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) >
         wake_threshold * 10) {
       if (Inverter.WriteHoldingReg(0, 3)) {
         LOG_PRINTLN_TS("Battery woke up");
-        // Log.println(F("Battery woke up"));
       } else {
         LOG_PRINTLN_TS("Battery still sleeping!");
-        //Log.println(F("Battery still sleeping!"));
       }
     }
   }
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    // Log.print(F("SoC: "));
-    // Log.print(Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value);
-    // Log.println(F(" %"));
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value) &&
         ((Inverter._Protocol.InputRegisters[P3000_PPV].value) <
          sleep_threshold * 10)) {
       if (Inverter.WriteHoldingReg(0, 2)) {
-        LOG_PRINTLN_TS("Battery put to sleep");      
-        //Log.println(F("Battery put to sleep"));
+        LOG_PRINTLN_TS("Battery put to sleep");
       } else {
-        LOG_PRINTLN_TS("Battery still awake!");        
-        //Log.println(F("Battery still awake!"));
+        LOG_PRINTLN_TS("Battery still awake!");
       }
     }
   }
