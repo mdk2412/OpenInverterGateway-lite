@@ -1054,6 +1054,9 @@ void loop() {
     }
 #endif
 
+    RefreshTimer = now;
+  }
+
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
     // set inverter datetime
     if (now > 60000 && now - lastNTPSync > ntpInterval) {
@@ -1061,9 +1064,6 @@ void loop() {
       lastNTPSync = now;
     }
 #endif
-
-    RefreshTimer = now;
-  }
 
 #if OTA_SUPPORTED == 1
   // check for OTA updates
