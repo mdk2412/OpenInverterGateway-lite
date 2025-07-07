@@ -1059,16 +1059,16 @@ void loop() {
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-    // set inverter datetime
+    // set inverter datetime, initially after 60 seconds and then after 1 hour
   if (!initialSyncDone && now >= 60000) {
-    handleNTPSync();               // Einmaliger Aufruf nach 60 s
-    lastSync = now;                // Zeitpunkt merken
-    initialSyncDone = true;        // Flag setzen, damit das nur einmal passiert
+    handleNTPSync();               
+    lastSync = now;                
+    initialSyncDone = true;       
   }
 
-  if (initialSyncDone && now - lastSync >= 3600000) {
-    handleNTPSync();               // Wiederkehrender Aufruf jede Stunde
-    lastSync = now;                // Zeitpunkt aktualisieren
+  if (initialSyncDone && (now - lastSync) >= NTP_TIMER) {
+    handleNTPSync();               
+    lastSync = now;                
   }
 #endif
 
