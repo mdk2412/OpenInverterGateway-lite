@@ -840,28 +840,21 @@ void handleNotFound() {
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 void handleNTPSync() {
-  static unsigned long lastNTPSync = 0;
-  unsigned long now = millis();
-  // wait 1h between inverter time syncs and wait 60s after
-  // ESP startup for Wifi to connect and first NTP sync to happen.
-  if (now - lastNTPSync > 3600000 && now > 60000) {
-    int reachable = sntp_getreachability(0);
-    Log.print(F("NTP server: "));
-    Log.print(DEFAULT_NTP_SERVER);
-    Log.print(F(" reachable "));
-    Log.println(reachable & 1);
-    if (reachable & 1) {  // last SNTP request was successful
-      StaticJsonDocument<128> req, res;
-      char buff[32];
-      struct tm tm;
-      time_t t = time(NULL);
-      localtime_r(&t, &tm);
-      strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
-      Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req,
-                             res);
-      Log.println(res["message"].as<String>());
-    }
-    lastNTPSync = now;
+  int reachable = sntp_getreachability(0);
+  Log.print(F("NTP server: "));
+  Log.print(DEFAULT_NTP_SERVER);
+  Log.print(F(" reachable "));
+  Log.println(reachable & 1);
+
+  if (reachable & 1) {
+    StaticJsonDocument<128> req, res;
+    char buff[32];
+    struct tm tm;
+    time_t t = time(NULL);
+    localtime_r(&t, &tm);
+    strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
+    Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req, res);
+    Log.println(res["message"].as<String>());
   }
 }
 #endif
@@ -954,10 +947,14 @@ unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
 #if ENABLE_BATTERY_STANDBY == 1
-    unsigned long BatteryStandbyTimer = 0; // battery standby
+unsigned long BatteryStandbyTimer = 0;  // battery standby
 #endif
 #if ACCHARGE_POWERRATE == 1
-unsigned long ACChargeTimer = 0; // ac charge power rate
+unsigned long ACChargeTimer = 0;  // ac charge power rate
+#endif
+#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
+unsigned long lastNTPSync = 0;
+const unsigned long ntpInterval = 3600000;  // 1 hour
 #endif
 
 void loop() {
@@ -1059,7 +1056,10 @@ void loop() {
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
     // set inverter datetime
-    handleNTPSync();
+    if (now > 60000 && now - lastNTPSync > ntpInterval) {
+      handleNTPSync();
+      lastNTPSync = now;
+    }
 #endif
 
     RefreshTimer = now;

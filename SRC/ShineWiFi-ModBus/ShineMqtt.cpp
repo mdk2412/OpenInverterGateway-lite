@@ -60,10 +60,10 @@ bool ShineMqtt::mqttReconnect() {
   if (millis() - this->previousConnectTryMillis >= (5000)) {
     // Log.print(F("MqttServer: "));
     // Log.println(this->mqttconfig.server.c_str());
-    // if (!this->mqttconfig.user.isEmpty()) {      
+    // if (!this->mqttconfig.user.isEmpty()) {
     //   Log.print(F("MqttUser: "));
     //   Log.println(this->mqttconfig.user.c_str());
-    // }    
+    // }
     // Log.print(F("MqttTopic: "));
     // Log.println(this->mqttconfig.topic.c_str());
     Log.print(F("MQTT Connection... "));
@@ -88,7 +88,7 @@ bool ShineMqtt::mqttReconnect() {
       Log.print(F("failed, rc="));
       Log.print(this->mqttclient.state());
       Log.println(F(", trying again in 5 seconds"));
-      //Log.println(F("MQTT connect failed!"));
+      // Log.println(F("MQTT connect failed!"));
       previousConnectTryMillis = millis();
     }
   }
@@ -102,15 +102,15 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
     return false;
   }
 
-  //Log.print(F("Publishing MQTT message... "));
+  // Log.print(F("Publishing MQTT message... "));
   if (this->mqttclient.connected()) {
     bool res = this->mqttclient.publish(this->mqttconfig.topic.c_str(),
                                         jsonString.c_str(), true);
-    //Log.println(res ? "succeeded" : "failed");
+    // Log.println(res ? "succeeded" : "failed");
 
     return res;
   } else {
-    //Log.println(F("not connected!"));
+    // Log.println(F("not connected!"));
     Log.print(F("."));
 
     return false;
@@ -118,7 +118,7 @@ boolean ShineMqtt::mqttPublish(const String& jsonString) {
 }
 
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
-  //Log.print(F("Publishing MQTT message... "));
+  // Log.print(F("Publishing MQTT message... "));
 
   if (topic.isEmpty()) {
     topic = this->mqttconfig.topic;
@@ -132,18 +132,19 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
     bufferedClient.flush();
     this->mqttclient.endPublish();
 
-    //Log.println(res ? "succeeded" : "failed");
+    // Log.println(res ? "succeeded" : "failed");
 
     return res;
   } else {
-    //Log.println(F("not connected!"));
+    // Log.println(F("not connected!"));
     Log.print(F("."));
 
     return false;
   }
 }
 
-// void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
+// void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int
+// length) {
 //   StaticJsonDocument<1024> req;
 //   StaticJsonDocument<1024> res;
 //   String strTopic(topic);
@@ -153,7 +154,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
 //   Log.print(F("] "));
 
 //   String command =
-//       strTopic.substring(String(this->mqttconfig.topic + "/command/").length());
+//       strTopic.substring(String(this->mqttconfig.topic +
+//       "/command/").length());
 //   if (command.isEmpty()) {
 //     return;
 //   }
