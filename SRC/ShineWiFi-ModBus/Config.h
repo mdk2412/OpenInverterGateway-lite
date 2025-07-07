@@ -16,7 +16,7 @@
 
 // On some SPH inverters (Protocol 124) the battery temperature multiplier
 // differs from the documented value (of 0.1). Set this to 1.0 on these
-// inverters. 
+// inverters.
 // #define TEMPERATURE_WORKAROUND_MULTIPLIER 1.0
 
 // Setting this define to 0 will disable the MQTT functionality
@@ -32,10 +32,9 @@
 #define ENABLE_MODBUS_COMMUNICATION 1
 
 // Enable standby for battery to save power
-// if SoC <= BDCDischargeStopSOC & PVTotalPower < sleep battery threshold (configure
-// in WiFiManager) battery is put to sleep
-// if PTOGRID_TOTAL > wake battery threshold
-// (configure in WiFiManager) battery is woken up
+// if SoC <= BDCDischargeStopSOC & PVTotalPower < sleep battery threshold
+// (configure in WiFiManager) battery is put to sleep if PTOGRID_TOTAL > wake
+// battery threshold (configure in WiFiManager) battery is woken up
 #define ENABLE_BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000  // 60s default
 
@@ -54,7 +53,7 @@
 // https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 #define DEFAULT_NTP_SERVER "de.pool.ntp.org"
 #define DEFAULT_TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
-#define NTP_TIMER 3600000        // 1 hour default
+#define NTP_TIMER 3600000  // 1 hour default
 
 // Setting this define to 1 will ping the default gateway periodically
 // if the ping is not successful, the wifi connection will be reestablished
@@ -131,11 +130,11 @@
 //    BUTTON_TIMER: enter config mode after 5*BUTTON_TIMER [ms]
 #if ENABLE_AP_BUTTON == 1
 #define AP_BUTTON_PRESSED analogRead(A0) < 50
-#define BUTTON_TIMER 500         //  0.5s default
+#define BUTTON_TIMER 500  //  0.5s default
 #endif
 
 // Enabling this will make the wifiManager available on the previously
 // configured wifi and ip. This makes it possible to reconfigure the stick
 // without a direct WIFI connection. This is a security risk as anyone could now
-// remotely update your firmware. 
+// remotely update your firmware.
 // #define KEEP_AP_CONFIG_CONNECTION 1
