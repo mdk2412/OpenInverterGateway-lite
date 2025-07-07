@@ -116,6 +116,7 @@
 #define LED_TIMER 500            //  0.5s default
 #define BUTTON_TIMER 500         //  0.5s default
 #define WDT_TIMEOUT 300          // 5 min default
+#define NTP_TIMER 3600000        // 1 hour default
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)

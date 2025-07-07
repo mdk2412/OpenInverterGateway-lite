@@ -953,8 +953,7 @@ unsigned long BatteryStandbyTimer = 0;  // battery standby
 unsigned long ACChargeTimer = 0;  // ac charge power rate
 #endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-unsigned long lastNTPSync = 0;
-const unsigned long ntpInterval = 3600000;  // 1 hour
+unsigned long NTPTimer = 0;
 #endif
 
 void loop() {
@@ -1059,9 +1058,9 @@ void loop() {
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
     // set inverter datetime
-    if (now > 60000 && now - lastNTPSync > ntpInterval) {
+    if (now > 60000 && (now - NTPTimer) > NTP_TIMER) {
       handleNTPSync();
-      lastNTPSync = now;
+      NTPTimer = now;
     }
 #endif
 
