@@ -929,7 +929,9 @@ void acchargePowerrate() {
 // -------------------------------------------------------
 // Main loop
 // -------------------------------------------------------
+#if ENABLE_AP_BUTTON == 1
 unsigned long ButtonTimer = 0;
+#endif
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;

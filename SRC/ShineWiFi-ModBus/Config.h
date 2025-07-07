@@ -16,7 +16,8 @@
 
 // On some SPH inverters (Protocol 124) the battery temperature multiplier
 // differs from the documented value (of 0.1). Set this to 1.0 on these
-// inverters. #define TEMPERATURE_WORKAROUND_MULTIPLIER 1.0
+// inverters. 
+// #define TEMPERATURE_WORKAROUND_MULTIPLIER 1.0
 
 // Setting this define to 0 will disable the MQTT functionality
 #define MQTT_SUPPORTED 1
@@ -53,6 +54,7 @@
 // https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
 #define DEFAULT_NTP_SERVER "de.pool.ntp.org"
 #define DEFAULT_TZ_INFO "CET-1CEST,M3.5.0,M10.5.0/3"
+#define NTP_TIMER 3600000        // 1 hour default
 
 // Setting this define to 1 will ping the default gateway periodically
 // if the ping is not successful, the wifi connection will be reestablished
@@ -111,13 +113,10 @@
 //    REFRESH_TIMER: Modbus polling rate [ms]
 //    RETRY_TIMER: Determines the time between reconnection [ms]
 //    LED_TIMER: Led blinking rate [ms]
-//    BUTTON_TIMER: enter config mode after 5*BUTTON_TIMER [ms]
 #define REFRESH_TIMER 1000       // 5s default
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
-#define BUTTON_TIMER 500         //  0.5s default
 #define WDT_TIMEOUT 300          // 5 min default
-#define NTP_TIMER 3600000        // 1 hour default
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
@@ -129,11 +128,14 @@
 
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
+//    BUTTON_TIMER: enter config mode after 5*BUTTON_TIMER [ms]
 #if ENABLE_AP_BUTTON == 1
 #define AP_BUTTON_PRESSED analogRead(A0) < 50
+#define BUTTON_TIMER 500         //  0.5s default
 #endif
 
 // Enabling this will make the wifiManager available on the previously
 // configured wifi and ip. This makes it possible to reconfigure the stick
 // without a direct WIFI connection. This is a security risk as anyone could now
-// remotely update your firmware. #define KEEP_AP_CONFIG_CONNECTION 1
+// remotely update your firmware. 
+// #define KEEP_AP_CONFIG_CONNECTION 1
