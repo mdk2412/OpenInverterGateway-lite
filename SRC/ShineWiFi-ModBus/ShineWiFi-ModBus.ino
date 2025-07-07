@@ -954,6 +954,8 @@ unsigned long ACChargeTimer = 0;  // ac charge power rate
 #endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 unsigned long NTPTimer = 0;
+unsigned long lastSync = 0;
+bool initialSyncDone = false;
 #endif
 
 void loop() {
@@ -1058,10 +1060,16 @@ void loop() {
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
     // set inverter datetime
-    if (now > 60000 && (now - NTPTimer) > NTP_TIMER) {
-      handleNTPSync();
-      NTPTimer = now;
-    }
+  if (!initialSyncDone && now >= 60000) {
+    handleNTPSync();               // Einmaliger Aufruf nach 60 s
+    lastSync = now;                // Zeitpunkt merken
+    initialSyncDone = true;        // Flag setzen, damit das nur einmal passiert
+  }
+
+  if (initialSyncDone && now - lastSync >= 3600000) {
+    handleNTPSync();               // Wiederkehrender Aufruf jede Stunde
+    lastSync = now;                // Zeitpunkt aktualisieren
+  }
 #endif
 
 #if OTA_SUPPORTED == 1
