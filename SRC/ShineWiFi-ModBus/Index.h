@@ -198,6 +198,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       border: 1px solid #ccc;
       border-radius: 4px;
       width: 100%;
+      box-sizing: border-box;
     }
 
     .linkButton {
@@ -208,13 +209,38 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       padding: 0.6em 1em;
       text-decoration: none;
       font-size: 0.9em;
+      min-width: 120px;
       text-align: center;
       display: inline-block;
     }
 
-    .red {
-      border-color: #ca5f5f;
-      background: #b92b2b;
+    .linkButton.yellow {
+      border-color: #cabd5f !important;
+      background: #b9b22b !important;
+    }
+
+    .linkButton.red {
+      border-color: #ca5f5f !important;
+      background: #b92b2b !important;
+    }
+
+    .operationButtons {
+      display: flex;
+      justify-content: space-between;
+      gap: 1em;
+      width: 100%;
+    }
+
+    .operationButtons button {
+      flex: 1 1 45%;
+      text-align: center;
+    }
+
+    #resultMessage {
+      margin-top: 1em;
+      margin-bottom: 1em;  /* ← Leerzeile unten */
+      font-weight: bold;
+      text-align: center;
     }
 
     .sectionDivider {
@@ -235,34 +261,63 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         flex: 1 1 auto;
         text-align: center;
       }
+
+      .operationButtons {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+      }
     }
   </style>
 </head>
 <body>
   <h2>POST Communication Modbus</h2>
-
-  <form action="/postCommunicationModbus_p" method="POST">
+ 
+  <form id="modbusForm">
     <input type="text" name="reg" placeholder="Register ID">
     <input type="text" name="val" placeholder="Input Value (16-bit only!)">
+
     <select name="type">
       <option value="16b" selected>16-bit</option>
       <option value="32b">32-bit</option>
     </select>
-    <select name="operation">
-      <option value="R">Read</option>
-      <option value="W" selected>Write</option>
-    </select>
+
     <select name="registerType">
       <option value="I">Input Register</option>
       <option value="H" selected>Holding Register</option>
     </select>
 
-    <button type="submit" class="linkButton red">Submit</button>
+    <div class="operationButtons">
+      <button type="button" class="linkButton yellow" onclick="submitOperation('R')">Read</button>
+      <button type="button" class="linkButton red" onclick="submitOperation('W')">Write</button>
+    </div>
+    
   </form>
 
   <hr class="sectionDivider">
 
   <a href="." class="linkButton">Back</a>
+
+<script>
+  async function submitOperation(op) {
+    const form = document.getElementById("modbusForm");
+    const formData = new FormData(form);
+    formData.append("operation", op);
+
+    try {
+      const response = await fetch("/postCommunicationModbus_p", {
+        method: "POST",
+        body: formData
+      });
+
+      const text = await response.text();
+      alert(text.trim());  // Zeigt das Ergebnis als Popup
+
+    } catch (e) {
+      alert("Fehler: " + e.message);  // Zeigt Fehler als Popup
+    }
+  }
+</script>
+
 </body>
 </html>
 )=====";
