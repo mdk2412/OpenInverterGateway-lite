@@ -736,11 +736,11 @@ void handlePostData() {
           if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(),
                                     &u16Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading value %d from 16b input register %ld"),
+                       PSTR("Reading Value %d from 16-bit Input Register %ld"),
                        u16Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 16b input register %ld impossible - "
+                       PSTR("Reading from 16-bit Input Register %ld impossible - "
                             "not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -748,11 +748,11 @@ void handlePostData() {
           if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(),
                                     &u32Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading value %d from 32b input register %ld"),
+                       PSTR("Reading Value %d from 32-bit Input Register %ld"),
                        u32Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 32b input register %ld impossible - "
+                       PSTR("Reading from 32-bit Input Register %ld impossible - "
                             "not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -762,11 +762,11 @@ void handlePostData() {
           if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(),
                                       &u16Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading value %d from 16b holding register %ld"),
+                       PSTR("Reading Value %d from 16-bit Holding Register %ld"),
                        u16Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 16b holding register %ld impossible "
+                       PSTR("Reading from 16-bit Holding Register %ld impossible "
                             "- not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -774,11 +774,11 @@ void handlePostData() {
           if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(),
                                       &u32Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading value %d from 32b holding register %ld"),
+                       PSTR("Reading Value %d from 32-bit Holding Register %ld"),
                        u32Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 32b holding register %ld impossible "
+                       PSTR("Reading from 32-bit Holding Register %ld impossible "
                             "- not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -790,13 +790,13 @@ void handlePostData() {
           if (Inverter.WriteHoldingReg(httpServer.arg(F("reg")).toInt(),
                                        httpServer.arg(F("val")).toInt())) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Writing value %ld to holding register %ld"),
+                       PSTR("Writing Value %ld to Holding Register %ld"),
                        httpServer.arg("val").toInt(),
                        httpServer.arg("reg").toInt());
           } else {
             snprintf_P(
                 msg, sizeof(msg),
-                PSTR("Writing value %ld to holding register %ld failed!"),
+                PSTR("Writing Value %ld to Holding Register %ld failed!"),
                 httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
           }
         } else {

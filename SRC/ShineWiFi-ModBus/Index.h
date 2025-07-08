@@ -2,6 +2,7 @@
 const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html lang="en">
+
 <head>
   <meta charset='utf-8'>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -68,35 +69,39 @@ const char MAIN_page[] PROGMEM = R"=====(
       background: #b92b2b;
     }
 
-@media (max-width: 600px) {
-  h2 {
-    font-size: 1.5rem;
-  }
+    @media (max-width: 600px) {
+      h2 {
+        font-size: 1.5rem;
+      }
 
-  .linkButton {
-    font-size: 1em;
-    min-width: auto;           /* Verhindert, dass Buttons blockweise umbrechen */
-    flex: 1 1 auto;            /* Sorgt für gleichmäßige Verteilung */
-    text-align: center;
-  }
+      .linkButton {
+        font-size: 1em;
+        min-width: auto;
+        /* Verhindert, dass Buttons blockweise umbrechen */
+        flex: 1 1 auto;
+        /* Sorgt für gleichmäßige Verteilung */
+        text-align: center;
+      }
 
-  .buttonRow-green,
-  .buttonRow-yellow,
-  .buttonRow-red {
-    flex-wrap: nowrap;         /* Verhindert Zeilenumbruch */
-    overflow-x: auto;          /* Ermöglicht horizontales Scrollen bei Bedarf */
-  }
-}
+      .buttonRow-green,
+      .buttonRow-yellow,
+      .buttonRow-red {
+        flex-wrap: nowrap;
+        /* Verhindert Zeilenumbruch */
+        overflow-x: auto;
+        /* Ermöglicht horizontales Scrollen bei Bedarf */
+      }
+    }
 
-.sectionDivider {
-  width: 100%;
-  border: none;
-  border-top: 2px solid #ccc;
-  margin: 2em 0 1.5em 0;
-}
-
+    .sectionDivider {
+      width: 100%;
+      border: none;
+      border-top: 2px solid #ccc;
+      margin: 2em 0 1.5em 0;
+    }
   </style>
 </head>
+
 <body>
   <h2>Growatt MIN TL-XH</h2>
 
@@ -112,7 +117,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <h3>Battery Temperature: <span id="batteryTemperature">Loading...</span></h3>
   </div>
 
-<hr class="sectionDivider">
+  <hr class="sectionDivider">
 
   <div class="buttonRow-green">
     <a href="./status" class="linkButton">JSON</a>
@@ -127,9 +132,12 @@ const char MAIN_page[] PROGMEM = R"=====(
   </div>
 
   <div class="buttonRow-red">
-    <a href="#" onclick="if(confirm('Set priority to load first?')) fetch('/loadfirst'); return false;" class="linkButton red">Load First</a>
-    <a href="#" onclick="if(confirm('Set priority to battery first?')) fetch('/batteryfirst'); return false;" class="linkButton red">Battery First</a>
-    <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;" class="linkButton red">Grid First</a>
+    <a href="#" onclick="if(confirm('Set priority to load first?')) fetch('/loadfirst'); return false;"
+      class="linkButton red">Load First</a>
+    <a href="#" onclick="if(confirm('Set priority to battery first?')) fetch('/batteryfirst'); return false;"
+      class="linkButton red">Battery First</a>
+    <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;"
+      class="linkButton red">Grid First</a>
     <a href="./postCommunicationModbus" class="linkButton red">RW Modbus</a>
   </div>
 
@@ -156,11 +164,13 @@ const char MAIN_page[] PROGMEM = R"=====(
     setInterval(loadData, 1000);
   </script>
 </body>
+
 </html>
 )=====";
 const char SendPostSite_page[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html lang="en">
+
 <head>
   <meta charset='utf-8'>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -236,13 +246,6 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       text-align: center;
     }
 
-    #resultMessage {
-      margin-top: 1em;
-      margin-bottom: 1em;  /* ← Leerzeile unten */
-      font-weight: bold;
-      text-align: center;
-    }
-
     .sectionDivider {
       width: 100%;
       border: none;
@@ -267,14 +270,26 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         overflow-x: auto;
       }
     }
+      .fieldLabel {
+      font-weight: bold;
+      margin-bottom: 0.2em;
+    }
   </style>
 </head>
+
 <body>
   <h2>POST Communication Modbus</h2>
- 
+
   <form id="modbusForm">
-    <input type="text" name="reg" placeholder="Register ID">
-    <input type="text" name="val" placeholder="Input Value (16-bit only!)">
+<div>
+  <div class="fieldLabel">Register ID</div>
+  <input type="text" name="reg" placeholder="">
+</div>
+
+<div>
+  <div class="fieldLabel">Register Value</div>
+  <input type="text" name="val" placeholder="" readonly>
+</div>
 
     <select name="type">
       <option value="16b" selected>16-bit</option>
@@ -290,7 +305,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       <button type="button" class="linkButton yellow" onclick="submitOperation('R')">Read</button>
       <button type="button" class="linkButton red" onclick="submitOperation('W')">Write</button>
     </div>
-    
+
   </form>
 
   <hr class="sectionDivider">
@@ -298,26 +313,81 @@ const char SendPostSite_page[] PROGMEM = R"=====(
   <a href="." class="linkButton">Back</a>
 
 <script>
-  async function submitOperation(op) {
-    const form = document.getElementById("modbusForm");
-    const formData = new FormData(form);
-    formData.append("operation", op);
+  const typeSelect = document.querySelector('select[name="type"]');
+  const regSelect = document.querySelector('select[name="registerType"]');
+  const writeButton = document.querySelector('.linkButton.red');
+  const valueInput = document.querySelector('input[name="val"]');
 
-    try {
-      const response = await fetch("/postCommunicationModbus_p", {
-        method: "POST",
-        body: formData
-      });
+  function updateUI() {
+    const is16Bit = typeSelect.value === '16b';
+    const is32Bit = typeSelect.value === '32b';
+    const isHolding = regSelect.value === 'H';
+    const isInput = regSelect.value === 'I';
 
-      const text = await response.text();
-      alert(text.trim());  // Zeigt das Ergebnis als Popup
-
-    } catch (e) {
-      alert("Fehler: " + e.message);  // Zeigt Fehler als Popup
+    // Write-Button nur bei 16-bit UND Holding Register sichtbar
+    if (is16Bit && isHolding) {
+      writeButton.style.display = 'inline-block';
+    } else {
+      writeButton.style.display = 'none';
     }
+  
+  // Eingabefeld sperren (statt ausblenden), wenn:
+  // - Input Register gewählt ist ODER
+  // - Holding Register + 32-bit gewählt sind
+  if (isInput || (isHolding && is32Bit)) {
+    valueInput.readOnly = true;
+    valueInput.placeholder = "";
+    valueInput.style.opacity = 0.5;
+    valueInput.style.cursor = "not-allowed";
+  } else {
+    valueInput.readOnly = false;
+    valueInput.placeholder = "";
+    valueInput.style.opacity = 1;
+    valueInput.style.cursor = "text";
   }
+}
+  // Beim Laden direkt prüfen
+  updateUI();
+
+  // Bei jeder Änderung überwachen
+  typeSelect.addEventListener('change', updateUI);
+  regSelect.addEventListener('change', updateUI);
+
+  // Vorhandene POST-Funktion
+  async function submitOperation(op) {
+  const form = document.getElementById("modbusForm");
+  const formData = new FormData(form);
+  formData.append("operation", op);
+
+  try {
+    const response = await fetch("/postCommunicationModbus_p", {
+      method: "POST",
+      body: formData
+    });
+
+    const text = await response.text();
+    const trimmed = text.trim();
+
+    // Nur den Wert extrahieren (z. B. „3“ aus „Reading Value 3 from …“)
+    let extractedValue = trimmed;
+    const match = trimmed.match(/Reading Value\s+(.+?)\s+from/i);
+    if (match) {
+      extractedValue = match[1];
+    }
+
+    // Gelesenen Wert ins Eingabefeld schreiben (egal ob Input oder Holding Register)
+    if (op === 'R') {
+      valueInput.value = extractedValue;
+    }
+
+  } catch (e) {
+    console.error("Error:", e.message);
+  }
+}
+
 </script>
 
 </body>
+
 </html>
 )=====";
