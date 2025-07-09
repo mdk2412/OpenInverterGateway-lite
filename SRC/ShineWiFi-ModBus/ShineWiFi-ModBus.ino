@@ -662,8 +662,8 @@ void startConfigAccessPoint(void) {
                   "/>Connect to WiFi \"GrowattConfig\" with your password "
                   "(default: \"growsolar\") and visit <a "
                   "href='http://192.168.4.1'>192.168.4.1</a><br /><br />The "
-                  "Stick will automatically go back to normal operation after "
-                  "a %d seconds</body></html>"),
+                  "stick will automatically return to normal operation after "
+                  "%d seconds</body></html>"),
              CONFIG_PORTAL_MAX_TIME_SECONDS);
   httpServer.send(200, "text/html", msg);
   delay(2000);

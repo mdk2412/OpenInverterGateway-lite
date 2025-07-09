@@ -25,16 +25,25 @@ const char MAIN_page[] PROGMEM = R"=====(
       margin-bottom: 1em;
     }
 
-    .dataContainer {
-      display: flex;
-      flex-direction: column;
-      gap: 0.7em;
-      width: 100%;
-    }
-
     h3 {
       font-size: 1.1em;
       margin: 0;
+    }
+
+    .dataContainer {
+      display: grid;
+      grid-template-columns: max-content minmax(80px, 1fr);
+      column-gap: 0.5em;
+      row-gap: 0.7em;
+      width: 100%;
+    }
+
+    .dataContainer .label {
+      text-align: left;
+    }
+
+    .dataContainer .value {
+      text-align: right;
     }
 
     .buttonRow-green,
@@ -59,14 +68,21 @@ const char MAIN_page[] PROGMEM = R"=====(
       text-align: center;
     }
 
-    .yellow {
+    .linkButton.yellow {
       border-color: #cabd5f;
       background: #b9b22b;
     }
 
-    .red {
+    .linkButton.red {
       border-color: #ca5f5f;
       background: #b92b2b;
+    }
+
+    .sectionDivider {
+      width: 100%;
+      border: none;
+      border-top: 2px solid #ccc;
+      margin: 2em 0 1.5em 0;
     }
 
     @media (max-width: 600px) {
@@ -77,9 +93,7 @@ const char MAIN_page[] PROGMEM = R"=====(
       .linkButton {
         font-size: 1em;
         min-width: auto;
-        /* Verhindert, dass Buttons blockweise umbrechen */
         flex: 1 1 auto;
-        /* Sorgt für gleichmäßige Verteilung */
         text-align: center;
       }
 
@@ -87,56 +101,34 @@ const char MAIN_page[] PROGMEM = R"=====(
       .buttonRow-yellow,
       .buttonRow-red {
         flex-wrap: nowrap;
-        /* Verhindert Zeilenumbruch */
         overflow-x: auto;
-        /* Ermöglicht horizontales Scrollen bei Bedarf */
       }
     }
 
-    .sectionDivider {
-      width: 100%;
-      border: none;
-      border-top: 2px solid #ccc;
-      margin: 2em 0 1.5em 0;
+    @media (min-width: 800px) {
+      .dataContainer {
+        grid-template-columns: max-content minmax(80px, 200px);
+        column-gap: 0.3em;
+      }
     }
-.dataContainer {
-  display: grid;
-  grid-template-columns: max-content minmax(80px, 1fr);
-  column-gap: 0.5em;       /* Kleiner Abstand zwischen Label und Value */
-  row-gap: 0.7em;
-  width: 100%;
-}
-
-.dataContainer .label {
-  text-align: left;
-}
-
-.dataContainer .value {
-  text-align: right;
-}
-@media (min-width: 800px) {
-  .dataContainer {
-    grid-template-columns: max-content minmax(80px, 200px); /* statt 1fr: feste Maxbreite */
-    column-gap: 0.3em; /* kleiner Abstand auf Desktop */
-  }
-}
   </style>
+
 </head>
 
 <body>
   <h2>Growatt MIN TL-XH</h2>
 
-<div class="dataContainer">
-  <span class="label">Priority Mode:</span> <span id="priorityMode" class="value">Loading...</span>
-  <span class="label">Output Power:</span> <span id="outputPower" class="value">Loading...</span>
-  <span class="label">PV2 Power:</span> <span id="pv2Power" class="value">Loading...</span>
-  <span class="label">PV2 Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
-  <span class="label">Inverter Temperature:</span> <span id="inverterTemperature" class="value">Loading...</span>
-  <span class="label">State of Charge:</span> <span id="stateofCharge" class="value">Loading...</span>
-  <span class="label">Charging Power:</span> <span id="batteryCharge" class="value">Loading...</span>
-  <span class="label">Discharging Power:</span> <span id="batteryDischarge" class="value">Loading...</span>
-  <span class="label">Battery Temperature:</span> <span id="batteryTemperature" class="value">Loading...</span>
-</div>
+  <div class="dataContainer">
+    <span class="label">Priority Mode:</span> <span id="priorityMode" class="value">Loading...</span>
+    <span class="label">Output Power:</span> <span id="outputPower" class="value">Loading...</span>
+    <span class="label">PV2 Power:</span> <span id="pv2Power" class="value">Loading...</span>
+    <span class="label">PV2 Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
+    <span class="label">Inverter Temperature:</span> <span id="inverterTemperature" class="value">Loading...</span>
+    <span class="label">State of Charge:</span> <span id="stateofCharge" class="value">Loading...</span>
+    <span class="label">Charging Power:</span> <span id="batteryCharge" class="value">Loading...</span>
+    <span class="label">Discharging Power:</span> <span id="batteryDischarge" class="value">Loading...</span>
+    <span class="label">Battery Temperature:</span> <span id="batteryTemperature" class="value">Loading...</span>
+  </div>
 
   <hr class="sectionDivider">
 
@@ -291,7 +283,8 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         overflow-x: auto;
       }
     }
-      .fieldLabel {
+
+    .fieldLabel {
       font-weight: bold;
       margin-bottom: 0.2em;
     }
@@ -302,15 +295,15 @@ const char SendPostSite_page[] PROGMEM = R"=====(
   <h2>POST Communication Modbus</h2>
 
   <form id="modbusForm">
-<div>
-  <div class="fieldLabel">Register ID</div>
-  <input type="text" name="reg" placeholder="">
-</div>
+    <div>
+      <div class="fieldLabel">Register ID</div>
+      <input type="text" name="reg" placeholder="">
+    </div>
 
-<div>
-  <div class="fieldLabel">Register Value</div>
-  <input type="text" name="val" placeholder="" readonly>
-</div>
+    <div>
+      <div class="fieldLabel">Register Value</div>
+      <input type="text" name="val" placeholder="" readonly>
+    </div>
 
     <select name="type">
       <option value="16b" selected>16-bit</option>
@@ -333,80 +326,80 @@ const char SendPostSite_page[] PROGMEM = R"=====(
 
   <a href="." class="linkButton">Back</a>
 
-<script>
-  const typeSelect = document.querySelector('select[name="type"]');
-  const regSelect = document.querySelector('select[name="registerType"]');
-  const writeButton = document.querySelector('.linkButton.red');
-  const valueInput = document.querySelector('input[name="val"]');
+  <script>
+    const typeSelect = document.querySelector('select[name="type"]');
+    const regSelect = document.querySelector('select[name="registerType"]');
+    const writeButton = document.querySelector('.linkButton.red');
+    const valueInput = document.querySelector('input[name="val"]');
 
-  function updateUI() {
-    const is16Bit = typeSelect.value === '16b';
-    const is32Bit = typeSelect.value === '32b';
-    const isHolding = regSelect.value === 'H';
-    const isInput = regSelect.value === 'I';
+    function updateUI() {
+      const is16Bit = typeSelect.value === '16b';
+      const is32Bit = typeSelect.value === '32b';
+      const isHolding = regSelect.value === 'H';
+      const isInput = regSelect.value === 'I';
 
-    // Write-Button nur bei 16-bit UND Holding Register sichtbar
-    if (is16Bit && isHolding) {
-      writeButton.style.display = 'inline-block';
-    } else {
-      writeButton.style.display = 'none';
+      // Write-Button nur bei 16-bit UND Holding Register sichtbar
+      if (is16Bit && isHolding) {
+        writeButton.style.display = 'inline-block';
+      } else {
+        writeButton.style.display = 'none';
+      }
+
+      // Eingabefeld sperren (statt ausblenden), wenn:
+      // - Input Register gewählt ist ODER
+      // - Holding Register + 32-bit gewählt sind
+      if (isInput || (isHolding && is32Bit)) {
+        valueInput.readOnly = true;
+        valueInput.placeholder = "";
+        valueInput.style.opacity = 0.5;
+        valueInput.style.cursor = "not-allowed";
+      } else {
+        valueInput.readOnly = false;
+        valueInput.placeholder = "";
+        valueInput.style.opacity = 1;
+        valueInput.style.cursor = "text";
+      }
     }
-  
-  // Eingabefeld sperren (statt ausblenden), wenn:
-  // - Input Register gewählt ist ODER
-  // - Holding Register + 32-bit gewählt sind
-  if (isInput || (isHolding && is32Bit)) {
-    valueInput.readOnly = true;
-    valueInput.placeholder = "";
-    valueInput.style.opacity = 0.5;
-    valueInput.style.cursor = "not-allowed";
-  } else {
-    valueInput.readOnly = false;
-    valueInput.placeholder = "";
-    valueInput.style.opacity = 1;
-    valueInput.style.cursor = "text";
-  }
-}
-  // Beim Laden direkt prüfen
-  updateUI();
+    // Beim Laden direkt prüfen
+    updateUI();
 
-  // Bei jeder Änderung überwachen
-  typeSelect.addEventListener('change', updateUI);
-  regSelect.addEventListener('change', updateUI);
+    // Bei jeder Änderung überwachen
+    typeSelect.addEventListener('change', updateUI);
+    regSelect.addEventListener('change', updateUI);
 
-  // Vorhandene POST-Funktion
-  async function submitOperation(op) {
-  const form = document.getElementById("modbusForm");
-  const formData = new FormData(form);
-  formData.append("operation", op);
+    // Vorhandene POST-Funktion
+    async function submitOperation(op) {
+      const form = document.getElementById("modbusForm");
+      const formData = new FormData(form);
+      formData.append("operation", op);
 
-  try {
-    const response = await fetch("/postCommunicationModbus_p", {
-      method: "POST",
-      body: formData
-    });
+      try {
+        const response = await fetch("/postCommunicationModbus_p", {
+          method: "POST",
+          body: formData
+        });
 
-    const text = await response.text();
-    const trimmed = text.trim();
+        const text = await response.text();
+        const trimmed = text.trim();
 
-    // Nur den Wert extrahieren (z. B. „3“ aus „Reading Value 3 from …“)
-    let extractedValue = trimmed;
-    const match = trimmed.match(/Reading Value\s+(.+?)\s+from/i);
-    if (match) {
-      extractedValue = match[1];
+        // Nur den Wert extrahieren (z. B. „3“ aus „Reading Value 3 from …“)
+        let extractedValue = trimmed;
+        const match = trimmed.match(/Reading Value\s+(.+?)\s+from/i);
+        if (match) {
+          extractedValue = match[1];
+        }
+
+        // Gelesenen Wert ins Eingabefeld schreiben (egal ob Input oder Holding Register)
+        if (op === 'R') {
+          valueInput.value = extractedValue;
+        }
+
+      } catch (e) {
+        console.error("Error:", e.message);
+      }
     }
 
-    // Gelesenen Wert ins Eingabefeld schreiben (egal ob Input oder Holding Register)
-    if (op === 'R') {
-      valueInput.value = extractedValue;
-    }
-
-  } catch (e) {
-    console.error("Error:", e.message);
-  }
-}
-
-</script>
+  </script>
 
 </body>
 
