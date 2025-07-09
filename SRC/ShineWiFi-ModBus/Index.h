@@ -99,23 +99,44 @@ const char MAIN_page[] PROGMEM = R"=====(
       border-top: 2px solid #ccc;
       margin: 2em 0 1.5em 0;
     }
+.dataContainer {
+  display: grid;
+  grid-template-columns: max-content minmax(80px, 1fr);
+  column-gap: 0.5em;       /* Kleiner Abstand zwischen Label und Value */
+  row-gap: 0.7em;
+  width: 100%;
+}
+
+.dataContainer .label {
+  text-align: left;
+}
+
+.dataContainer .value {
+  text-align: right;
+}
+@media (min-width: 800px) {
+  .dataContainer {
+    grid-template-columns: max-content minmax(80px, 200px); /* statt 1fr: feste Maxbreite */
+    column-gap: 0.3em; /* kleiner Abstand auf Desktop */
+  }
+}
   </style>
 </head>
 
 <body>
   <h2>Growatt MIN TL-XH</h2>
 
-  <div class="dataContainer">
-    <h3>Priority Mode: <span id="priorityMode">Loading...</span></h3>
-    <h3>Output Power: <span id="outputPower">Loading...</span></h3>
-    <h3>PV2 Power: <span id="pv2Power">Loading...</span></h3>
-    <h3>PV2 Voltage: <span id="pv2Voltage">Loading...</span></h3>
-    <h3>Inverter Temperature: <span id="inverterTemperature">Loading...</span></h3>
-    <h3>State of Charge: <span id="stateofCharge">Loading...</span></h3>
-    <h3>Charging Power: <span id="batteryCharge">Loading...</span></h3>
-    <h3>Discharging Power: <span id="batteryDischarge">Loading...</span></h3>
-    <h3>Battery Temperature: <span id="batteryTemperature">Loading...</span></h3>
-  </div>
+<div class="dataContainer">
+  <span class="label">Priority Mode:</span> <span id="priorityMode" class="value">Loading...</span>
+  <span class="label">Output Power:</span> <span id="outputPower" class="value">Loading...</span>
+  <span class="label">PV2 Power:</span> <span id="pv2Power" class="value">Loading...</span>
+  <span class="label">PV2 Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
+  <span class="label">Inverter Temperature:</span> <span id="inverterTemperature" class="value">Loading...</span>
+  <span class="label">State of Charge:</span> <span id="stateofCharge" class="value">Loading...</span>
+  <span class="label">Charging Power:</span> <span id="batteryCharge" class="value">Loading...</span>
+  <span class="label">Discharging Power:</span> <span id="batteryDischarge" class="value">Loading...</span>
+  <span class="label">Battery Temperature:</span> <span id="batteryTemperature" class="value">Loading...</span>
+</div>
 
   <hr class="sectionDivider">
 
