@@ -151,7 +151,7 @@ const char MAIN_page[] PROGMEM = R"=====(
       class="linkButton red">Battery First</a>
     <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;"
       class="linkButton red">Grid First</a>
-    <a href="./postCommunicationModbus" class="linkButton red">RW Modbus</a>
+    <a href="./postCommunicationModbus" class="linkButton red">Modbus Access</a>
   </div>
 
   <script>
