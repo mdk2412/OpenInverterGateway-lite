@@ -285,7 +285,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
     }
 
     .fieldLabel {
-      font-weight: bold;
+      font-weight: normal;
       margin-bottom: 0.2em;
     }
   </style>
