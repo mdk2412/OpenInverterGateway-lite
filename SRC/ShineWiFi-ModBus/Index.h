@@ -292,12 +292,12 @@ const char SendPostSite_page[] PROGMEM = R"=====(
 </head>
 
 <body>
-  <h2>POST Communication Modbus</h2>
+  <h2>Modbus Access</h2>
 
   <form id="modbusForm">
     <div>
       <div class="fieldLabel">Register ID</div>
-      <input type="text" name="reg" placeholder="">
+      <input type="text" name="reg" placeholder="" value="0">
     </div>
 
     <div>
