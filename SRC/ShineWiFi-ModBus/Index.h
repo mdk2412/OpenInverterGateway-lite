@@ -289,7 +289,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       margin-bottom: 0.2em;
     }
     .valueUpdated {
-  animation: highlightField 1s ease-in-out;
+  animation: highlightField 1s ease;
 }
 
 @keyframes highlightField {
@@ -298,7 +298,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
   100% { background-color: #6eb92b; }
 }
 .valueError {
-  animation: errorFlash 1s ease-in-out;
+  animation: errorFlash 1s ease;
 }
 
 @keyframes errorFlash {
@@ -386,7 +386,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
     regSelect.addEventListener('change', updateUI);
 
     // Vorhandene POST-Funktion
-    async function submitOperation(op) {3047
+    async function submitOperation(op) {
       const form = document.getElementById("modbusForm");
       const formData = new FormData(form);
       formData.append("operation", op);
