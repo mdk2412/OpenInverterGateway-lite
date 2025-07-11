@@ -739,7 +739,7 @@ void handlePostData() {
                        u16Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 16-bit Input Register %ld impossible - "
+                       PSTR("Reading from 16-bit Input Register %ld failed - "
                             "not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -751,7 +751,7 @@ void handlePostData() {
                        u32Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 32-bit Input Register %ld impossible - "
+                       PSTR("Reading from 32-bit Input Register %ld failed - "
                             "not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -765,7 +765,7 @@ void handlePostData() {
                        u16Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 16-bit Holding Register %ld impossible "
+                       PSTR("Reading from 16-bit Holding Register %ld failed "
                             "- not connected?"),
                        httpServer.arg("reg").toInt());
           }
@@ -777,7 +777,7 @@ void handlePostData() {
                        u32Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 32-bit Holding Register %ld impossible "
+                       PSTR("Reading from 32-bit Holding Register %ld failed "
                             "- not connected?"),
                        httpServer.arg("reg").toInt());
           }

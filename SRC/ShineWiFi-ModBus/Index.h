@@ -290,23 +290,21 @@ const char SendPostSite_page[] PROGMEM = R"=====(
     }
     .valueUpdated {
   animation: highlightField 1s ease-in-out;
-  background-color: #e3f6d5; /* sanftes Grün */
 }
 
 @keyframes highlightField {
-  0% { background-color: #e3f6d5; }
+  0% { background-color: #6eb92b; }
   50% { background-color: #c5ebaf; }
-  100% { background-color: #e3f6d5; }
+  100% { background-color: #6eb92b; }
 }
 .valueError {
   animation: errorFlash 1s ease-in-out;
-  background-color: #f8d7da; /* sanftes Rot */
 }
 
 @keyframes errorFlash {
-  0% { background-color: #f8d7da; }
+  0% { background-color: #b92b2b; }
   50% { background-color: #f5b5b9; }
-  100% { background-color: #f8d7da; }
+  100% { background-color: #b92b2b; }
 
   </style>
 </head>
@@ -388,7 +386,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
     regSelect.addEventListener('change', updateUI);
 
     // Vorhandene POST-Funktion
-    async function submitOperation(op) {
+    async function submitOperation(op) {3047
       const form = document.getElementById("modbusForm");
       const formData = new FormData(form);
       formData.append("operation", op);
