@@ -785,6 +785,7 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   res["command"] = command;
   res["success"] = success;
   res["message"] = message;
+  Log.println(res["message"].as<String>());
 }
 
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,

@@ -683,7 +683,6 @@ void loadFirst(void) {
   const char* payload = "{\"mode\": 0}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
-  Log.println(res["message"].as<String>());
 }
 
 void batteryFirst(void) {
