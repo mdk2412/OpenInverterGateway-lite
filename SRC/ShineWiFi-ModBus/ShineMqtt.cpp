@@ -26,10 +26,12 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   Log.println(this->mqttconfig.topic);
 
   this->mqttclient.setServer(this->mqttconfig.server.c_str(), intPort);
-  // this->mqttclient.setCallback(
-  //     [this](char* topic, byte* payload, unsigned int length) {
-  //       this->onMqttMessage(topic, payload, length);
-  //     });
+#if MQTT_COMMANDS == 1
+  this->mqttclient.setCallback(
+      [this](char* topic, byte* payload, unsigned int length) {
+        this->onMqttMessage(topic, payload, length);
+      });
+#endif
 }
 
 String ShineMqtt::getId() {
@@ -76,13 +78,14 @@ bool ShineMqtt::mqttReconnect() {
                                  this->mqttconfig.topic.c_str(), 1, 1,
                                  "{\"InverterStatus\": -1 }")) {
       Log.println(F("succeeded"));
-
-      // String commandTopic = this->mqttconfig.topic + "/command/#";
-      // if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
-      //   Log.println("Subscribed to " + commandTopic);
-      // } else {
-      //   Log.println("Failed to subscribe to " + commandTopic);
-      // }
+#if MQTT_COMMANDS == 1
+      String commandTopic = this->mqttconfig.topic + "/command/#";
+      if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
+        Log.println("Subscribed to " + commandTopic);
+      } else {
+        Log.println("Failed to subscribe to " + commandTopic);
+      }
+#endif
       return true;
     } else {
       Log.print(F("failed, rc="));
@@ -97,7 +100,7 @@ bool ShineMqtt::mqttReconnect() {
 
 boolean ShineMqtt::mqttPublish(const String& jsonString) {
   if (jsonString.length() >= BUFFER_SIZE) {
-    Log.println(F("MQTT message too long for buffer!"));
+    Log.println(F("MQTT Message too long for buffer!"));
 
     return false;
   }
@@ -143,26 +146,28 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   }
 }
 
-// void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int
-// length) {
-//   StaticJsonDocument<1024> req;
-//   StaticJsonDocument<1024> res;
-//   String strTopic(topic);
+#if MQTT_COMMANDS == 1
+ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int
+ length) {
+   StaticJsonDocument<1024> req;
+   StaticJsonDocument<1024> res;
+   String strTopic(topic);
 
-//   Log.print(F("MQTT message arrived ["));
-//   Log.print(strTopic);
-//   Log.print(F("] "));
+   Log.print(F("MQTT Message arrived ["));
+   Log.print(strTopic);
+   Log.print(F("] "));
 
-//   String command =
-//       strTopic.substring(String(this->mqttconfig.topic +
-//       "/command/").length());
-//   if (command.isEmpty()) {
-//     return;
-//   }
+   String command =
+       strTopic.substring(String(this->mqttconfig.topic +
+       "/command/").length());
+   if (command.isEmpty()) {
+     return;
+   }
 
-//   this->inverter.HandleCommand(command, payload, length, req, res);
-//   mqttPublish(res, this->mqttconfig.topic + "/result");
-// }
+   this->inverter.HandleCommand(command, payload, length, req, res);
+   mqttPublish(res, this->mqttconfig.topic + "/result");
+ }
+#endif
 
 void ShineMqtt::loop() { this->mqttclient.loop(); }
 #endif

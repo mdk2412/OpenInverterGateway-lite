@@ -21,6 +21,8 @@
 
 // Setting this define to 0 will disable the MQTT functionality
 #define MQTT_SUPPORTED 1
+// Setting this define to 0 will only disable the commands via MQTT 
+#define MQTT_COMMANDS 0
 
 // Enable OTA update via espota. This is mainly for development purposes and
 // enables updates of the device without physical access. Use at our own risk!
