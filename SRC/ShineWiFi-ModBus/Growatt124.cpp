@@ -70,12 +70,11 @@ std::tuple<bool, String> updateDateTime(const JsonDocument& req,
   bool success = true;
 #endif
   if (success) {
-    String message = "Updated date/time to: " + datetime;
+    String message = "Updated Date/Time to: " + datetime;
     return std::make_tuple(true, message);
-    // return std::make_tuple(true, "Successfully updated date/time");
   }
 
-  return std::make_tuple(false, "Failed to update date/time!");
+  return std::make_tuple(false, "Failed to update Date/Time!");
 };
 
 std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
@@ -85,35 +84,35 @@ std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
 
 #if SIMULATE_INVERTER != 1
   if (!inverter.ReadHoldingReg(3, &value)) {
-    return std::make_tuple(false, "Failed to read active rate");
+    return std::make_tuple(false, "Failed to read active Rate!");
   }
 #endif
 
   res["value"] = value;
 
-  return std::make_tuple(true, "Successfully read active rate");
+  return std::make_tuple(true, "Read active Rate");
 };
 
 std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
                                             Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' field is required");
+    return std::make_tuple(false, "'value' Field is required");
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (!((value >= 0 && value <= 100) || value == 255)) {
-    return std::make_tuple(false, "'value' field not in range");
+    return std::make_tuple(false, "'value' Field not in Range");
   }
 
 #if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(3, value)) {
-    return std::make_tuple(false, "Failed to write active rate");
+    return std::make_tuple(false, "Failed to write active Rate!");
   }
 #endif
 
-  return std::make_tuple(true, "Successfully updated active rate");
+  return std::make_tuple(true, "Updated active Rate");
 };
 
 std::tuple<String, String> getTimeSlot(uint16_t start, uint16_t stop) {
