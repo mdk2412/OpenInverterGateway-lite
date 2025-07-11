@@ -897,7 +897,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 
   if (type == "32b") {
     return std::make_tuple(
-        false, "Writing to double (32b) Registers is not currently supported");
+        false, "Writing to double (32b) Registers is currently not supported");
   }
 
   if (type != "16b") {
