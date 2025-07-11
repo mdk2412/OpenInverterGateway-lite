@@ -155,7 +155,13 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
 
    Log.print(F("MQTT Message arrived ["));
    Log.print(strTopic);
-   Log.println(F("]"));
+   Log.print(F("] "));
+
+   String messagePayload;
+   for (unsigned int i = 0; i < length; i++) {
+     messagePayload += (char)payload[i];
+   }
+   Log.println(messagePayload);
 
    String command =
        strTopic.substring(String(this->mqttconfig.topic +

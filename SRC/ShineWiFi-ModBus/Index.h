@@ -288,6 +288,26 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       font-weight: normal;
       margin-bottom: 0.2em;
     }
+    .valueUpdated {
+  animation: highlightField 1s ease-in-out;
+  background-color: #e3f6d5; /* sanftes Grün */
+}
+
+@keyframes highlightField {
+  0% { background-color: #e3f6d5; }
+  50% { background-color: #c5ebaf; }
+  100% { background-color: #e3f6d5; }
+}
+.valueError {
+  animation: errorFlash 1s ease-in-out;
+  background-color: #f8d7da; /* sanftes Rot */
+}
+
+@keyframes errorFlash {
+  0% { background-color: #f8d7da; }
+  50% { background-color: #f5b5b9; }
+  100% { background-color: #f8d7da; }
+
   </style>
 </head>
 
@@ -380,19 +400,32 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         });
 
         const text = await response.text();
-        const trimmed = text.trim();
+const trimmed = text.trim();
 
-        // Nur den Wert extrahieren (z. B. „3“ aus „Reading Value 3 from …“)
-        let extractedValue = trimmed;
-        const match = trimmed.match(/Reading Value\s+(.+?)\s+from/i);
-        if (match) {
-          extractedValue = match[1];
-        }
+// Extrahiere den Wert
+let extractedValue = trimmed;
+const match = trimmed.match(/(?:Reading|Writing) Value\s+(.+?)\s+(?:from|to)/i);
+if (match) {
+  extractedValue = match[1];
+}
 
-        // Gelesenen Wert ins Eingabefeld schreiben (egal ob Input oder Holding Register)
-        if (op === 'R') {
-          valueInput.value = extractedValue;
-        }
+if (op === 'R' || op === 'W') {
+  valueInput.value = extractedValue;
+
+  // Grünes Highlight bei erfolgreicher Operation
+  valueInput.classList.add("valueUpdated");
+  setTimeout(() => {
+    valueInput.classList.remove("valueUpdated");
+  }, 1000);
+}
+
+// Rotes Highlight bei Fehler
+if (trimmed.toLowerCase().includes("failed")) {
+  valueInput.classList.add("valueError");
+  setTimeout(() => {
+    valueInput.classList.remove("valueError");
+  }, 1000);
+}
 
       } catch (e) {
         console.error("Error:", e.message);
