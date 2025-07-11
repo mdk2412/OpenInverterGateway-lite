@@ -853,7 +853,6 @@ void handleNTPSync() {
     localtime_r(&t, &tm);
     strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
     Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req, res);
-    Log.println(res["message"].as<String>());
   }
 }
 #endif
