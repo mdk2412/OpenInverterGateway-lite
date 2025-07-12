@@ -410,19 +410,20 @@ if (match) {
 if (op === 'R' || op === 'W') {
   valueInput.value = extractedValue;
 
-  // Grünes Highlight bei erfolgreicher Operation
-  valueInput.classList.add("valueUpdated");
-  setTimeout(() => {
-    valueInput.classList.remove("valueUpdated");
-  }, 1000);
-}
+  // Statusprüfung für Highlighting
+  const lowerTrimmed = trimmed.toLowerCase();
 
-// Rotes Highlight bei Fehler
-if (trimmed.toLowerCase().includes("failed")) {
-  valueInput.classList.add("valueError");
-  setTimeout(() => {
-    valueInput.classList.remove("valueError");
-  }, 1000);
+  if (lowerTrimmed.includes("succeeded")) {
+    valueInput.classList.add("valueUpdated");
+    setTimeout(() => {
+      valueInput.classList.remove("valueUpdated");
+    }, 1000);
+  } else if (lowerTrimmed.includes("failed")) {
+    valueInput.classList.add("valueError");
+    setTimeout(() => {
+      valueInput.classList.remove("valueError");
+    }, 1000);
+  }
 }
 
       } catch (e) {
