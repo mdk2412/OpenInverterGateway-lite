@@ -195,6 +195,7 @@ R"=====(
 
 </html>
 )=====";
+#if ENABLE_MODBUS_COMMUNICATION == 1
 const char SendPostSite_page[] PROGMEM = R"=====(
 <!DOCTYPE HTML>
 <html lang="en">
@@ -452,3 +453,4 @@ if (op === 'R' || op === 'W') {
 
 </html>
 )=====";
+#endif

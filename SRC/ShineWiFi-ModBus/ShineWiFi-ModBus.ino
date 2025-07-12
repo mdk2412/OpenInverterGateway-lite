@@ -711,9 +711,11 @@ void sendDebug(void) {
 
 void sendMainPage(void) { httpServer.send(200, "text/html", MAIN_page); }
 
+#if ENABLE_MODBUS_COMMUNICATION == 1
 void sendPostSite(void) {
   httpServer.send(200, "text/html", SendPostSite_page);
 }
+#endif
 
 void handlePostData() {
   char msg[256];
