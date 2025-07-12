@@ -136,7 +136,16 @@ const char MAIN_page[] PROGMEM = R"=====(
     <a href="./status" class="linkButton">JSON</a>
     <a href="./uiStatus" class="linkButton">UI JSON</a>
     <a href="./metrics" class="linkButton">Metrics</a>
-    <a href="./debug" class="linkButton">Log</a>
+    )====="
+
+#ifdef ENABLE_WEB_DEBUG
+R"=====(
+  <a href="./debug" class="linkButton">Log</a>
+)====="
+#endif
+
+R"=====(
+
   </div>
 
   <div class="buttonRow-yellow">
@@ -151,7 +160,13 @@ const char MAIN_page[] PROGMEM = R"=====(
       class="linkButton red">Battery First</a>
     <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;"
       class="linkButton red">Grid First</a>
+      )====="
+#if ENABLE_MODBUS_COMMUNICATION == 1
+R"=====(
     <a href="./postCommunicationModbus" class="linkButton red">Modbus Access</a>
+    )====="
+#endif
+R"=====(
   </div>
 
   <script>
