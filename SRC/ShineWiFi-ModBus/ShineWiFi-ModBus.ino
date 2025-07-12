@@ -691,7 +691,6 @@ void batteryFirst(void) {
   const char* payload = "{\"mode\": 1}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
-  Log.println(res["message"].as<String>());
 }
 
 void gridFirst(void) {
@@ -700,7 +699,6 @@ void gridFirst(void) {
   const char* payload = "{\"mode\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
-  Log.println(res["message"].as<String>());
 }
 
 #ifdef ENABLE_WEB_DEBUG
@@ -915,7 +913,6 @@ void acchargePowerrate() {
     snprintf(payload, sizeof(payload), "{\"value\": %u}", targetpowerrate);
     Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
                            strlen(payload), req, res);
-    Log.println(res["message"].as<String>());
   }
 }
 #endif
