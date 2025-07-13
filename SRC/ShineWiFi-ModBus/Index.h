@@ -379,7 +379,7 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         writeButton.style.display = 'none';
       }
 
-      // Eingabefeld sperren (statt ausblenden), wenn:
+      // Eingabefeld sperren, wenn:
       // - Input Register gewählt ist ODER
       // - Holding Register + 32-bit gewählt sind
       if (isInput || (isHolding && is32Bit)) {

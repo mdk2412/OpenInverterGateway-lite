@@ -12,15 +12,15 @@
 #include <StreamUtils.h>
 #include <time.h>
 
-#define LOG_PRINTLN_TS(msg) { \
-  time_t now = time(nullptr); \
-  struct tm* t = localtime(&now); \
-  char timestamp[20]; \
-  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t); \
-  char buffer[256]; \
-  snprintf(buffer, sizeof(buffer), "[%s] %s", timestamp, msg); \
-  Log.println(buffer); \
-}
+// #define LOG_PRINTLN_TS(msg) { \
+//   time_t now = time(nullptr); \
+//   struct tm* t = localtime(&now); \
+//   char timestamp[20]; \
+//   strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t); \
+//   char buffer[256]; \
+//   snprintf(buffer, sizeof(buffer), "[%s] %s", timestamp, msg); \
+//   Log.println(buffer); \
+// }
 
 #if (ENABLE_BATTERY_STANDBY == 1 || ACCHARGE_POWERRATE == 1)
 #include "GrowattTLXH.h"
@@ -864,9 +864,9 @@ void batteryStandby() {
     if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) >
         wake_threshold * 10) {
       if (Inverter.WriteHoldingReg(0, 3)) {
-        LOG_PRINTLN_TS("Battery woke up");
+        Log.println(F("Battery activated"));
       } else {
-        LOG_PRINTLN_TS("Battery still sleeping!");
+        Log.println(F("Battery still deactivated!"));
       }
     }
   }
@@ -878,9 +878,9 @@ void batteryStandby() {
         ((Inverter._Protocol.InputRegisters[P3000_PPV].value) <
          sleep_threshold * 10)) {
       if (Inverter.WriteHoldingReg(0, 2)) {
-        LOG_PRINTLN_TS("Battery put to sleep");
+        Log.println(F("Battery deactivated"));
       } else {
-        LOG_PRINTLN_TS("Battery still awake!");
+        Log.println(F("Battery still activated!"));
       }
     }
   }
