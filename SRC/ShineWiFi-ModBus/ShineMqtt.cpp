@@ -153,7 +153,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
    StaticJsonDocument<1024> res;
    String strTopic(topic);
 
-   Log.print(F("MQTT Message arrived ["));
+   Log.print(F("MQTT Message received: ["));
    Log.print(strTopic);
    Log.print(F("] "));
 
