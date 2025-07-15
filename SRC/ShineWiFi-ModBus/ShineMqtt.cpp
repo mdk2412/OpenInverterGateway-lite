@@ -147,32 +147,30 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
 }
 
 #if MQTT_COMMANDS == 1
- void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int
- length) {
-   StaticJsonDocument<1024> req;
-   StaticJsonDocument<1024> res;
-   String strTopic(topic);
+void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
+  StaticJsonDocument<1024> req;
+  StaticJsonDocument<1024> res;
+  String strTopic(topic);
 
-   Log.print(F("MQTT Message received: ["));
-   Log.print(strTopic);
-   Log.print(F("] "));
+  Log.print(F("MQTT Message received: ["));
+  Log.print(strTopic);
+  Log.print(F("] "));
 
-   String messagePayload;
-   for (unsigned int i = 0; i < length; i++) {
-     messagePayload += (char)payload[i];
-   }
-   Log.println(messagePayload);
+  String messagePayload;
+  for (unsigned int i = 0; i < length; i++) {
+    messagePayload += (char)payload[i];
+  }
+  Log.println(messagePayload);
 
-   String command =
-       strTopic.substring(String(this->mqttconfig.topic +
-       "/command/").length());
-   if (command.isEmpty()) {
-     return;
-   }
+  String command =
+      strTopic.substring(String(this->mqttconfig.topic + "/command/").length());
+  if (command.isEmpty()) {
+    return;
+  }
 
-   this->inverter.HandleCommand(command, payload, length, req, res);
-   mqttPublish(res, this->mqttconfig.topic + "/result");
- }
+  this->inverter.HandleCommand(command, payload, length, req, res);
+  mqttPublish(res, this->mqttconfig.topic + "/result");
+}
 #endif
 
 void ShineMqtt::loop() { this->mqttclient.loop(); }

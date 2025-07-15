@@ -117,3 +117,4 @@ typedef enum {
 } eP3000HoldingRegisters_t;
 
 void init_growattTLXH(sProtocolDefinition_t &Protocol, Growatt &inverter);
+

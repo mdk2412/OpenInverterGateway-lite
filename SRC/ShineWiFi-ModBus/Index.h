@@ -139,12 +139,12 @@ const char MAIN_page[] PROGMEM = R"=====(
     )====="
 
 #ifdef ENABLE_WEB_DEBUG
-R"=====(
+                                 R"=====(
   <a href="./debug" class="linkButton">Log</a>
 )====="
 #endif
 
-R"=====(
+                                 R"=====(
 
   </div>
 
@@ -162,11 +162,11 @@ R"=====(
       class="linkButton red">Grid First</a>
       )====="
 #if ENABLE_MODBUS_COMMUNICATION == 1
-R"=====(
+                                 R"=====(
     <a href="./postCommunicationModbus" class="linkButton red">Modbus Access</a>
     )====="
 #endif
-R"=====(
+                                 R"=====(
   </div>
 
   <script>

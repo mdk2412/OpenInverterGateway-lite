@@ -792,7 +792,7 @@ std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
   if (!req.containsKey("text")) {
-    return std::make_tuple(false, "'text' Field is required");
+    return std::make_tuple(false, "'Text' Field is required");
   }
   String text = req["text"].as<String>();
   res["text"] = "Echo: " + text;
@@ -813,7 +813,7 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
   if (!req.containsKey("id")) {
-    return std::make_tuple(false, "'id' Field is required");
+    return std::make_tuple(false, "'ID' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -821,24 +821,24 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
 #endif
 
   if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'type' Field is required");
+    return std::make_tuple(false, "'Type' Field is required");
   }
 
   String type = req["type"].as<String>();
 
   if (type != "16b" && type != "32b") {
-    return std::make_tuple(false, "'type' must be '16b' or '32b'");
+    return std::make_tuple(false, "'Type' must be '16b' or '32b'");
   }
 
   if (!req.containsKey("registerType")) {
-    return std::make_tuple(false, "'registerType' Field is required");
+    return std::make_tuple(false, "'RegisterType' Field is required");
   }
 
   String registerType = req["registerType"].as<String>();
 
   if (registerType != "H" && registerType != "I") {
     return std::make_tuple(
-        false, "'registerType' must be 'H' (Holding) or 'I' (Input)");
+        false, "'RegisterType' must be 'H' (Holding) or 'I' (Input)");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -882,7 +882,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
   if (!req.containsKey("id")) {
-    return std::make_tuple(false, "'id' Field is required");
+    return std::make_tuple(false, "'ID' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -890,7 +890,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
 #endif
 
   if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'type' Field is required");
+    return std::make_tuple(false, "'Type' Field is required");
   }
 
   String type = req["type"].as<String>();
@@ -901,11 +901,11 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
   }
 
   if (type != "16b") {
-    return std::make_tuple(false, "'type' must be '16b'");
+    return std::make_tuple(false, "'Type' must be '16b'");
   }
 
   if (!req.containsKey("registerType")) {
-    return std::make_tuple(false, "'registerType' Field is required");
+    return std::make_tuple(false, "'RegisterType' Field is required");
   }
 
   String registerType = req["registerType"].as<String>();
@@ -916,11 +916,11 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
   }
 
   if (registerType != "H") {
-    return std::make_tuple(false, "'registerType' must be 'H' (holding)");
+    return std::make_tuple(false, "'RegisterType' must be 'H' (holding)");
   }
 
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, "'Value' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1

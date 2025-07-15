@@ -233,8 +233,10 @@ void loadConfig() {
 #endif
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
 #if ENABLE_BATTERY_STANDBY == 1
-  Config.sleep_battery_threshold = prefs.getString(ConfigFiles.sleep_battery_threshold, "10");
-  Config.wake_battery_threshold = prefs.getString(ConfigFiles.wake_battery_threshold, "75");
+  Config.sleep_battery_threshold =
+      prefs.getString(ConfigFiles.sleep_battery_threshold, "10");
+  Config.wake_battery_threshold =
+      prefs.getString(ConfigFiles.wake_battery_threshold, "75");
 #endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
@@ -254,8 +256,10 @@ void saveConfig() {
 #endif
   prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
 #if ENABLE_BATTERY_STANDBY == 1
-  prefs.putString(ConfigFiles.sleep_battery_threshold, Config.sleep_battery_threshold);
-  prefs.putString(ConfigFiles.wake_battery_threshold, Config.wake_battery_threshold);
+  prefs.putString(ConfigFiles.sleep_battery_threshold,
+                  Config.sleep_battery_threshold);
+  prefs.putString(ConfigFiles.wake_battery_threshold,
+                  Config.wake_battery_threshold);
 #endif
 }
 
@@ -279,8 +283,10 @@ void saveParamCallback() {
 #endif
   Config.syslog_ip = customWMParams.syslog_ip->getValue();
 #if ENABLE_BATTERY_STANDBY == 1
-  Config.sleep_battery_threshold = customWMParams.sleep_battery_threshold->getValue();
-  Config.wake_battery_threshold = customWMParams.wake_battery_threshold->getValue();
+  Config.sleep_battery_threshold =
+      customWMParams.sleep_battery_threshold->getValue();
+  Config.wake_battery_threshold =
+      customWMParams.wake_battery_threshold->getValue();
 #endif
 
   saveConfig();
@@ -544,9 +550,9 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
 #if ENABLE_BATTERY_STANDBY == 1
-  customWMParams.sleep_battery_threshold =
-      new WiFiManagerParameter("sleepbatterythreshold", "sleep battery threshold",
-                               Config.sleep_battery_threshold.c_str(), 4);
+  customWMParams.sleep_battery_threshold = new WiFiManagerParameter(
+      "sleepbatterythreshold", "sleep battery threshold",
+      Config.sleep_battery_threshold.c_str(), 4);
   customWMParams.wake_battery_threshold =
       new WiFiManagerParameter("wakebatterythreshold", "wake battery threshold",
                                Config.wake_battery_threshold.c_str(), 4);
@@ -735,7 +741,8 @@ void handlePostData() {
           if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(),
                                     &u16Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 16-bit Input Register %ld succeeded"),
+                       PSTR("Reading Value %d from 16-bit Input Register %ld "
+                            "succeeded"),
                        u16Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
@@ -746,7 +753,8 @@ void handlePostData() {
           if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(),
                                     &u32Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 32-bit Input Register %ld succeeded"),
+                       PSTR("Reading Value %d from 32-bit Input Register %ld "
+                            "succeeded"),
                        u32Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
@@ -759,7 +767,8 @@ void handlePostData() {
           if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(),
                                       &u16Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 16-bit Holding Register %ld succeeded"),
+                       PSTR("Reading Value %d from 16-bit Holding Register %ld "
+                            "succeeded"),
                        u16Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
@@ -770,7 +779,8 @@ void handlePostData() {
           if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(),
                                       &u32Tmp)) {
             snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 32-bit Holding Register %ld succeeded"),
+                       PSTR("Reading Value %d from 32-bit Holding Register %ld "
+                            "succeeded"),
                        u32Tmp, httpServer.arg("reg").toInt());
           } else {
             snprintf_P(msg, sizeof(msg),
@@ -784,10 +794,10 @@ void handlePostData() {
         if (httpServer.arg(F("type")) == "16b") {
           if (Inverter.WriteHoldingReg(httpServer.arg(F("reg")).toInt(),
                                        httpServer.arg(F("val")).toInt())) {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Writing Value %ld to Holding Register %ld succeeded"),
-                       httpServer.arg("val").toInt(),
-                       httpServer.arg("reg").toInt());
+            snprintf_P(
+                msg, sizeof(msg),
+                PSTR("Writing Value %ld to Holding Register %ld succeeded"),
+                httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
           } else {
             snprintf_P(
                 msg, sizeof(msg),
@@ -795,8 +805,9 @@ void handlePostData() {
                 httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
           }
         } else {
-          snprintf_P(msg, sizeof(msg),
-                     PSTR("Writing to double (32-bit) Registers not supported!"));
+          snprintf_P(
+              msg, sizeof(msg),
+              PSTR("Writing to double (32-bit) Registers not supported!"));
         }
       } else {
         snprintf_P(msg, sizeof(msg),
@@ -848,7 +859,8 @@ void handleNTPSync() {
     time_t t = time(NULL);
     localtime_r(&t, &tm);
     strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
-    Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req, res);
+    Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req,
+                           res);
   }
 }
 #endif
@@ -872,10 +884,9 @@ void batteryStandby() {
         Log.println(F("Battery still deactivated!"));
       }
     }
-  }
-
-  else if ((Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) ||
-           (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value > 0))
+  } else if ((Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value ==
+              1) ||
+             (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value > 0))
   // battery in normal state OR discharge from battery
   {
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
@@ -1046,16 +1057,16 @@ void loop() {
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-    // set inverter datetime, initially after 60 seconds and then after 1 hour
+  // set inverter datetime, initially after 60 seconds and then after 1 hour
   if (!initialSyncDone && now >= 60000) {
-    handleNTPSync();               
-    lastSync = now;                
-    initialSyncDone = true;       
+    handleNTPSync();
+    lastSync = now;
+    initialSyncDone = true;
   }
 
   if (initialSyncDone && (now - lastSync) >= NTP_TIMER) {
-    handleNTPSync();               
-    lastSync = now;                
+    handleNTPSync();
+    lastSync = now;
   }
 #endif
 

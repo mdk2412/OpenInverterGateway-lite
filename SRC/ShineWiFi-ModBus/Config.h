@@ -5,7 +5,7 @@
 // Build configuration area start
 // ---------------------------------------------------------------
 
-// Define used modbus version used by your invertor here. Currently
+// Define used modbus version used by your inverter here. Currently
 // only 120 (v1.20), 124 (v1.24) and 305 (v3.05) versions are supported.
 // Growatt TL-X(H) inverters use v1.24, but use different registers (3000 and
 // above). To enable TL-X(H) support set the modbus version to 3000. Also SPF
@@ -21,7 +21,7 @@
 
 // Setting this define to 0 will disable the MQTT functionality
 #define MQTT_SUPPORTED 1
-// Setting this define to 0 will only disable the commands via MQTT 
+// Setting this define to 0 will only disable the commands via MQTT
 #define MQTT_COMMANDS 1
 
 // Enable OTA update via espota. This is mainly for development purposes and
