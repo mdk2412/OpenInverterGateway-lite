@@ -855,13 +855,16 @@ void handleNTPSync() {
 
 // battery standby
 #if ENABLE_BATTERY_STANDBY == 1
+const uint32_t wake_threshold =
+    std::strtoul(Config.wake_battery_threshold.c_str(), nullptr, 10);
+const uint32_t sleep_threshold =
+    std::strtoul(Config.sleep_battery_threshold.c_str(), nullptr, 10);
 void batteryStandby() {
-  uint32_t wake_threshold =
-      strtoul(Config.wake_battery_threshold.c_str(), nullptr, 10);
-  uint32_t sleep_threshold =
-      strtoul(Config.sleep_battery_threshold.c_str(), nullptr, 10);
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) >
+  if ((Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) &&
+      (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value = 0))
+  // battery in waiting state AND no discharge from battery
+  {
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >
         wake_threshold * 10) {
       if (Inverter.WriteHoldingReg(0, 3)) {
         Log.println(F("Battery activated"));
@@ -871,7 +874,10 @@ void batteryStandby() {
     }
   }
 
-  else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
+  else if ((Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) ||
+           (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value > 0))
+  // battery in normal state OR discharge from battery
+  {
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value) &&
