@@ -873,7 +873,6 @@ const uint32_t sleep_threshold =
     std::strtoul(Config.sleep_battery_threshold.c_str(), nullptr, 10);
 void batteryStandby() {
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0)
-  // battery in waiting state 
   {
     if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >
         wake_threshold * 10) {
@@ -883,11 +882,7 @@ void batteryStandby() {
         Log.println(F("Battery still deactivated!"));
       }
     }
-  } else if ((Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value ==
-              1) ||
-             (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value < 500))
-  // battery in normal state OR less than 50 W discharge from battery
-  {
+  } else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value) &&
