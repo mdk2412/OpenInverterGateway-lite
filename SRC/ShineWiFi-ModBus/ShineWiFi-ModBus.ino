@@ -901,12 +901,13 @@ void batteryStandby() {
 // ac charge power rate
 #if ACCHARGE_POWERRATE == 1
 void acchargePowerrate() {
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
-    return;
-  }
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
+    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
+      loadFirst();
+      return;
+    }
     int64_t delta =
         (static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value) +
