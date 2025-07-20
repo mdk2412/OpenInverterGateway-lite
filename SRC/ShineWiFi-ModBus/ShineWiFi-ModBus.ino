@@ -10,8 +10,8 @@
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
-#include <time.h>
 
+//#include <time.h>
 // #define LOG_PRINTLN_TS(msg) { \
 //   time_t now = time(nullptr); \
 //   struct tm* t = localtime(&now); \
@@ -867,13 +867,10 @@ void handleNTPSync() {
 
 // battery standby
 #if ENABLE_BATTERY_STANDBY == 1
-const uint32_t wake_threshold =
-    std::strtoul(Config.wake_battery_threshold.c_str(), nullptr, 10);
-const uint32_t sleep_threshold =
-    std::strtoul(Config.sleep_battery_threshold.c_str(), nullptr, 10);
 void batteryStandby() {
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0)
-  {
+  uint32_t wake_threshold = Config.wake_battery_threshold.toInt();
+  uint32_t sleep_threshold = Config.sleep_battery_threshold.toInt();
+  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
     if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >
         wake_threshold * 10) {
       if (Inverter.WriteHoldingReg(0, 3)) {
@@ -886,7 +883,7 @@ void batteryStandby() {
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value) &&
-        ((Inverter._Protocol.InputRegisters[P3000_PPV].value) <
+        (Inverter._Protocol.InputRegisters[P3000_PPV].value <
          sleep_threshold * 10)) {
       if (Inverter.WriteHoldingReg(0, 2)) {
         Log.println(F("Battery deactivated"));
@@ -1053,13 +1050,13 @@ void loop() {
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
   // set inverter datetime, initially after 60 seconds and then after 1 hour
-  if (!initialSyncDone && now >= 60000) {
+  if (!initialSyncDone && now > 60000) {
     handleNTPSync();
     lastSync = now;
     initialSyncDone = true;
   }
 
-  if (initialSyncDone && (now - lastSync) >= NTP_TIMER) {
+  if (initialSyncDone && (now - lastSync) > NTP_TIMER) {
     handleNTPSync();
     lastSync = now;
   }
