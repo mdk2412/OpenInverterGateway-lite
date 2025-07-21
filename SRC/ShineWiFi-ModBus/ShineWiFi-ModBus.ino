@@ -533,10 +533,10 @@ void setup() {
 #if ACCHARGE_CONTROL == 1
 Log.print(F("AC Charge Power Rate active, "));
 Log.print(F("Inverter Maximum Power: "));
-Log.print(ACCHARGE_MAXPOWER);
+Log.print(ACCHARGE_CONTROL_MAXPOWER);
 Log.print(F(" W, "));
 Log.print(F("Offset: "));
-Log.print(ACCHARGE_OFFSET);
+Log.print(ACCHARGE_CONTROL_OFFSET);
 Log.println(F(" %"));
 #endif
 }
@@ -916,7 +916,7 @@ void batteryStandby() {
 
 // ac charge power rate
 #if ACCHARGE_CONTROL == 1
-void acchargePowerrate() {
+void acchargeControl() {
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
@@ -931,7 +931,7 @@ void acchargePowerrate() {
              Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
          static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
-    int64_t rawRate = (delta * 10) / ACCHARGE_MAXPOWER - ACCHARGE_OFFSET;
+    int64_t rawRate = (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
     uint32_t targetpowerrate =
         static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
@@ -956,10 +956,10 @@ unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
 #if BATTERY_STANDBY == 1
-unsigned long BatteryStandbyTimer = 0;  // battery standby
+unsigned long BatteryStandbyTimer = 0;  
 #endif
 #if ACCHARGE_CONTROL == 1
-unsigned long ACChargeTimer = 0;  // ac charge power rate
+unsigned long ACChargeControlTimer = 0;  
 #endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 unsigned long NTPTimer = 0;
@@ -1099,9 +1099,9 @@ void loop() {
 #endif
 
 #if ACCHARGE_CONTROL == 1
-  if ((now - ACChargeTimer) > ACCHARGE_TIMER) {
-    acchargePowerrate();
-    ACChargeTimer = now;
+  if ((now - ACChargeControlTimer) > ACCHARGE_CONTROL_TIMER) {
+    acchargeControl();
+    ACChargeControlTimer = now;
   }
 #endif
 }
