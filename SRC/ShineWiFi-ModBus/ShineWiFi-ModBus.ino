@@ -22,7 +22,7 @@
 //   Log.println(buffer); \
 // }
 
-#if (BATTERY_STANDBY == 1 || ACCHARGE_POWERRATE == 1)
+#if (BATTERY_STANDBY == 1 || ACCHARGE_CONTROL == 1)
 #include "GrowattTLXH.h"
 #endif
 
@@ -530,7 +530,7 @@ void setup() {
 #endif
 #endif
 
-#if ACCHARGE_POWERRATE == 1
+#if ACCHARGE_CONTROL == 1
 Log.print(F("AC Charge Power Rate active, "));
 Log.print(F("Inverter Maximum Power: "));
 Log.print(ACCHARGE_MAXPOWER);
@@ -915,7 +915,7 @@ void batteryStandby() {
 #endif
 
 // ac charge power rate
-#if ACCHARGE_POWERRATE == 1
+#if ACCHARGE_CONTROL == 1
 void acchargePowerrate() {
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
@@ -958,7 +958,7 @@ unsigned long WifiRetryTimer = 0;
 #if BATTERY_STANDBY == 1
 unsigned long BatteryStandbyTimer = 0;  // battery standby
 #endif
-#if ACCHARGE_POWERRATE == 1
+#if ACCHARGE_CONTROL == 1
 unsigned long ACChargeTimer = 0;  // ac charge power rate
 #endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -1098,7 +1098,7 @@ void loop() {
   }
 #endif
 
-#if ACCHARGE_POWERRATE == 1
+#if ACCHARGE_CONTROL == 1
   if ((now - ACChargeTimer) > ACCHARGE_TIMER) {
     acchargePowerrate();
     ACChargeTimer = now;
