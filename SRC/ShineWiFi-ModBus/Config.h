@@ -40,11 +40,11 @@
 #define BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000  // 60s default
 
-// AC charge power rate
+// AC charge control
 // If there are other inverters in the system only load the surplus via AC
 // charging
 #define ACCHARGE_CONTROL 1
-#define ACCHARGE_CONTROL_TIMER 1000     // 5s default
+#define ACCHARGE_CONTROL_TIMER 1000     // 1s default
 #define ACCHARGE_CONTROL_MAXPOWER 2500  // maximum output power of inverter in W
 #define ACCHARGE_CONTROL_OFFSET \
   2  // offset in % to be subtracted from target power rate to ensure 0 power
