@@ -22,7 +22,7 @@
 //   Log.println(buffer); \
 // }
 
-#if (ENABLE_BATTERY_STANDBY == 1 || ACCHARGE_POWERRATE == 1)
+#if (BATTERY_STANDBY == 1 || ACCHARGE_POWERRATE == 1)
 #include "GrowattTLXH.h"
 #endif
 
@@ -102,7 +102,7 @@ struct {
   WiFiManagerParameter* mqtt_pwd = NULL;
 #endif
   WiFiManagerParameter* syslog_ip = NULL;
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   WiFiManagerParameter* sleep_battery_threshold = NULL;
   WiFiManagerParameter* wake_battery_threshold = NULL;
 #endif
@@ -123,7 +123,7 @@ static const struct {
 #endif
   const char* syslog_ip = "/syslogip";
   const char* force_ap = "/forceap";
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   const char* sleep_battery_threshold = "/sleepbatterythreshold";
   const char* wake_battery_threshold = "/wakebatterythreshold";
 #endif
@@ -139,7 +139,7 @@ struct {
   MqttConfig mqtt;
 #endif
   String syslog_ip;
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   String sleep_battery_threshold;
   String wake_battery_threshold;
 #endif
@@ -232,7 +232,7 @@ void loadConfig() {
   Config.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
 #endif
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   Config.sleep_battery_threshold =
       prefs.getString(ConfigFiles.sleep_battery_threshold, "50");
   Config.wake_battery_threshold =
@@ -255,7 +255,7 @@ void saveConfig() {
   prefs.putString(ConfigFiles.mqtt_pwd, Config.mqtt.pwd);
 #endif
   prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   prefs.putString(ConfigFiles.sleep_battery_threshold,
                   Config.sleep_battery_threshold);
   prefs.putString(ConfigFiles.wake_battery_threshold,
@@ -282,7 +282,7 @@ void saveParamCallback() {
   Config.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
 #endif
   Config.syslog_ip = customWMParams.syslog_ip->getValue();
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   Config.sleep_battery_threshold =
       customWMParams.sleep_battery_threshold->getValue();
   Config.wake_battery_threshold =
@@ -477,7 +477,7 @@ void setup() {
     digitalWrite(LED_BL, 0);
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
     Log.print(F("Battery Standby active, "));
     Log.print(F("Sleep Threshold: "));
     Log.print(Config.sleep_battery_threshold);
@@ -568,7 +568,7 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   customWMParams.syslog_ip = new WiFiManagerParameter(
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   customWMParams.sleep_battery_threshold = new WiFiManagerParameter(
       "sleepbatterythreshold", "sleep battery threshold",
       Config.sleep_battery_threshold.c_str(), 4);
@@ -885,7 +885,7 @@ void handleNTPSync() {
 #endif
 
 // battery standby
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
 void batteryStandby() {
   uint32_t wake_threshold = Config.wake_battery_threshold.toInt();
   uint32_t sleep_threshold = Config.sleep_battery_threshold.toInt();
@@ -955,7 +955,7 @@ unsigned long ButtonTimer = 0;
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
 unsigned long BatteryStandbyTimer = 0;  // battery standby
 #endif
 #if ACCHARGE_POWERRATE == 1
@@ -1091,7 +1091,7 @@ void loop() {
 #endif
 #endif
 
-#if ENABLE_BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
     batteryStandby();
     BatteryStandbyTimer = now;

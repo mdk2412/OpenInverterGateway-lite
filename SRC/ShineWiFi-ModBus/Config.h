@@ -37,7 +37,7 @@
 // if SoC <= BDCDischargeStopSOC & (PVTotalPower & BDCDischargePower) < sleep battery threshold
 // (configure in WiFiManager) battery is put to sleep if PTOGRID_TOTAL > wake
 // battery threshold (configure in WiFiManager) battery is woken up
-#define ENABLE_BATTERY_STANDBY 1
+#define BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000  // 60s default
 
 // AC charge power rate
