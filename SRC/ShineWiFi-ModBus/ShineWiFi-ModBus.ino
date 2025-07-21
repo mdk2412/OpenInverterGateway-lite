@@ -234,7 +234,7 @@ void loadConfig() {
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
 #if ENABLE_BATTERY_STANDBY == 1
   Config.sleep_battery_threshold =
-      prefs.getString(ConfigFiles.sleep_battery_threshold, "10");
+      prefs.getString(ConfigFiles.sleep_battery_threshold, "50");
   Config.wake_battery_threshold =
       prefs.getString(ConfigFiles.wake_battery_threshold, "75");
 #endif
@@ -477,6 +477,15 @@ void setup() {
     digitalWrite(LED_BL, 0);
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
+#if ENABLE_BATTERY_STANDBY == 1
+    Log.print(F("Battery Standby active, "));
+    Log.print(F("Sleep Threshold: "));
+    Log.print(Config.sleep_battery_threshold);
+    Log.print(F(" W, "));
+    Log.print(F("Wake Threshold: "));
+    Log.print(Config.wake_battery_threshold);
+    Log.println(F(" W"));
+#endif
   }
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -519,6 +528,16 @@ void setup() {
 #else
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
 #endif
+#endif
+
+#if ACCHARGE_POWERRATE == 1
+Log.print(F("AC Charge Power Rate active, "));
+Log.print(F("Inverter Maximum Power: "));
+Log.print(ACCHARGE_MAXPOWER);
+Log.print(F(" W, "));
+Log.print(F("Offset: "));
+Log.print(ACCHARGE_OFFSET);
+Log.println(F(" %"));
 #endif
 }
 
@@ -880,10 +899,10 @@ void batteryStandby() {
       }
     }
   } else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-             .value) &&
+    if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value = 10) &&
         (Inverter._Protocol.InputRegisters[P3000_PPV].value <
+         sleep_threshold * 10) &&
+        (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value <
          sleep_threshold * 10)) {
       if (Inverter.WriteHoldingReg(0, 2)) {
         Log.println(F("Battery deactivated"));
