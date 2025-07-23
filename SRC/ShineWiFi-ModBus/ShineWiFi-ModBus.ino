@@ -151,34 +151,34 @@ struct {
 // -------------------------------------------------------
 // Set the red led in case of error
 // -------------------------------------------------------
-void updateRedLed() {
-  uint8_t state = 0;
-  if (!readoutSucceeded) {
-    state = 1;
-  }
-  if (Inverter.GetWiFiStickType() == Undef_stick) {
-    state = 1;
-  }
-#if MQTT_SUPPORTED == 1
-  if (shineMqtt.mqttEnabled() && !shineMqtt.mqttConnected()) {
-    state = 1;
-  }
-#endif
-  digitalWrite(LED_RT, state);
-}
+// void updateRedLed() {
+//   uint8_t state = 0;
+//   if (!readoutSucceeded) {
+//     state = 1;
+//   }
+//   if (Inverter.GetWiFiStickType() == Undef_stick) {
+//     state = 1;
+//   }
+// #if MQTT_SUPPORTED == 1
+//   if (shineMqtt.mqttEnabled() && !shineMqtt.mqttConnected()) {
+//     state = 1;
+//   }
+// #endif
+//   digitalWrite(LED_RT, state);
+// }
 
 // -------------------------------------------------------
 // Check the WiFi status and reconnect if necessary
 // -------------------------------------------------------
 void WiFi_Reconnect() {
   if (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(LED_GN, 0);
+    // digitalWrite(LED_GN, 0);
 
     while (WiFi.status() != WL_CONNECTED) {
       delay(200);
       Log.print(F("."));
-      digitalWrite(LED_RT,
-                   !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
+      // digitalWrite(LED_RT,
+      //              !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
     }
 
     // todo: use Log
@@ -190,7 +190,7 @@ void WiFi_Reconnect() {
 
     Log.println(F("WiFi reconnected"));
 
-    updateRedLed();
+    // updateRedLed();
   }
 }
 
@@ -331,11 +331,11 @@ void configureLogging() {
   }
 }
 
-void setupGPIO() {
-  pinMode(LED_GN, OUTPUT);
-  pinMode(LED_RT, OUTPUT);
-  pinMode(LED_BL, OUTPUT);
-}
+// void setupGPIO() {
+//   pinMode(LED_GN, OUTPUT);
+//   pinMode(LED_RT, OUTPUT);
+//   pinMode(LED_BL, OUTPUT);
+// }
 
 void setupWifiHost() {
   WiFi.hostname(Config.hostname);
@@ -388,7 +388,7 @@ void setup() {
 
   Log.println(F("Setup()"));
 
-  setupGPIO();
+  // setupGPIO();
 
 #if ENABLE_DOUBLE_RESET == 1
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
@@ -414,9 +414,9 @@ void setup() {
 
   setupWifiManagerConfigMenu(wm);
 
-  digitalWrite(LED_BL, 1);
-  digitalWrite(LED_RT, 0);
-  digitalWrite(LED_GN, 0);
+  // digitalWrite(LED_BL, 1);
+  // digitalWrite(LED_RT, 0);
+  // digitalWrite(LED_GN, 0);
 
   // Set a timeout so the ESP doesn't hang waiting to be configured, for
   // instance after a power failure
@@ -442,7 +442,7 @@ void setup() {
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-    digitalWrite(LED_BL, 0);
+    // digitalWrite(LED_BL, 0);
     delay(3000);
     ESP.restart();
   }
@@ -481,7 +481,7 @@ void setup() {
     Log.println(F("Failed to connect WiFi!"));
     ESP.restart();
   } else {
-    digitalWrite(LED_BL, 0);
+    // digitalWrite(LED_BL, 0);
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
 #if BATTERY_STANDBY == 1
@@ -960,7 +960,7 @@ void acchargeControl() {
 #if ENABLE_AP_BUTTON == 1
 unsigned long ButtonTimer = 0;
 #endif
-unsigned long LEDTimer = 0;
+// unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
 #if BATTERY_STANDBY == 1
@@ -1020,14 +1020,14 @@ void loop() {
 
   // Toggle green LED with 1 Hz (alive)
   // ------------------------------------------------------------
-  if ((now - LEDTimer) > LED_TIMER) {
-    if (WiFi.status() == WL_CONNECTED)
-      digitalWrite(LED_GN, !digitalRead(LED_GN));
-    else
-      digitalWrite(LED_GN, 0);
+  // if ((now - LEDTimer) > LED_TIMER) {
+  //   if (WiFi.status() == WL_CONNECTED)
+  //     digitalWrite(LED_GN, !digitalRead(LED_GN));
+  //   else
+  //     digitalWrite(LED_GN, 0);
 
-    LEDTimer = now;
-  }
+  //   LEDTimer = now;
+  // }
 
   // InverterReconnect() takes a long time --> wifi will crash
   // Do it only every two minutes
@@ -1061,12 +1061,12 @@ void loop() {
       }
     }
 
-    updateRedLed();
+    // updateRedLed();
 
 #if PINGER_SUPPORTED == 1
     // frequently check if gateway is reachable
     if (pinger.Ping(GATEWAY_IP) == false) {
-      digitalWrite(LED_RT, 1);
+      // digitalWrite(LED_RT, 1);
       delay(3000);
       ESP.restart();
     }

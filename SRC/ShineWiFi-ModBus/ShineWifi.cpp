@@ -7,10 +7,10 @@ bool ShineWifiDisconnect() {
 #ifdef WM_DEBUG_LEVEL
     Log.print(F("WiFi station disconnected"));
 #endif
-    ETS_UART_INTR_DISABLE();  // @todo possibly not needed
+    //ETS_UART_INTR_DISABLE();  // @todo possibly not needed
     ret = wifi_station_disconnect();
     WiFi.mode(WIFI_OFF);
-    ETS_UART_INTR_ENABLE();
+    //ETS_UART_INTR_ENABLE();
     return ret;
   }
 #elif defined(ESP32)

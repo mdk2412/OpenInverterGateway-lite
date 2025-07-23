@@ -69,7 +69,7 @@
 
 // define this will enable a web page (<ip>/debug) where debug messages can be
 // displayed
-#define ENABLE_WEB_DEBUG
+//#define ENABLE_WEB_DEBUG
 // define this will enable Remote Debug
 // #define ENABLE_TELNET_DEBUG
 
@@ -123,9 +123,9 @@
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
 #endif
 
-#define LED_GN 0   // GPIO0
-#define LED_RT 2   // GPIO2
-#define LED_BL 16  // GPIO16
+// #define LED_GN 0   // GPIO0
+// #define LED_RT 2   // GPIO2
+// #define LED_BL 16  // GPIO16
 
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
