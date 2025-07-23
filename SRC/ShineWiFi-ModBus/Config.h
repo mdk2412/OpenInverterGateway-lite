@@ -65,7 +65,7 @@
 // The serial port is the same used for the communication to the inverter.
 // Enabling this feature can cause problems with the inverter communication!
 // For ShineWiFi-S everything seems to work perfect even though this flag is set
-// #define ENABLE_SERIAL_DEBUG
+#define ENABLE_SERIAL_DEBUG
 
 // define this will enable a web page (<ip>/debug) where debug messages can be
 // displayed
@@ -118,7 +118,6 @@
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
 #define WDT_TIMEOUT 5000         // 5 min default
-#define CONFIG_FREERTOS_NUMBER_OF_CORES 2
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)

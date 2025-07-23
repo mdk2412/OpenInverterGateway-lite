@@ -350,17 +350,15 @@ void setupWifiHost() {
 void startWdt() {
 #if defined(ESP32)
   Log.println(F("Configuring WDT..."));
-
-  // WDT-Konfiguration gemäß neuer API
+  
   esp_task_wdt_config_t twdt_config = {
-    .timeout_ms = WDT_TIMEOUT,                         // Timeout in Millisekunden
-    .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,  // Bitmaske für aktive Kerne
-    .trigger_panic = true                              // Neustart bei Timeout
+    .timeout_ms = WDT_TIMEOUT,
+    .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
+    .trigger_panic = true
   };
-
-  esp_task_wdt_deinit();           // WDT zurücksetzen, falls bereits aktiv
-  esp_task_wdt_init(&twdt_config); // Neue Initialisierung mit Struktur
-  esp_task_wdt_add(NULL);          // Aktuellen Task zum WDT hinzufügen
+  esp_task_wdt_deinit();
+  esp_task_wdt_init(&twdt_config);
+  esp_task_wdt_add(NULL);
 #endif
 }
 
