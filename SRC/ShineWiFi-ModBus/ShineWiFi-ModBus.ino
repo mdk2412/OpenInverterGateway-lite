@@ -84,7 +84,7 @@ Pinger pinger;
 
 #ifdef ESP8266
 ESP8266WebServer httpServer(80);
-#elif ESP32
+#elif defined(ESP32)
 WebServer httpServer(80);
 #endif
 
@@ -348,10 +348,19 @@ void setupWifiHost() {
 }
 
 void startWdt() {
-#ifdef ESP32
+#if defined(ESP32)
   Log.println(F("Configuring WDT..."));
-  esp_task_wdt_init(WDT_TIMEOUT, true);
-  esp_task_wdt_add(NULL);
+
+  // WDT-Konfiguration gemäß neuer API
+  esp_task_wdt_config_t twdt_config = {
+    .timeout_ms = WDT_TIMEOUT,                         // Timeout in Millisekunden
+    .idle_core_mask = (1 << CONFIG_FREERTOS_NUMBER_OF_CORES) - 1,  // Bitmaske für aktive Kerne
+    .trigger_panic = true                              // Neustart bei Timeout
+  };
+
+  esp_task_wdt_deinit();           // WDT zurücksetzen, falls bereits aktiv
+  esp_task_wdt_init(&twdt_config); // Neue Initialisierung mit Struktur
+  esp_task_wdt_add(NULL);          // Aktuellen Task zum WDT hinzufügen
 #endif
 }
 
@@ -370,7 +379,7 @@ void handleWdtReset(boolean mqttSuccess) {
 }
 
 void resetWdt() {
-#ifdef ESP32
+#if defined(ESP32)
   Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
 #endif
@@ -594,9 +603,10 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
+  #if BATTERY_STANDBY == 1
   wm.addParameter(customWMParams.sleep_battery_threshold);
   wm.addParameter(customWMParams.wake_battery_threshold);
-
+  #endif 
   wm.setSaveParamsCallback(saveParamCallback);
 
   setupMenu(wm, true);

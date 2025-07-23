@@ -37,7 +37,7 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 String ShineMqtt::getId() {
 #ifdef ESP8266
   uint64_t id = ESP.getChipId();
-#elif ESP32
+#elif defined(ESP32)
   uint64_t id = ESP.getEfuseMac();
 #endif
   return DEFAULT_HOSTNAME + String(id & 0xffffffff);

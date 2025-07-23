@@ -117,7 +117,8 @@
 #define REFRESH_TIMER 1000       // 5s default
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
-#define WDT_TIMEOUT 300          // 5 min default
+#define WDT_TIMEOUT 5000         // 5 min default
+#define CONFIG_FREERTOS_NUMBER_OF_CORES 2
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
