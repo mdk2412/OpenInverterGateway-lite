@@ -594,9 +594,10 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
+  #if BATTERY_STANDBY == 1
   wm.addParameter(customWMParams.sleep_battery_threshold);
   wm.addParameter(customWMParams.wake_battery_threshold);
-
+  #endif 
   wm.setSaveParamsCallback(saveParamCallback);
 
   setupMenu(wm, true);
