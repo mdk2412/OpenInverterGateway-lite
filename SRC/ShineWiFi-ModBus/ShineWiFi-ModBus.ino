@@ -292,7 +292,6 @@ void saveParamCallback() {
   saveConfig();
 
   Log.println(F("[CALLBACK] saveParamCallback complete"));
-  startWdt();
 }
 
 #ifdef ENABLE_TELNET_DEBUG
@@ -484,6 +483,7 @@ void setup() {
     // digitalWrite(LED_BL, 0);
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
+    
 #if BATTERY_STANDBY == 1
     Log.print(F("Battery Standby active, "));
     Log.print(F("Sleep Threshold: "));
@@ -547,6 +547,7 @@ Log.print(F("Offset: "));
 Log.print(ACCHARGE_CONTROL_OFFSET);
 Log.println(F(" %"));
 #endif
+startWdt();
 }
 
 void setupWifiManagerConfigMenu(WiFiManager& wm) {
@@ -977,6 +978,7 @@ bool initialSyncDone = false;
 #endif
 
 void loop() {
+  
 #if ENABLE_DOUBLE_RESET
   drd->loop();
 #endif
@@ -1074,6 +1076,7 @@ void loop() {
 #endif
 
     RefreshTimer = now;
+    resetWdt();
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
