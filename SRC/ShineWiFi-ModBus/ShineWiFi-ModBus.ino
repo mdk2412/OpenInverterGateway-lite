@@ -292,6 +292,7 @@ void saveParamCallback() {
   saveConfig();
 
   Log.println(F("[CALLBACK] saveParamCallback complete"));
+  startWdt();
 }
 
 #ifdef ENABLE_TELNET_DEBUG
@@ -350,7 +351,7 @@ void setupWifiHost() {
 void startWdt() {
 #if defined(ESP32)
   Log.println(F("Configuring WDT..."));
-  
+  esp_task_wdt_deinit();
   esp_task_wdt_config_t twdt_config = {
     .timeout_ms = WDT_TIMEOUT,
     .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
@@ -410,7 +411,6 @@ void setup() {
 #endif
 
   Log.begin();
-  startWdt();
 
   setupWifiManagerConfigMenu(wm);
 
@@ -493,6 +493,7 @@ void setup() {
     Log.print(Config.wake_battery_threshold);
     Log.println(F(" W"));
 #endif
+
   }
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -536,7 +537,7 @@ void setup() {
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
 #endif
 #endif
-
+  
 #if ACCHARGE_CONTROL == 1
 Log.print(F("AC Charge Power Rate active, "));
 Log.print(F("Inverter Maximum Power: "));
