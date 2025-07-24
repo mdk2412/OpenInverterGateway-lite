@@ -379,7 +379,7 @@ void handleWdtReset(boolean mqttSuccess) {
 
 void resetWdt() {
 #if defined(ESP32)
-  Log.println(F("WDT reset..."));
+  //Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
 #endif
 }
@@ -1054,7 +1054,7 @@ void loop() {
           mqttSuccess = sendMqttJson();
         }
 #endif
-        handleWdtReset(mqttSuccess);
+        //handleWdtReset(mqttSuccess);
       } else {
 #if MQTT_SUPPORTED == 1
         shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
