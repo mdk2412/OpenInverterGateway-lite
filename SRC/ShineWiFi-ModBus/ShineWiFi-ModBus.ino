@@ -11,8 +11,8 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 
-//#include <time.h>
-// #define LOG_PRINTLN_TS(msg) { \
+// #include <time.h>
+//  #d efine LOG_PRINTLN_TS(msg) { \
 //   time_t now = time(nullptr); \
 //   struct tm* t = localtime(&now); \
 //   char timestamp[20]; \
@@ -178,7 +178,8 @@ void WiFi_Reconnect() {
       delay(200);
       Log.print(F("."));
       // digitalWrite(LED_RT,
-      //              !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
+      //              !digitalRead(LED_RT));  // toggle red led on WiFi
+      //              (re)connect
     }
 
     // todo: use Log
@@ -349,13 +350,12 @@ void setupWifiHost() {
 
 void startWdt() {
 #if defined(ESP32)
-  Log.println(F("Configuring WDT..."));
+  Log.println(F("Configuring WDT"));
   esp_task_wdt_deinit();
   esp_task_wdt_config_t twdt_config = {
-    .timeout_ms = WDT_TIMEOUT,
-    .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
-    .trigger_panic = true
-  };
+      .timeout_ms = WDT_TIMEOUT,
+      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
+      .trigger_panic = true};
   esp_task_wdt_deinit();
   esp_task_wdt_init(&twdt_config);
   esp_task_wdt_add(NULL);
@@ -378,7 +378,7 @@ void handleWdtReset(boolean mqttSuccess) {
 
 void resetWdt() {
 #if defined(ESP32)
-  //Log.println(F("WDT reset..."));
+  // Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
 #endif
 }
@@ -483,7 +483,7 @@ void setup() {
     // digitalWrite(LED_BL, 0);
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
-    
+
 #if BATTERY_STANDBY == 1
     Log.print(F("Battery Standby active, "));
     Log.print(F("Sleep Threshold: "));
@@ -493,7 +493,6 @@ void setup() {
     Log.print(Config.wake_battery_threshold);
     Log.println(F(" W"));
 #endif
-
   }
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -537,17 +536,17 @@ void setup() {
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
 #endif
 #endif
-  
+
 #if ACCHARGE_CONTROL == 1
-Log.print(F("AC Charge Power Rate active, "));
-Log.print(F("Inverter Maximum Power: "));
-Log.print(ACCHARGE_CONTROL_MAXPOWER);
-Log.print(F(" W, "));
-Log.print(F("Offset: "));
-Log.print(ACCHARGE_CONTROL_OFFSET);
-Log.println(F(" %"));
+  Log.print(F("AC Charge Power Rate active, "));
+  Log.print(F("Inverter Maximum Power: "));
+  Log.print(ACCHARGE_CONTROL_MAXPOWER);
+  Log.print(F(" W, "));
+  Log.print(F("Offset: "));
+  Log.print(ACCHARGE_CONTROL_OFFSET);
+  Log.println(F(" %"));
 #endif
-startWdt();
+  startWdt();
 }
 
 void setupWifiManagerConfigMenu(WiFiManager& wm) {
@@ -603,10 +602,10 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
-  #if BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   wm.addParameter(customWMParams.sleep_battery_threshold);
   wm.addParameter(customWMParams.wake_battery_threshold);
-  #endif 
+#endif
   wm.setSaveParamsCallback(saveParamCallback);
 
   setupMenu(wm, true);
@@ -941,7 +940,8 @@ void acchargeControl() {
              Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
          static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
-    int64_t rawRate = (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
+    int64_t rawRate =
+        (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
     uint32_t targetpowerrate =
         static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
@@ -966,10 +966,10 @@ unsigned long ButtonTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
 #if BATTERY_STANDBY == 1
-unsigned long BatteryStandbyTimer = 0;  
+unsigned long BatteryStandbyTimer = 0;
 #endif
 #if ACCHARGE_CONTROL == 1
-unsigned long ACChargeControlTimer = 0;  
+unsigned long ACChargeControlTimer = 0;
 #endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 unsigned long NTPTimer = 0;
@@ -978,7 +978,6 @@ bool initialSyncDone = false;
 #endif
 
 void loop() {
-  
 #if ENABLE_DOUBLE_RESET
   drd->loop();
 #endif
@@ -1056,7 +1055,7 @@ void loop() {
           mqttSuccess = sendMqttJson();
         }
 #endif
-        //handleWdtReset(mqttSuccess);
+        // handleWdtReset(mqttSuccess);
       } else {
 #if MQTT_SUPPORTED == 1
         shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
