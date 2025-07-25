@@ -117,7 +117,9 @@
 #define REFRESH_TIMER 1000       // 5s default
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
+#ifdef ESP32
 #define WDT_TIMEOUT 300          // 5 min default
+#endif
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
