@@ -362,19 +362,19 @@ void startWdt() {
 #endif
 }
 
-void handleWdtReset(boolean mqttSuccess) {
-#if MQTT_SUPPORTED == 1
-  if (mqttSuccess) {
-    resetWdt();
-  } else {
-    if (!shineMqtt.mqttEnabled()) {
-      resetWdt();
-    }
-  }
-#else
-  resetWdt();
-#endif
-}
+// void handleWdtReset(boolean mqttSuccess) {
+// #if MQTT_SUPPORTED == 1
+//   if (mqttSuccess) {
+//     resetWdt();
+//   } else {
+//     if (!shineMqtt.mqttEnabled()) {
+//       resetWdt();
+//     }
+//   }
+// #else
+//   resetWdt();
+// #endif
+// }
 
 void resetWdt() {
 #if defined(ESP32)
@@ -1049,6 +1049,7 @@ void loop() {
           Inverter.ReadData(NUM_OF_RETRIES);  // get new data from inverter
 #endif
       if (readoutSucceeded) {
+        //resetWdt();
         boolean mqttSuccess = false;
 #if MQTT_SUPPORTED == 1
         if (shineMqtt.mqttEnabled()) {
