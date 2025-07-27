@@ -34,9 +34,10 @@
 #define ENABLE_MODBUS_COMMUNICATION 1
 
 // Enable standby for battery to save power
-// if SoC <= BDCDischargeStopSOC & (PVTotalPower & BDCDischargePower) < sleep battery threshold
-// (configure in WiFiManager) battery is put to sleep if PTOGRID_TOTAL > wake
-// battery threshold (configure in WiFiManager) battery is woken up
+// if SoC <= BDCDischargeStopSOC & (PVTotalPower & BDCDischargePower) < sleep
+// battery threshold (configure in WiFiManager) battery is put to sleep if
+// PTOGRID_TOTAL > wake battery threshold (configure in WiFiManager) battery is
+// woken up
 #define BATTERY_STANDBY 0
 #define BATTERY_STANDBY_TIMER 60000  // 60s default
 
@@ -118,7 +119,7 @@
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
 #ifdef ESP32
-#define WDT_TIMEOUT 300          // 5 min default
+#define WDT_TIMEOUT 300  // 5 min default
 #endif
 
 #if PINGER_SUPPORTED == 1
