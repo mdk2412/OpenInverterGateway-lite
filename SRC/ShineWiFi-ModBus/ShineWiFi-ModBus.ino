@@ -1045,14 +1045,11 @@ void loop() {
           Inverter.ReadData(NUM_OF_RETRIES);  // get new data from inverter
 #endif
       if (readoutSucceeded) {
-#ifdef ESP32
         boolean mqttSuccess = false;
-#endif
+
 #if MQTT_SUPPORTED == 1
         if (shineMqtt.mqttEnabled()) {
-#ifdef ESP32
           mqttSuccess = sendMqttJson();
-#endif
         }
 #endif
 #ifdef ESP32
