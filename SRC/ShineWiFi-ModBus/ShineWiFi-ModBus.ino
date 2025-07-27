@@ -11,8 +11,8 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 
-//#include <time.h>
-// #define LOG_PRINTLN_TS(msg) { \
+// #include <time.h>
+//  #d efine LOG_PRINTLN_TS(msg) { \
 //   time_t now = time(nullptr); \
 //   struct tm* t = localtime(&now); \
 //   char timestamp[20]; \
@@ -347,34 +347,36 @@ void setupWifiHost() {
   Log.println(Config.hostname);
 }
 
-void startWdt() {
 #ifdef ESP32
+void startWdt() {
   Log.println(F("Configuring WDT..."));
   esp_task_wdt_init(WDT_TIMEOUT, true);
   esp_task_wdt_add(NULL);
-#endif
 }
+#endif
 
+#ifdef ESP32
 void handleWdtReset(boolean mqttSuccess) {
 #if MQTT_SUPPORTED == 1
-  if (mqttSuccess) {
+  resetWdt();
+}
+else {
+  if (!shineMqtt.mqttEnabled()) {
     resetWdt();
-  } else {
-    if (!shineMqtt.mqttEnabled()) {
-      resetWdt();
-    }
   }
+}
 #else
   resetWdt();
 #endif
 }
+#endif
 
-void resetWdt() {
 #ifdef ESP32
+void resetWdt() {
   Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
-#endif
 }
+#endif
 
 void setup() {
   WiFiManager wm;
@@ -403,7 +405,9 @@ void setup() {
 #endif
 
   Log.begin();
+#ifdef ESP32
   startWdt();
+#endif
 
   setupWifiManagerConfigMenu(wm);
 
@@ -531,13 +535,13 @@ void setup() {
 #endif
 
 #if ACCHARGE_CONTROL == 1
-Log.print(F("AC Charge Power Rate active, "));
-Log.print(F("Inverter Maximum Power: "));
-Log.print(ACCHARGE_CONTROL_MAXPOWER);
-Log.print(F(" W, "));
-Log.print(F("Offset: "));
-Log.print(ACCHARGE_CONTROL_OFFSET);
-Log.println(F(" %"));
+  Log.print(F("AC Charge Power Rate active, "));
+  Log.print(F("Inverter Maximum Power: "));
+  Log.print(ACCHARGE_CONTROL_MAXPOWER);
+  Log.print(F(" W, "));
+  Log.print(F("Offset: "));
+  Log.print(ACCHARGE_CONTROL_OFFSET);
+  Log.println(F(" %"));
 #endif
 }
 
@@ -594,10 +598,10 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
-  #if BATTERY_STANDBY == 1
+#if BATTERY_STANDBY == 1
   wm.addParameter(customWMParams.sleep_battery_threshold);
   wm.addParameter(customWMParams.wake_battery_threshold);
-  #endif 
+#endif
   wm.setSaveParamsCallback(saveParamCallback);
 
   setupMenu(wm, true);
@@ -932,7 +936,8 @@ void acchargeControl() {
              Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
          static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
-    int64_t rawRate = (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
+    int64_t rawRate =
+        (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
     uint32_t targetpowerrate =
         static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
@@ -957,10 +962,10 @@ unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
 #if BATTERY_STANDBY == 1
-unsigned long BatteryStandbyTimer = 0;  
+unsigned long BatteryStandbyTimer = 0;
 #endif
 #if ACCHARGE_CONTROL == 1
-unsigned long ACChargeControlTimer = 0;  
+unsigned long ACChargeControlTimer = 0;
 #endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 unsigned long NTPTimer = 0;
@@ -1041,12 +1046,15 @@ void loop() {
 #endif
       if (readoutSucceeded) {
         boolean mqttSuccess = false;
+
 #if MQTT_SUPPORTED == 1
         if (shineMqtt.mqttEnabled()) {
           mqttSuccess = sendMqttJson();
         }
 #endif
+#ifdef ESP32
         handleWdtReset(mqttSuccess);
+#endif
       } else {
 #if MQTT_SUPPORTED == 1
         shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
