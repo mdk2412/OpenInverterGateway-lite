@@ -125,8 +125,8 @@ const char MAIN_page[] PROGMEM = R"=====(
     <span class="label">PV2 Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
     <span class="label">Inverter Temperature:</span> <span id="inverterTemperature" class="value">Loading...</span>
     <span class="label">State of Charge:</span> <span id="stateofCharge" class="value">Loading...</span>
-    <span class="label">Charging Power:</span> <span id="batteryCharge" class="value">Loading...</span>
-    <span class="label">Discharging Power:</span> <span id="batteryDischarge" class="value">Loading...</span>
+    <span class="label">Charging Power (Limit):</span> <span id="batteryCharge" class="value">Loading...</span>
+    <span class="label">Discharging Power (Limit):</span> <span id="batteryDischarge" class="value">Loading...</span>
     <span class="label">Battery Temperature:</span> <span id="batteryTemperature" class="value">Loading...</span>
   </div>
 
