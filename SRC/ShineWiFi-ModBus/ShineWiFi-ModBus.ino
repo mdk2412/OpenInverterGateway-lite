@@ -908,7 +908,7 @@ void batteryStandby() {
       }
     }
   } else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value = 10) &&
+    if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 10) &&
         (Inverter._Protocol.InputRegisters[P3000_PPV].value <
          sleep_threshold * 10) &&
         (Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value <
