@@ -26,7 +26,7 @@
 #include "GrowattTLXH.h"
 #endif
 
-#ifdef ESP32
+#if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
 
@@ -79,7 +79,7 @@ uint16_t u16PacketCnt = 0;
 Pinger pinger;
 #endif
 
-#ifdef ESP8266
+#if defined(ESP8266)
 ESP8266WebServer httpServer(80);
 #elif defined(ESP32)
 WebServer httpServer(80);
@@ -526,7 +526,7 @@ void setup() {
   httpServer.begin();
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-#ifdef ESP32
+#if defined(ESP32)
   configTime(0, 0, DEFAULT_NTP_SERVER);
   setenv("TZ", DEFAULT_TZ_INFO, 1);
 #else

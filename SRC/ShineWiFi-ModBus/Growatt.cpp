@@ -527,7 +527,7 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   doc["Uptime"] = millis() / 1000;
   doc["WifiRSSI"] = WiFi.RSSI();
   doc["HeapFree"] = ESP.getFreeHeap();
-#ifdef ESP32
+#if defined(ESP32)
   doc["HeapSize"] = ESP.getHeapSize();
   doc["HeapMaxAlloc"] = ESP.getMaxAllocHeap();
   doc["HeapMinFree"] = ESP.getMinFreeHeap();
@@ -728,7 +728,7 @@ void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
   metricsAddValue("WifiRSSI", WiFi.RSSI(), 1, metrics, labels);
 
   metricsAddValue("HeapFree", ESP.getFreeHeap(), 1, metrics, labels);
-#ifdef ESP32
+#if defined(ESP32)
   metricsAddValue("HeapSize", ESP.getHeapSize(), 1, metrics, labels);
   metricsAddValue("HeapMaxAlloc", ESP.getMaxAllocHeap(), 1, metrics, labels);
   metricsAddValue("HeapMinFree", ESP.getMinFreeHeap(), 1, metrics, labels);
