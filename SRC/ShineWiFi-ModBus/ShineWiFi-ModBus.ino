@@ -44,10 +44,6 @@
 DoubleResetDetector* drd;
 #endif
 
-#if MQTT_SUPPORTED == 1
-#include "ShineMqtt.h"
-#endif
-
 #if OTA_SUPPORTED == 1
 #include <ArduinoOTA.h>
 #endif
@@ -62,6 +58,7 @@ Growatt Inverter;
 bool StartedConfigAfterBoot = false;
 
 #if MQTT_SUPPORTED == 1
+#include "ShineMqtt.h"
 #ifdef MQTTS_ENABLED
 WiFiClientSecure espClient;
 #else
