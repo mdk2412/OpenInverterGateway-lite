@@ -26,7 +26,7 @@
 #include "GrowattTLXH.h"
 #endif
 
-#ifdef ESP32
+#if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
 
@@ -79,9 +79,9 @@ uint16_t u16PacketCnt = 0;
 Pinger pinger;
 #endif
 
-#ifdef ESP8266
+#if defined(ESP8266)
 ESP8266WebServer httpServer(80);
-#elif ESP32
+#elif defined(ESP32)
 WebServer httpServer(80);
 #endif
 
@@ -344,31 +344,37 @@ void setupWifiHost() {
   Log.println(Config.hostname);
 }
 
-#ifdef ESP32
+#if defined(ESP32)
 void startWdt() {
-  Log.println(F("Configuring WDT..."));
-  esp_task_wdt_init(WDT_TIMEOUT, true);
+  Log.println(F("Configuring WDT"));
+  esp_task_wdt_deinit();
+  esp_task_wdt_config_t twdt_config = {
+      .timeout_ms = WDT_TIMEOUT,
+      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
+      .trigger_panic = true};
+  esp_task_wdt_deinit();
+  esp_task_wdt_init(&twdt_config);
   esp_task_wdt_add(NULL);
 }
 #endif
 
-#ifdef ESP32
+#if defined(ESP32)
 void handleWdtReset(boolean mqttSuccess) {
 #if MQTT_SUPPORTED == 1
-  resetWdt();
-}
-else {
-  if (!shineMqtt.mqttEnabled()) {
+  if (mqttSuccess) {
     resetWdt();
+  } else {
+    if (!shineMqtt.mqttEnabled()) {
+      resetWdt();
+    }
   }
-}
 #else
   resetWdt();
 #endif
 }
 #endif
 
-#ifdef ESP32
+#if defined(ESP32)
 void resetWdt() {
   Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
@@ -402,7 +408,7 @@ void setup() {
 #endif
 
   Log.begin();
-#ifdef ESP32
+#if defined(ESP32)
   startWdt();
 #endif
 
@@ -523,7 +529,7 @@ void setup() {
   httpServer.begin();
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-#ifdef ESP32
+#if defined(ESP32)
   configTime(0, 0, DEFAULT_NTP_SERVER);
   setenv("TZ", DEFAULT_TZ_INFO, 1);
 #else
@@ -1049,7 +1055,7 @@ void loop() {
           mqttSuccess = sendMqttJson();
         }
 #endif
-#ifdef ESP32
+#if defined(ESP32)
         handleWdtReset(mqttSuccess);
 #endif
       } else {

@@ -1,7 +1,7 @@
 #include "ShineWifi.h"
 
 bool ShineWifiDisconnect() {
-#ifdef ESP8266
+#if defined(ESP8266)
   if ((WiFi.getMode() & WIFI_STA) != 0) {
     bool ret;
 #ifdef WM_DEBUG_LEVEL

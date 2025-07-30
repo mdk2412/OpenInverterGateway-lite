@@ -3,7 +3,9 @@
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#elif ESP32
+#elif defined(ESP32)
+#include <WebServer.h>
+#include <WiFi.h>
 #ifdef MQTTS_BROKER_CA_CERT
 #define MQTTS_ENABLED 1
 #endif
@@ -12,7 +14,6 @@
 #else
 #include <WiFiClient.h>
 #endif
-#include <WebServer.h>
 #endif
 
 #ifdef MQTTS_ENABLED
