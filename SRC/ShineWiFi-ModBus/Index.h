@@ -138,13 +138,13 @@ const char MAIN_page[] PROGMEM = R"=====(
     <a href="./metrics" class="linkButton">Metrics</a>
     )====="
 
-#ifdef ENABLE_WEB_DEBUG
-                                 R"=====(
-  <a href="./debug" class="linkButton">Log</a>
-)====="
-#endif
+    #ifdef ENABLE_WEB_DEBUG
+    R"=====(
+    <a href="./debug" class="linkButton">Log</a>
+    )====="
+    #endif
 
-                                 R"=====(
+    R"=====(
 
   </div>
 
@@ -160,13 +160,13 @@ const char MAIN_page[] PROGMEM = R"=====(
       class="linkButton red">Battery First</a>
     <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;"
       class="linkButton red">Grid First</a>
-      )====="
-#if ENABLE_MODBUS_COMMUNICATION == 1
-                                 R"=====(
+    )====="
+    #if ENABLE_MODBUS_COMMUNICATION == 1
+    R"=====(
     <a href="./postCommunicationModbus" class="linkButton red">Modbus Access</a>
     )====="
-#endif
-                                 R"=====(
+    #endif
+    R"=====(
   </div>
 
   <script>
@@ -304,24 +304,41 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       font-weight: normal;
       margin-bottom: 0.2em;
     }
+
     .valueUpdated {
-  animation: highlightField 1s ease;
-}
+      animation: highlightField 1s ease;
+    }
 
-@keyframes highlightField {
-  0% { background-color: #6eb92b; }
-  50% { background-color: #c5ebaf; }
-  100% { background-color: #6eb92b; }
-}
-.valueError {
-  animation: errorFlash 1s ease;
-}
+    @keyframes highlightField {
+      0% {
+        background-color: #6eb92b;
+      }
 
-@keyframes errorFlash {
-  0% { background-color: #b92b2b; }
-  50% { background-color: #f5b5b9; }
-  100% { background-color: #b92b2b; }
+      50% {
+        background-color: #c5ebaf;
+      }
 
+      100% {
+        background-color: #6eb92b;
+      }
+    }
+
+    .valueError {
+      animation: errorFlash 1s ease;
+    }
+
+    @keyframes errorFlash {
+      0% {
+        background-color: #b92b2b;
+      }
+
+      50% {
+        background-color: #f5b5b9;
+      }
+
+      100% {
+        background-color: #b92b2b;
+      }
   </style>
 </head>
 
@@ -414,33 +431,33 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         });
 
         const text = await response.text();
-const trimmed = text.trim();
+        const trimmed = text.trim();
 
-// Extrahiere den Wert
-let extractedValue = trimmed;
-const match = trimmed.match(/(?:Reading|Writing) Value\s+(.+?)\s+(?:from|to)/i);
-if (match) {
-  extractedValue = match[1];
-}
+        // Extrahiere den Wert
+        let extractedValue = trimmed;
+        const match = trimmed.match(/(?:Reading|Writing) Value\s+(.+?)\s+(?:from|to)/i);
+        if (match) {
+          extractedValue = match[1];
+        }
 
-if (op === 'R' || op === 'W') {
-  valueInput.value = extractedValue;
+        if (op === 'R' || op === 'W') {
+          valueInput.value = extractedValue;
 
-  // Statusprüfung für Highlighting
-  const lowerTrimmed = trimmed.toLowerCase();
+          // Statusprüfung für Highlighting
+          const lowerTrimmed = trimmed.toLowerCase();
 
-  if (lowerTrimmed.includes("succeeded")) {
-    valueInput.classList.add("valueUpdated");
-    setTimeout(() => {
-      valueInput.classList.remove("valueUpdated");
-    }, 1000);
-  } else if (lowerTrimmed.includes("failed")) {
-    valueInput.classList.add("valueError");
-    setTimeout(() => {
-      valueInput.classList.remove("valueError");
-    }, 1000);
-  }
-}
+          if (lowerTrimmed.includes("succeeded")) {
+            valueInput.classList.add("valueUpdated");
+            setTimeout(() => {
+              valueInput.classList.remove("valueUpdated");
+            }, 1000);
+          } else if (lowerTrimmed.includes("failed")) {
+            valueInput.classList.add("valueError");
+            setTimeout(() => {
+              valueInput.classList.remove("valueError");
+            }, 1000);
+          }
+        }
 
       } catch (e) {
         console.error("Error:", e.message);
