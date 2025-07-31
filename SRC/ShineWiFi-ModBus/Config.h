@@ -44,7 +44,7 @@
 // If there are other inverters in the system only load the surplus via AC
 // charging
 #define ACCHARGE_CONTROL 1
-#define ACCHARGE_CONTROL_TIMER 1000     // 1s default
+#define ACCHARGE_CONTROL_TIMER 2000     // 1s default
 #define ACCHARGE_CONTROL_MAXPOWER 2500  // maximum output power of inverter in W
 #define ACCHARGE_CONTROL_OFFSET \
   2  // offset in % to be subtracted from target power rate to ensure 0 power
@@ -125,9 +125,11 @@
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
 #endif
 
+#if defined (ESP8266)
 #define LED_GN 0   // GPIO0
 #define LED_RT 2   // GPIO2
 #define LED_BL 16  // GPIO16
+#endif
 
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
