@@ -125,11 +125,9 @@
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
 #endif
 
-#if defined (ESP8266)
 #define LED_GN 0   // GPIO0
 #define LED_RT 2   // GPIO2
 #define LED_BL 16  // GPIO16
-#endif
 
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
