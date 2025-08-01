@@ -148,6 +148,7 @@ struct {
 // -------------------------------------------------------
 // Set the red led in case of error
 // -------------------------------------------------------
+#if defined(ESP8266)
 void updateRedLed() {
   uint8_t state = 0;
   if (!readoutSucceeded) {
@@ -163,25 +164,26 @@ void updateRedLed() {
 #endif
 #if defined(ESP8266)
   digitalWrite(LED_RT, state);
-  #endif
+#endif
 }
+#endif
 
 // -------------------------------------------------------
 // Check the WiFi status and reconnect if necessary
 // -------------------------------------------------------
 void WiFi_Reconnect() {
   if (WiFi.status() != WL_CONNECTED) {
-    #if defined(ESP8266)
+#if defined(ESP8266)
     digitalWrite(LED_GN, 0);
-    #endif
+#endif
 
     while (WiFi.status() != WL_CONNECTED) {
       delay(200);
       Log.print(F("."));
-      #if defined(ESP8266)
+#if defined(ESP8266)
       digitalWrite(LED_RT,
                    !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
-                   #endif
+#endif
     }
 
     // todo: use Log
@@ -335,11 +337,11 @@ void configureLogging() {
 }
 
 void setupGPIO() {
-  #if defined(EPS8266)
+#if defined(EPS8266)
   pinMode(LED_GN, OUTPUT);
   pinMode(LED_RT, OUTPUT);
   pinMode(LED_BL, OUTPUT);
-  #endif
+#endif
 }
 
 void setupWifiHost() {
@@ -384,7 +386,7 @@ void startWdt() {
 
 #if defined(ESP32)
 void resetWdt() {
-  //Log.println(F("WDT reset..."));
+  // Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
 }
 #endif
@@ -422,11 +424,11 @@ void setup() {
 
   setupWifiManagerConfigMenu(wm);
 
-  #if defined(ESP8266)
+#if defined(ESP8266)
   digitalWrite(LED_BL, 1);
   digitalWrite(LED_RT, 0);
   digitalWrite(LED_GN, 0);
-  #endif
+#endif
 
   // Set a timeout so the ESP doesn't hang waiting to be configured, for
   // instance after a power failure
@@ -452,9 +454,9 @@ void setup() {
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-    #if defined(ESP8266)
+#if defined(ESP8266)
     digitalWrite(LED_BL, 0);
-    #endif
+#endif
     delay(3000);
     ESP.restart();
   }
@@ -493,9 +495,9 @@ void setup() {
     Log.println(F("Failed to connect WiFi!"));
     ESP.restart();
   } else {
-    #if defined(ESP8266)
+#if defined(ESP8266)
     digitalWrite(LED_BL, 0);
-    #endif
+#endif
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
 #if BATTERY_STANDBY == 1
@@ -1035,7 +1037,7 @@ void loop() {
 
   httpServer.handleClient();
 
-  #if defined(ESP8266)
+#if defined(ESP8266)
   // Toggle green LED with 1 Hz (alive)
   // ------------------------------------------------------------
   if ((now - LEDTimer) > LED_TIMER) {
@@ -1046,7 +1048,7 @@ void loop() {
 
     LEDTimer = now;
   }
-  #endif
+#endif
 
   // InverterReconnect() takes a long time --> wifi will crash
   // Do it only every two minutes
@@ -1073,35 +1075,36 @@ void loop() {
           sendMqttJson();
         }
 #endif
-// #if defined(ESP32)
-//         resetWdt();
-// #endif
+        // #if defined(ESP32)
+        //         resetWdt();
+        // #endif
       } else {
 #if MQTT_SUPPORTED == 1
         shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
 #endif
       }
     }
-
+#if defined(ESP8266)
     updateRedLed();
+#endif
 
 #if PINGER_SUPPORTED == 1
     // frequently check if gateway is reachable
     if (pinger.Ping(GATEWAY_IP) == false) {
-      #if defined(ESP82688)
+#if defined(ESP82688)
       digitalWrite(LED_RT, 1);
-      #endif
+#endif
       delay(3000);
-      #if defined(ESP32)
+#if defined(ESP32)
       ESP.restart();
-      #endif
+#endif
     }
 #endif
 
     RefreshTimer = now;
-    #if defined(ESP32)
+#if defined(ESP32)
     resetWdt();
-    #endif 
+#endif
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
