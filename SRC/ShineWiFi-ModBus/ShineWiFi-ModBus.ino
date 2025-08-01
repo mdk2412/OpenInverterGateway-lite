@@ -374,12 +374,12 @@ void startWdt() {
 // }
 // #endif
 
-#if defined(ESP32)
-void resetWdt() {
-  // Log.println(F("WDT reset..."));
-  esp_task_wdt_reset();
-}
-#endif
+// #if defined(ESP32)
+// void resetWdt() {
+//   // Log.println(F("WDT reset..."));
+//   esp_task_wdt_reset();
+// }
+// #endif
 
 void setup() {
   WiFiManager wm;
@@ -543,7 +543,9 @@ void setup() {
   Log.print(ACCHARGE_CONTROL_OFFSET);
   Log.println(F(" %"));
 #endif
+#if defined(ESP32)
 startWdt();
+#endif
 }
 
 void setupWifiManagerConfigMenu(WiFiManager& wm) {
@@ -1071,7 +1073,9 @@ void loop() {
 #endif
 
     RefreshTimer = now;
-    resetWdt();
+    #if defined(ESP32)
+    esp_task_wdt_reset();
+    #endif
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
