@@ -349,7 +349,7 @@ void startWdt() {
   Log.println(F("Configuring WDT"));
   esp_task_wdt_deinit();
   esp_task_wdt_config_t twdt_config = {
-      .timeout_ms = WDT_TIMEOUT,
+      .timeout_ms = REFRESH_TIMER * 5,
       .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
       .trigger_panic = true};
   esp_task_wdt_deinit();
