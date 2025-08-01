@@ -384,7 +384,7 @@ void startWdt() {
 
 #if defined(ESP32)
 void resetWdt() {
-  Log.println(F("WDT reset..."));
+  //Log.println(F("WDT reset..."));
   esp_task_wdt_reset();
 }
 #endif
@@ -1073,9 +1073,9 @@ void loop() {
           sendMqttJson();
         }
 #endif
-#if defined(ESP32)
-        resetWdt();
-#endif
+// #if defined(ESP32)
+//         resetWdt();
+// #endif
       } else {
 #if MQTT_SUPPORTED == 1
         shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
@@ -1099,6 +1099,9 @@ void loop() {
 #endif
 
     RefreshTimer = now;
+    #if defined(ESP32)
+    resetWdt();
+    #endif 
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
