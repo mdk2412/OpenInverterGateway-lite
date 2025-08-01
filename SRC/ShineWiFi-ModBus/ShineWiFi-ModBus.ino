@@ -982,6 +982,7 @@ void loop() {
   Log.loop();
   unsigned long now = millis();
 
+#if ENABLE_AP_BUTTON == 1
 #ifdef AP_BUTTON_PRESSED
   if ((now - ButtonTimer) > BUTTON_TIMER) {
     ButtonTimer = now;
@@ -998,6 +999,7 @@ void loop() {
       btnPressed = 0;
     }
   }
+#endif
 #endif
 
   if (StartedConfigAfterBoot == true) {

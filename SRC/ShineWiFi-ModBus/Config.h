@@ -130,7 +130,7 @@
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
 //    BUTTON_TIMER: enter config mode after 5*BUTTON_TIMER [ms]
-#if ENABLE_AP_BUTTON == 1
+#if ENABLE_AP_BUTTON == 0
 #define AP_BUTTON_PRESSED analogRead(A0) < 50
 #define BUTTON_TIMER 500  //  0.5s default
 #endif
