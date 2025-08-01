@@ -117,7 +117,7 @@
 #define REFRESH_TIMER 1000       // 5s default
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
-#define WDT_TIMEOUT 5000         // 5 min default
+#define WDT_TIMEOUT 5000         // 5s default
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
@@ -130,7 +130,7 @@
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
 //    BUTTON_TIMER: enter config mode after 5*BUTTON_TIMER [ms]
-#if ENABLE_AP_BUTTON == 0
+#if ENABLE_AP_BUTTON == 1
 #define AP_BUTTON_PRESSED analogRead(A0) < 50
 #define BUTTON_TIMER 500  //  0.5s default
 #endif

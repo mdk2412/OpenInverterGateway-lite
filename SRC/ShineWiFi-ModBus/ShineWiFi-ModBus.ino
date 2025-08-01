@@ -1048,7 +1048,7 @@ void loop() {
           Inverter.ReadData(NUM_OF_RETRIES);  // get new data from inverter
 #endif
       if (readoutSucceeded) {
-        //resetWdt();
+        // resetWdt();
         boolean mqttSuccess = false;
 #if MQTT_SUPPORTED == 1
         if (shineMqtt.mqttEnabled()) {
