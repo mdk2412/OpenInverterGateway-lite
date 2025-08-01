@@ -408,9 +408,6 @@ void setup() {
 #endif
 
   Log.begin();
-#if defined(ESP32)
-  //startWdt();
-#endif
 
   setupWifiManagerConfigMenu(wm);
 
@@ -1056,9 +1053,6 @@ void loop() {
           sendMqttJson();
         }
 #endif
-        // #if defined(ESP32)
-        //         resetWdt();
-        // #endif
       } else {
 #if MQTT_SUPPORTED == 1
         shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
