@@ -97,7 +97,7 @@ void Growatt::begin(Stream& serial) {
   if (res == Modbus.ku8MBSuccess) {
     _eDevice = ShineWiFi_X;  // USB
   } else {
-    delay(1000);
+    //delay(1000);
     // Fallback to 9600 baud (ShineWiFi_S)
     Serial.begin(9600);
     Modbus.begin(1, serial);
@@ -105,7 +105,7 @@ void Growatt::begin(Stream& serial) {
     if (res == Modbus.ku8MBSuccess) {
       _eDevice = ShineWiFi_S;  // Serial
     }
-    delay(1000);
+    //delay(1000);
   }
 #endif
 }
