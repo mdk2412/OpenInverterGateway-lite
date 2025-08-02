@@ -88,20 +88,22 @@ void Growatt::begin(Stream& serial) {
   _eDevice = SIMULATE_DEVICE;
 #else
   uint8_t res;
-  // init communication with the inverter
-  Serial.begin(9600);
+
+  // First try with 115200 baud (ShineWiFi_X)
+  Serial.begin(115200);
   Modbus.begin(1, serial);
+  Modbus.setResponseTimeout(250);
   res = Modbus.readInputRegisters(0, 1);
   if (res == Modbus.ku8MBSuccess) {
-    _eDevice = ShineWiFi_S;  // Serial
+    _eDevice = ShineWiFi_X;  // USB
   } else {
     delay(1000);
-    Serial.begin(115200);
+    // Fallback to 9600 baud (ShineWiFi_S)
+    Serial.begin(9600);
     Modbus.begin(1, serial);
-    Modbus.setResponseTimeout(250);
     res = Modbus.readInputRegisters(0, 1);
     if (res == Modbus.ku8MBSuccess) {
-      _eDevice = ShineWiFi_X;  // USB
+      _eDevice = ShineWiFi_S;  // Serial
     }
     delay(1000);
   }
