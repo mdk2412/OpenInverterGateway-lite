@@ -115,7 +115,7 @@
 //    RETRY_TIMER: Determines the time between reconnection [ms]
 //    LED_TIMER: Led blinking rate [ms]
 #define REFRESH_TIMER 1000       // 5s default
-#define WIFI_RETRY_TIMER 120000  // 120s default
+#define WIFI_RETRY_TIMER 60000  // 120s default
 #define LED_TIMER 500            //  0.5s default
 
 #if PINGER_SUPPORTED == 1
