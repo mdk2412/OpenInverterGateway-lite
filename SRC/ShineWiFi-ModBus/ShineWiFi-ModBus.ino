@@ -202,12 +202,12 @@ void InverterReconnect(void) {
   // Baudrate will be set here, depending on the version of the stick
   Inverter.begin(Serial);
 
-  if (Inverter.GetWiFiStickType() == ShineWiFi_S)
-    Log.println(F("ShineWiFi-S (Serial) found"));
-  else if (Inverter.GetWiFiStickType() == ShineWiFi_X)
+  if (Inverter.GetWiFiStickType() == ShineWiFi_X)
     Log.println(F("ShineWiFi-X (USB) found"));
+  else if (Inverter.GetWiFiStickType() == ShineWiFi_S)
+    Log.println(F("ShineWiFi-S (Serial) found"));
   else
-    Log.println(F("Error: Unknown Shine Stick"));
+    Log.println(F("Error: no ShineWiFi stick found!"));
 }
 
 void loadConfig();
