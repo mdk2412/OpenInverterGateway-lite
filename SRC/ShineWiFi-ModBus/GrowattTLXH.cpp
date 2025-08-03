@@ -10,13 +10,13 @@ std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, "'Value' Field is required");
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (!((value >= 0 && value <= 100))) {
-    return std::make_tuple(false, "'value' Field not in Range");
+    return std::make_tuple(false, "'Value' Field not in Range");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -33,13 +33,13 @@ std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
                                                 JsonDocument& res,
                                                 Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, "'Value' Field is required");
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (!((value >= 0 && value <= 100))) {
-    return std::make_tuple(false, "'value' Field not in Range");
+    return std::make_tuple(false, "'Value' Field not in Range");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -56,13 +56,13 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
                                                JsonDocument& res,
                                                Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, "'Value' Field is required");
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (!((value >= 0 && value <= 100))) {
-    return std::make_tuple(false, "'value' Field not in Range");
+    return std::make_tuple(false, "'Value' Field not in Range");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -79,13 +79,13 @@ std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, "'Value' Field is required");
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (!((value >= 0 && value <= 100))) {
-    return std::make_tuple(false, "'value' Field not in Range");
+    return std::make_tuple(false, "'Value' Field not in Range");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -102,7 +102,7 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
                                                JsonDocument& res,
                                                Growatt& inverter) {
   if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, "'Value' Field is required");
   }
 
 #if SIMULATE_INVERTER != 1
@@ -118,7 +118,7 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
 std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
                                      Growatt& inverter) {
   if (!req.containsKey("mode")) {
-    return std::make_tuple(false, "'mode' Field is required");
+    return std::make_tuple(false, "'Mode' Field is required");
   }
   uint16_t mode = req["mode"].as<uint16_t>();
 
