@@ -129,6 +129,7 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
   }
 
   uint16_t mode_raw[2] = {0};
+  uint16_t ChargePowerRate = 100;
   String mode_text = "";
   if (mode == 0) {
     mode_raw[0] = 8192;
@@ -138,6 +139,9 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
     mode_raw[0] = 40960;
     mode_raw[1] = 5947;
     mode_text = "Battery First";
+#if ACCHARGE_CONTROL == 1
+    ChargePowerRate = 0;
+#endif
   } else if (mode == 2) {
     mode_raw[0] = 49152;
     mode_raw[1] = 5947;
@@ -155,7 +159,7 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
       lastAttemptTime = millis();
       success =
           inverter.WriteHoldingRegFrag(3040, 2, mode_raw) &&
-          inverter.WriteHoldingReg(3047, 100);  // ensure 100 % charge rate
+          inverter.WriteHoldingReg(3047, ChargePowerRate);  
       if (success) break;
       attempts++;
     }
