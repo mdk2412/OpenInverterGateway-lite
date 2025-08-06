@@ -357,6 +357,9 @@ void setupWifiHost() {
 //   esp_task_wdt_add(NULL);
 // }
 void startWdt() {
+    Log.print(F("Configuring WDT with Timeout of "));
+    Log.print(WDT_TIMEOUT);
+    Log.println(F(" Seconds"));
     esp_task_wdt_init(WDT_TIMEOUT, true);
     esp_task_wdt_add(NULL);
 }
@@ -441,8 +444,10 @@ void setup() {
 #endif
   if (Config.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
+    esp_task_wdt_delete(NULL);
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
+    esp_task_wdt_add(NULL);
     digitalWrite(LED_BL, 0);
     delay(3000);
     ESP.restart();
