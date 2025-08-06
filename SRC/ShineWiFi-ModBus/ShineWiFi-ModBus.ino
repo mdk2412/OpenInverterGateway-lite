@@ -357,7 +357,6 @@ void setupWifiHost() {
 //   esp_task_wdt_add(NULL);
 // }
 void startWdt() {
-    //Log.println("Configuring WDT...");
     esp_task_wdt_init(WDT_TIMEOUT, true);
     esp_task_wdt_add(NULL);
 }
