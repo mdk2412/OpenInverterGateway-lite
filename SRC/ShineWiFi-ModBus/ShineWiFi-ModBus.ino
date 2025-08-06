@@ -345,16 +345,21 @@ void setupWifiHost() {
 }
 
 #if defined(ESP32)
+// void startWdt() {
+//   Log.println(F("Configuring WDT"));
+//   esp_task_wdt_deinit();
+//   esp_task_wdt_config_t twdt_config = {
+//       .timeout_ms = REFRESH_TIMER * 5,
+//       .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
+//       .trigger_panic = true};
+//   esp_task_wdt_deinit();
+//   esp_task_wdt_init(&twdt_config);
+//   esp_task_wdt_add(NULL);
+// }
 void startWdt() {
-  Log.println(F("Configuring WDT"));
-  esp_task_wdt_deinit();
-  esp_task_wdt_config_t twdt_config = {
-      .timeout_ms = REFRESH_TIMER * 5,
-      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
-      .trigger_panic = true};
-  esp_task_wdt_deinit();
-  esp_task_wdt_init(&twdt_config);
-  esp_task_wdt_add(NULL);
+    //Log.println("Configuring WDT...");
+    esp_task_wdt_init(WDT_TIMEOUT, true);
+    esp_task_wdt_add(NULL);
 }
 #endif
 
@@ -941,8 +946,14 @@ void acchargeControl() {
              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
     int64_t rawRate =
         (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
-    uint32_t targetpowerrate =
-        static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
+    // uint32_t targetpowerrate =
+    //     static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
+    int64_t clampedRate = rawRate;
+    if (clampedRate < 0)
+      clampedRate = 0;
+    else if (clampedRate > 100)
+      clampedRate = 100;
+    uint32_t targetpowerrate = static_cast<uint32_t>(clampedRate);
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
       StaticJsonDocument<128> req, res;
