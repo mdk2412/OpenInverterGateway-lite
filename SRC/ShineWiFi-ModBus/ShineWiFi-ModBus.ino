@@ -444,14 +444,14 @@ void setup() {
 #endif
   if (Config.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
-    #if defined (ESP32)
+#if defined(ESP32)
     esp_task_wdt_delete(NULL);
-    #endif
+#endif
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-    #if defined (ESP32)
+#if defined(ESP32)
     esp_task_wdt_add(NULL);
-    #endif
+#endif
     digitalWrite(LED_BL, 0);
     delay(3000);
     ESP.restart();
