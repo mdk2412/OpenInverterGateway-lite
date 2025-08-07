@@ -100,8 +100,8 @@ struct {
 #endif
   WiFiManagerParameter* syslog_ip = NULL;
 #if BATTERY_STANDBY == 1
-  WiFiManagerParameter* sleep_battery_threshold = NULL;
-  WiFiManagerParameter* wake_battery_threshold = NULL;
+  WiFiManagerParameter* bat_slp_thr = NULL;
+  WiFiManagerParameter* bat_wke_thr = NULL;
 #endif
 } customWMParams;
 
@@ -121,8 +121,8 @@ static const struct {
   const char* syslog_ip = "/syslogip";
   const char* force_ap = "/forceap";
 #if BATTERY_STANDBY == 1
-  const char* sleep_battery_threshold = "/sleepbatterythreshold";
-  const char* wake_battery_threshold = "/wakebatterythreshold";
+  const char* bat_slp_thr = "/batslpthr";
+  const char* bat_wke_thr = "/batwkethr";
 #endif
 } ConfigFiles;
 
@@ -137,8 +137,8 @@ struct {
 #endif
   String syslog_ip;
 #if BATTERY_STANDBY == 1
-  String sleep_battery_threshold;
-  String wake_battery_threshold;
+  String bat_slp_thr;
+  String bat_wke_thr;
 #endif
   bool force_ap;
 } Config;
@@ -230,10 +230,10 @@ void loadConfig() {
 #endif
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
 #if BATTERY_STANDBY == 1
-  Config.sleep_battery_threshold =
-      prefs.getString(ConfigFiles.sleep_battery_threshold, "50");
-  Config.wake_battery_threshold =
-      prefs.getString(ConfigFiles.wake_battery_threshold, "75");
+  Config.bat_slp_thr =
+      prefs.getString(ConfigFiles.bat_slp_thr, "50");
+  Config.bat_wke_thr =
+      prefs.getString(ConfigFiles.bat_wke_thr, "75");
 #endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
@@ -253,10 +253,10 @@ void saveConfig() {
 #endif
   prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
 #if BATTERY_STANDBY == 1
-  prefs.putString(ConfigFiles.sleep_battery_threshold,
-                  Config.sleep_battery_threshold);
-  prefs.putString(ConfigFiles.wake_battery_threshold,
-                  Config.wake_battery_threshold);
+  prefs.putString(ConfigFiles.bat_slp_thr,
+                  Config.bat_slp_thr);
+  prefs.putString(ConfigFiles.bat_wke_thr,
+                  Config.bat_wke_thr);
 #endif
 }
 
@@ -280,10 +280,10 @@ void saveParamCallback() {
 #endif
   Config.syslog_ip = customWMParams.syslog_ip->getValue();
 #if BATTERY_STANDBY == 1
-  Config.sleep_battery_threshold =
-      customWMParams.sleep_battery_threshold->getValue();
-  Config.wake_battery_threshold =
-      customWMParams.wake_battery_threshold->getValue();
+  Config.bat_slp_thr =
+      customWMParams.bat_slp_thr->getValue();
+  Config.bat_wke_thr =
+      customWMParams.bat_wke_thr->getValue();
 #endif
 
   saveConfig();
@@ -444,10 +444,14 @@ void setup() {
 #endif
   if (Config.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
+    #if defined (ESP32)
     esp_task_wdt_delete(NULL);
+    #endif
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
+    #if defined (ESP32)
     esp_task_wdt_add(NULL);
+    #endif
     digitalWrite(LED_BL, 0);
     delay(3000);
     ESP.restart();
@@ -493,10 +497,10 @@ void setup() {
 #if BATTERY_STANDBY == 1
     Log.print(F("Battery Standby active, "));
     Log.print(F("Sleep Threshold: "));
-    Log.print(Config.sleep_battery_threshold);
+    Log.print(Config.bat_slp_thr);
     Log.print(F(" W, "));
     Log.print(F("Wake Threshold: "));
-    Log.print(Config.wake_battery_threshold);
+    Log.print(Config.bat_wke_thr);
     Log.println(F(" W"));
 #endif
   }
@@ -585,12 +589,12 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
 #if BATTERY_STANDBY == 1
-  customWMParams.sleep_battery_threshold = new WiFiManagerParameter(
-      "sleepbatterythreshold", "sleep battery threshold",
-      Config.sleep_battery_threshold.c_str(), 4);
-  customWMParams.wake_battery_threshold =
-      new WiFiManagerParameter("wakebatterythreshold", "wake battery threshold",
-                               Config.wake_battery_threshold.c_str(), 4);
+  customWMParams.bat_slp_thr = new WiFiManagerParameter(
+      "batslpthr", "battery sleep threshold",
+      Config.bat_slp_thr.c_str(), 4);
+  customWMParams.bat_wke_thr =
+      new WiFiManagerParameter("batwkethr", "battery wake threshold",
+                               Config.bat_wke_thr.c_str(), 4);
 #endif
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
@@ -611,8 +615,8 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
 #if BATTERY_STANDBY == 1
-  wm.addParameter(customWMParams.sleep_battery_threshold);
-  wm.addParameter(customWMParams.wake_battery_threshold);
+  wm.addParameter(customWMParams.bat_slp_thr);
+  wm.addParameter(customWMParams.bat_wke_thr);
 #endif
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -904,8 +908,8 @@ void handleNTPSync() {
 // battery standby
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
-  uint32_t wake_threshold = Config.wake_battery_threshold.toInt();
-  uint32_t sleep_threshold = Config.sleep_battery_threshold.toInt();
+  uint32_t wake_threshold = Config.bat_wke_thr.toInt();
+  uint32_t sleep_threshold = Config.bat_slp_thr.toInt();
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
     if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >
         wake_threshold * 10) {
