@@ -139,9 +139,9 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
     mode_raw[0] = 40960;
     mode_raw[1] = 5947;
     mode_text = "Battery First";
-#if ACCHARGE_CONTROL == 1
-    ChargePowerRate = 0;
-#endif
+// #if ACCHARGE_CONTROL == 1
+//     ChargePowerRate = 0;
+// #endif
   } else if (mode == 2) {
     mode_raw[0] = 49152;
     mode_raw[1] = 5947;
