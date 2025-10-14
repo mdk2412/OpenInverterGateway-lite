@@ -962,8 +962,9 @@ void acchargeControl() {
     else if (clampedRate > 100)
       clampedRate = 100;
     uint32_t targetpowerrate = static_cast<uint32_t>(clampedRate);
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
-        targetpowerrate) {
+    if (abs((int)Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE]
+                .value -
+            (int)targetpowerrate) >= 2) {
       StaticJsonDocument<128> req, res;
       char payload[16];
       snprintf(payload, sizeof(payload), "{\"value\": %u}", targetpowerrate);
