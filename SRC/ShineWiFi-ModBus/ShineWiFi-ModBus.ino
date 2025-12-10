@@ -945,6 +945,8 @@ void acchargeControl() {
       loadFirst();
       return;
     }
+
+    // delta bleibt int64_t
     int64_t delta =
         (static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value) +
@@ -952,16 +954,23 @@ void acchargeControl() {
              Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
          static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
-    int64_t rawRate =
-        (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
-    // uint32_t targetpowerrate =
-    //     static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
-    int64_t clampedRate = rawRate;
-    if (clampedRate < 0)
-      clampedRate = 0;
-    else if (clampedRate > 100)
-      clampedRate = 100;
-    uint32_t targetpowerrate = static_cast<uint32_t>(clampedRate);
+
+    // jetzt mit double rechnen, damit keine Nachkommastellen verloren gehen
+    double rawRate = (static_cast<double>(delta) * 10.0) /
+                         static_cast<double>(ACCHARGE_CONTROL_MAXPOWER) -
+                     static_cast<double>(ACCHARGE_CONTROL_OFFSET);
+
+    // runden zur nächsten Ganzzahl
+    int64_t roundedRate = static_cast<int64_t>(std::round(rawRate));
+
+    // clamp auf 0–100
+    if (roundedRate < 0)
+      roundedRate = 0;
+    else if (roundedRate > 100)
+      roundedRate = 100;
+
+    uint32_t targetpowerrate = static_cast<uint32_t>(roundedRate);
+
     if (abs((int)Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE]
                 .value -
             (int)targetpowerrate) >= 2) {
