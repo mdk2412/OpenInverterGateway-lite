@@ -941,12 +941,11 @@ void acchargeControl() {
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
-    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
+    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value < 10 ||
+        Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
       loadFirst();
       return;
     }
-
-    // delta bleibt int64_t
     int64_t delta =
         (static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value) +
@@ -954,16 +953,10 @@ void acchargeControl() {
              Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
          static_cast<int64_t>(
              Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value));
-
-    // jetzt mit double rechnen, damit keine Nachkommastellen verloren gehen
     double rawRate = (static_cast<double>(delta) * 10.0) /
                          static_cast<double>(ACCHARGE_CONTROL_MAXPOWER) -
                      static_cast<double>(ACCHARGE_CONTROL_OFFSET);
-
-    // runden zur nächsten Ganzzahl
     int64_t roundedRate = static_cast<int64_t>(std::round(rawRate));
-
-    // clamp auf 0–100
     if (roundedRate < 0)
       roundedRate = 0;
     else if (roundedRate > 100)
@@ -973,7 +966,7 @@ void acchargeControl() {
 
     if (abs((int)Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE]
                 .value -
-            (int)targetpowerrate) >= 2) {
+            (int)targetpowerrate) >= 1) {
       StaticJsonDocument<128> req, res;
       char payload[16];
       snprintf(payload, sizeof(payload), "{\"value\": %u}", targetpowerrate);
