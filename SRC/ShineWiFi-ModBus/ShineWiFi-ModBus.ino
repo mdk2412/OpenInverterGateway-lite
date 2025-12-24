@@ -941,8 +941,7 @@ void acchargeControl() {
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
-    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value < 10 ||
-        Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
+    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
       loadFirst();
       return;
     }
