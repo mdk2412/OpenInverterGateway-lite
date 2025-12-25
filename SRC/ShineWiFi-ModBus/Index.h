@@ -121,8 +121,8 @@ const char MAIN_page[] PROGMEM = R"=====(
   <div class="dataContainer">
     <span class="label">Priority Mode:</span> <span id="priorityMode" class="value">Loading...</span>
     <span class="label">Output Power:</span> <span id="outputPower" class="value">Loading...</span>
-    <span class="label">PV Power:</span> <span id="pv2Power" class="value">Loading...</span>
-    <span class="label">PV Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
+    <span class="label">PV2 Power:</span> <span id="pv2Power" class="value">Loading...</span>
+    <span class="label">PV2 Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
     <span class="label">Inverter Temperature:</span> <span id="inverterTemperature" class="value">Loading...</span>
     <span class="label">State of Charge:</span> <span id="stateofCharge" class="value">Loading...</span>
     <span class="label">Charging Power (Limit):</span> <span id="batteryCharge" class="value">Loading...</span>
