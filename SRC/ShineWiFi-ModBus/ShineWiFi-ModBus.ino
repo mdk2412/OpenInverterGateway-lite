@@ -921,7 +921,7 @@ void batteryStandby() {
     }
   } else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value ==
-         Inverter._Protocol.InputRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value) &&
         (Inverter._Protocol.InputRegisters[P3000_PPV].value <
          sleep_threshold * 10)) {
@@ -962,6 +962,10 @@ void acchargeControl() {
       roundedRate = 100;
 
     uint32_t targetpowerrate = static_cast<uint32_t>(roundedRate);
+
+    // if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value < 10) {
+    //   targetpowerrate = 100;
+    // }
 
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
