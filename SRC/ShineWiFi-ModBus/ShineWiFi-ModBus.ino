@@ -922,9 +922,7 @@ void batteryStandby() {
   } else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value ==
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-             .value) &&
-        (Inverter._Protocol.InputRegisters[P3000_PPV].value <
-         sleep_threshold * 10)) {
+             .value)) {
       if (Inverter.WriteHoldingReg(0, 2)) {
         Log.println(F("Battery deactivated"));
       } else {
