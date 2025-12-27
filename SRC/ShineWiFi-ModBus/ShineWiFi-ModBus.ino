@@ -912,26 +912,22 @@ void batteryStandby() {
   uint32_t sleep_threshold = Config.bat_slp_thr.toInt();
 
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >= wake_threshold * 10) {
-
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
+        wake_threshold * 10) {
       const int maxRetries = 5;
       const unsigned long retryInterval = 200;
-
       unsigned long lastAttempt = 0;
       int attempts = 0;
       bool success = false;
 
       while (attempts < maxRetries && !success) {
         unsigned long now = millis();
-
         if (now - lastAttempt >= retryInterval) {
           lastAttempt = now;
           attempts++;
-
-          success = Inverter.WriteHoldingReg(0, 3);  
+          success = Inverter.WriteHoldingReg(0, 3);          
         }
       }
-
       if (success) {
         Log.println(F("Battery activated"));
       } else {
@@ -941,33 +937,30 @@ void batteryStandby() {
   }
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >= wake_threshold * 10) {
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
+        wake_threshold * 10) {
       return;
     }
 
     if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value ==
-         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) &&
-        (Inverter._Protocol.InputRegisters[P3000_PPV].value < sleep_threshold * 10)) {
-
+         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+             .value) &&
+        (Inverter._Protocol.InputRegisters[P3000_PPV].value <
+         sleep_threshold * 10)) {
       const int maxRetries = 5;
       const unsigned long retryInterval = 200;
-
       unsigned long lastAttempt = 0;
       int attempts = 0;
       bool success = false;
 
       while (attempts < maxRetries && !success) {
         unsigned long now = millis();
-
         if (now - lastAttempt >= retryInterval) {
           lastAttempt = now;
           attempts++;
-
-          success = Inverter.WriteHoldingReg(0, 2);
+          success = Inverter.WriteHoldingReg(0, 2);          
         }
       }
-
       if (success) {
         Log.println(F("Battery deactivated"));
       } else {
