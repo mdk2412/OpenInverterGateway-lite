@@ -46,10 +46,10 @@
 // charging
 #define ACCHARGE_CONTROL 1
 #define ACCHARGE_CONTROL_TIMER 5000     // 1s default
-#define ACCHARGE_CONTROL_MAXPOWER 2500  // maximum output power of inverter in W
-#define ACCHARGE_CONTROL_OFFSET \
-  1  // offset in % to be subtracted from target power rate to ensure 0 power
-     // draw from grid
+// #define ACCHARGE_CONTROL_MAXPOWER 2500  // maximum output power of inverter in W
+// #define ACCHARGE_CONTROL_OFFSET \
+//   1  // offset in % to be subtracted from target power rate to ensure 0 power
+//      // draw from grid
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter
 // date/time. TZ Info can be found at:

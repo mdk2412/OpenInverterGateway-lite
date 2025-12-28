@@ -103,6 +103,10 @@ struct {
   WiFiManagerParameter* bat_slp_thr = NULL;
   WiFiManagerParameter* bat_wke_thr = NULL;
 #endif
+#if ACCHARGE_CONTROL == 1
+  WiFiManagerParameter* ac_max_pow = NULL;
+  WiFiManagerParameter* ac_off_set = NULL;
+#endif
 } customWMParams;
 
 static const struct {
@@ -124,6 +128,10 @@ static const struct {
   const char* bat_slp_thr = "/batslpthr";
   const char* bat_wke_thr = "/batwkethr";
 #endif
+#if ACCHARGE_CONTROL == 1
+  const char* ac_max_pow = "/acmaxpow";
+  const char* ac_off_set = "/acoffset";
+#endif
 } ConfigFiles;
 
 struct {
@@ -139,6 +147,10 @@ struct {
 #if BATTERY_STANDBY == 1
   String bat_slp_thr;
   String bat_wke_thr;
+#endif
+#if ACCHARGE_CONTROL == 1
+  String ac_max_pow;
+  String ac_off_set;
 #endif
   bool force_ap;
 } Config;
@@ -235,6 +247,12 @@ void loadConfig() {
   Config.bat_wke_thr =
       prefs.getString(ConfigFiles.bat_wke_thr, "75");
 #endif
+#if ACCHARGE_CONTROL == 1
+  Config.ac_max_pow =
+      prefs.getString(ConfigFiles.ac_max_pow, "2500");
+  Config.ac_off_set =
+      prefs.getString(ConfigFiles.ac_off_set, "1");
+#endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
 
@@ -257,6 +275,12 @@ void saveConfig() {
                   Config.bat_slp_thr);
   prefs.putString(ConfigFiles.bat_wke_thr,
                   Config.bat_wke_thr);
+#endif
+#if ACCHARGE_CONTROL == 1
+  prefs.putString(ConfigFiles.ac_max_pow,
+                  Config.ac_max_pow);
+  prefs.putString(ConfigFiles.ac_off_set,
+                  Config.ac_off_set);
 #endif
 }
 
@@ -284,6 +308,12 @@ void saveParamCallback() {
       customWMParams.bat_slp_thr->getValue();
   Config.bat_wke_thr =
       customWMParams.bat_wke_thr->getValue();
+#endif
+#if ACCHARGE_CONTROL == 1
+  Config.ac_max_pow =
+      customWMParams.ac_max_pow->getValue();
+  Config.ac_off_set =
+      customWMParams.ac_off_set->getValue();
 #endif
 
   saveConfig();
@@ -503,6 +533,15 @@ void setup() {
     Log.print(Config.bat_wke_thr);
     Log.println(F(" W"));
 #endif
+#if ACCHARGE_CONTROL == 1
+    Log.print(F("AC Charge Power Rate active, "));
+    Log.print(F("Inverter Maximum Power: "));
+    Log.print(Config.ac_max_pow);
+    Log.print(F(" W, "));
+    Log.print(F("Offset: "));
+    Log.print(Config.ac_off_set);
+    Log.println(F(" %"));
+#endif
   }
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -547,15 +586,15 @@ void setup() {
 #endif
 #endif
 
-#if ACCHARGE_CONTROL == 1
-  Log.print(F("AC Charge Power Rate active, "));
-  Log.print(F("Inverter Maximum Power: "));
-  Log.print(ACCHARGE_CONTROL_MAXPOWER);
-  Log.print(F(" W, "));
-  Log.print(F("Offset: "));
-  Log.print(ACCHARGE_CONTROL_OFFSET);
-  Log.println(F(" %"));
-#endif
+// #if ACCHARGE_CONTROL == 1
+//   Log.print(F("AC Charge Power Rate active, "));
+//   Log.print(F("Inverter Maximum Power: "));
+//   Log.print(ACCHARGE_CONTROL_MAXPOWER);
+//   Log.print(F(" W, "));
+//   Log.print(F("Offset: "));
+//   Log.print(ACCHARGE_CONTROL_OFFSET);
+//   Log.println(F(" %"));
+// #endif
 #if defined(ESP32)
 startWdt();
 #endif
@@ -563,38 +602,46 @@ startWdt();
 
 void setupWifiManagerConfigMenu(WiFiManager& wm) {
   customWMParams.hostname = new WiFiManagerParameter(
-      "hostname", "hostname (no spaces or special chars)",
+      "hostname", "Hostname (no spaces or special characters)",
       Config.hostname.c_str(), 30);
   customWMParams.static_ip =
-      new WiFiManagerParameter("staticip", "ip", Config.static_ip.c_str(), 15);
+      new WiFiManagerParameter("staticip", "IP", Config.static_ip.c_str(), 15);
   customWMParams.static_netmask = new WiFiManagerParameter(
-      "staticnetmask", "netmask", Config.static_netmask.c_str(), 15);
+      "staticnetmask", "Netmask", Config.static_netmask.c_str(), 15);
   customWMParams.static_gateway = new WiFiManagerParameter(
-      "staticgateway", "gateway", Config.static_gateway.c_str(), 15);
+      "staticgateway", "Gateway", Config.static_gateway.c_str(), 15);
   customWMParams.static_dns = new WiFiManagerParameter(
-      "staticdns", "dns", Config.static_dns.c_str(), 15);
+      "staticdns", "DNS", Config.static_dns.c_str(), 15);
 #if MQTT_SUPPORTED == 1
   customWMParams.mqtt_server = new WiFiManagerParameter(
-      "mqttserver", "server", Config.mqtt.server.c_str(), 40);
+      "mqttserver", "Server", Config.mqtt.server.c_str(), 40);
   customWMParams.mqtt_port =
-      new WiFiManagerParameter("mqttport", "port", Config.mqtt.port.c_str(), 6);
+      new WiFiManagerParameter("mqttport", "Port", Config.mqtt.port.c_str(), 6);
   customWMParams.mqtt_topic = new WiFiManagerParameter(
-      "mqtttopic", "topic", Config.mqtt.topic.c_str(), 64);
+      "mqtttopic", "Topic", Config.mqtt.topic.c_str(), 64);
   customWMParams.mqtt_user = new WiFiManagerParameter(
-      "mqttusername", "username", Config.mqtt.user.c_str(), 40);
+      "mqttusername", "Username", Config.mqtt.user.c_str(), 40);
   customWMParams.mqtt_pwd = new WiFiManagerParameter(
-      "mqttpassword", "password", Config.mqtt.pwd.c_str(), 64);
+      "mqttpassword", "Password", Config.mqtt.pwd.c_str(), 64);
 #endif
   customWMParams.syslog_ip = new WiFiManagerParameter(
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
 #if BATTERY_STANDBY == 1
   customWMParams.bat_slp_thr = new WiFiManagerParameter(
-      "batslpthr", "battery sleep threshold",
+      "batslpthr", "Battery Sleep Threshold",
       Config.bat_slp_thr.c_str(), 4);
   customWMParams.bat_wke_thr =
-      new WiFiManagerParameter("batwkethr", "battery wake threshold",
+      new WiFiManagerParameter("batwkethr", "Battery Wake Threshold",
                                Config.bat_wke_thr.c_str(), 4);
+#endif
+#if ACCHARGE_CONTROL == 1
+  customWMParams.ac_max_pow = new WiFiManagerParameter(
+      "acmaxpow", "Inverter Maximum Power",
+      Config.ac_max_pow.c_str(), 4);
+  customWMParams.ac_off_set =
+      new WiFiManagerParameter("acoffset", "Offset",
+                               Config.bat_wke_thr.c_str(), 2);
 #endif
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
@@ -617,6 +664,10 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
 #if BATTERY_STANDBY == 1
   wm.addParameter(customWMParams.bat_slp_thr);
   wm.addParameter(customWMParams.bat_wke_thr);
+#endif
+#if ACCHARGE_CONTROL == 1
+  wm.addParameter(customWMParams.ac_max_pow);
+  wm.addParameter(customWMParams.ac_off_set);
 #endif
   wm.setSaveParamsCallback(saveParamCallback);
 
@@ -974,6 +1025,8 @@ void batteryStandby() {
 // ac charge power rate
 #if ACCHARGE_CONTROL == 1
 void acchargeControl() {
+  uint32_t max_power = Config.ac_max_pow.toInt();
+  uint32_t off_set = Config.ac_off_set.toInt();
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
@@ -990,10 +1043,12 @@ void acchargeControl() {
         static_cast<int64_t>(
             Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value);
 
-    double rawRate = (delta * 10.0) / ACCHARGE_CONTROL_MAXPOWER;
+    // double rawRate = (delta * 10.0) / ACCHARGE_CONTROL_MAXPOWER;
+    double rawRate = (delta * 10.0) / max_power;
 
     int32_t roundedRate =
-        static_cast<int32_t>(std::round(rawRate) - ACCHARGE_CONTROL_OFFSET);
+        // static_cast<int32_t>(std::round(rawRate) - ACCHARGE_CONTROL_OFFSET);
+        static_cast<int32_t>(std::round(rawRate) - off_set);
 
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
