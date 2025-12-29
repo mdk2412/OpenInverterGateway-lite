@@ -637,11 +637,9 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
 #endif
 #if ACCHARGE_CONTROL == 1
   customWMParams.ac_max_pow = new WiFiManagerParameter(
-      "acmaxpow", "Inverter Maximum Power",
-      Config.ac_max_pow.c_str(), 4);
-  customWMParams.ac_off_set =
-      new WiFiManagerParameter("acoffset", "Offset",
-                               Config.bat_wke_thr.c_str(), 2);
+      "acmaxpow", "Inverter Maximum Power", Config.ac_max_pow.c_str(), 4);
+  customWMParams.ac_off_set = new WiFiManagerParameter(
+      "acoffset", "Offset", Config.ac_off_set.c_str(), 3);
 #endif
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
