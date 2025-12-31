@@ -974,7 +974,7 @@ void batteryStandby() {
         if (now - lastAttempt >= retryInterval) {
           lastAttempt = now;
           attempts++;
-          success = Inverter.WriteHoldingReg(0, 3);          
+          success = Inverter.WriteHoldingReg(0, 3);
         }
       }
       if (success) {
@@ -986,16 +986,16 @@ void batteryStandby() {
   }
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
-        wake_threshold * 10) {
+    if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
+         wake_threshold * 10) ||
+        (Inverter._Protocol.InputRegisters[P3000_PPV].value >=
+         sleep_threshold * 10)) {
       return;
     }
 
-    if ((Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value ==
-         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-             .value) &&
-        (Inverter._Protocol.InputRegisters[P3000_PPV].value <
-         sleep_threshold * 10)) {
+    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
+        Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+            .value) {
       const int maxRetries = 5;
       const unsigned long retryInterval = 200;
       unsigned long lastAttempt = 0;
@@ -1007,7 +1007,7 @@ void batteryStandby() {
         if (now - lastAttempt >= retryInterval) {
           lastAttempt = now;
           attempts++;
-          success = Inverter.WriteHoldingReg(0, 2);          
+          success = Inverter.WriteHoldingReg(0, 2);
         }
       }
       if (success) {
