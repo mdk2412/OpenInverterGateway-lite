@@ -1048,7 +1048,18 @@ void acchargeControl() {
         // static_cast<int32_t>(std::round(rawRate) - ACCHARGE_CONTROL_OFFSET);
         static_cast<int32_t>(std::round(rawRate) - off_set);
 
+#if defined(ESP32)
+    uint16_t targetpowerrate;
+
+    if (roundedRate < 0)
+      targetpowerrate = 0;
+    else if (roundedRate > 100)
+      targetpowerrate = 100;
+    else
+      targetpowerrate = static_cast<uint16_t>(roundedRate);
+#else
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
+#endif
 
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
