@@ -1048,9 +1048,9 @@ void acchargeControl() {
         // static_cast<int32_t>(std::round(rawRate) - ACCHARGE_CONTROL_OFFSET);
         static_cast<int32_t>(std::round(rawRate) - off_set);
 
-#if defined(ESP32)
     uint16_t targetpowerrate;
-
+    
+#if defined(ESP32)
     if (roundedRate < 0)
       targetpowerrate = 0;
     else if (roundedRate > 100)
