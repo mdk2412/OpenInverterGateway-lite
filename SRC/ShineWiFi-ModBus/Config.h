@@ -47,7 +47,7 @@
 #define ACCHARGE_CONTROL_TIMER 1000     // 1s default
 #define ACCHARGE_CONTROL_MAXPOWER 2500  // maximum output power of inverter in W
 #define ACCHARGE_CONTROL_OFFSET \
-  2  // offset in % to be subtracted from target power rate to ensure 0 power
+  1  // offset in % to be subtracted from target power rate to ensure 0 power
      // draw from grid
 
 // Define a NTP Server and TZ Info to automatically adjust the inverter
@@ -117,7 +117,7 @@
 #define REFRESH_TIMER 1000       // 5s default
 #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            //  0.5s default
-#define WDT_TIMEOUT 5000         // 5s default
+#define WDT_TIMEOUT 5            // 5s default
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)

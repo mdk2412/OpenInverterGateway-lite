@@ -347,15 +347,17 @@ void setupWifiHost() {
 
 void startWdt() {
 #if defined(ESP32)
-  Log.println(F("Configuring WDT"));
-  esp_task_wdt_deinit();
-  esp_task_wdt_config_t twdt_config = {
-      .timeout_ms = WDT_TIMEOUT,
-      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
-      .trigger_panic = true};
-  esp_task_wdt_deinit();
-  esp_task_wdt_init(&twdt_config);
-  esp_task_wdt_add(NULL);
+    Log.println(F("Configuring WDT"));
+
+    // Watchdog zurücksetzen / deaktivieren
+    esp_task_wdt_deinit();
+
+    // Neuen Watchdog initialisieren
+    // Parameter: Timeout in Sekunden, Panic bei Timeout
+    esp_task_wdt_init(WDT_TIMEOUT, true);
+
+    // Aktuelle Task zum Watchdog hinzufügen
+    esp_task_wdt_add(NULL);
 #endif
 }
 
@@ -940,7 +942,10 @@ void acchargeControl() {
     int64_t rawRate =
         (delta * 10) / ACCHARGE_CONTROL_MAXPOWER - ACCHARGE_CONTROL_OFFSET;
     uint32_t targetpowerrate =
-        static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
+        // static_cast<uint32_t>(std::clamp<int64_t>(rawRate, 0, 100));
+        static_cast<uint32_t>(rawRate < 0 ? 0
+                                          : (rawRate > 100 ? 100 : rawRate));
+
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
       StaticJsonDocument<128> req, res;
