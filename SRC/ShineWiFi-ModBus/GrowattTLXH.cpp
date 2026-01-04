@@ -149,26 +149,27 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
   }
 
   const int maxRetries = 5;
-  const unsigned long retryInterval = 200;
-  unsigned long lastAttempt = 0;
-  int attempts = 0;
+  const int retryInterval = 200;
+
   bool success3040 = false;
   bool success3047 = false;
 
-  while (attempts < maxRetries) {
-    unsigned long now = millis();
-    if (now - lastAttempt >= retryInterval) {
-      lastAttempt = now;
-      attempts++;
-      if (!success3040) {
-        success3040 = inverter.WriteHoldingRegFrag(3040, 2, mode_raw);
-      }
-      if (!success3047) {
-        success3047 = inverter.WriteHoldingReg(3047, ChargePowerRate);
-      }
-      if (success3040 && success3047) break;      
+  for (int attempts = 0; attempts < maxRetries; attempts++) {
+    if (!success3040) {
+      success3040 = inverter.WriteHoldingRegFrag(3040, 2, mode_raw);
     }
+
+    if (!success3047) {
+      success3047 = inverter.WriteHoldingReg(3047, ChargePowerRate);
+    }
+
+    if (success3040 && success3047) {
+      break;
+    }
+
+    delay(retryInterval);
   }
+
   if (!success3040 || !success3047) {
     return std::make_tuple(false, "Failed to set Priority Mode!");
   }
