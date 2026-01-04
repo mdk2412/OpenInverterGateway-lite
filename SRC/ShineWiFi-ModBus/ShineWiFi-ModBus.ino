@@ -986,10 +986,13 @@ void batteryStandby() {
   }
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
-         wake_threshold * 10) ||
-        (Inverter._Protocol.InputRegisters[P3000_PPV].value >=
-         sleep_threshold * 10)) {
+    if (((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
+          wake_threshold * 10) ||
+         (Inverter._Protocol.InputRegisters[P3000_PPV].value >=
+          sleep_threshold * 10)) &&
+        (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >
+         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+             .value)) {
       return;
     }
 
