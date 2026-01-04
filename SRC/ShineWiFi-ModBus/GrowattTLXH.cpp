@@ -148,7 +148,7 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
     mode_text = "Grid First";
   }
 
-  const int maxRetries = 5;
+  const int maxRetries = 4;
   const int retryInterval = 200;
 
   bool success3040 = false;

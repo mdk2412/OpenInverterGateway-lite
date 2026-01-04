@@ -964,7 +964,7 @@ void batteryStandby() {
     if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
         wake_threshold * 10) {
 
-      const int maxRetries = 5;
+      const int maxRetries = 4;
       const int retryInterval = 200;  
       bool success = false;
 
