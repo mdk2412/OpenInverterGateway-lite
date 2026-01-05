@@ -961,17 +961,16 @@ void batteryStandby() {
   uint32_t sleep_threshold = Config.bat_slp_thr.toInt();
 
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
+    if (Inverter._Protocol.InputRegisters[P3000_PPV].value >=
         wake_threshold * 10) {
-
       const int maxRetries = 4;
-      const int retryInterval = 200;  
+      const int retryInterval = 200;
       bool success = false;
 
       for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
         success = Inverter.WriteHoldingReg(0, 2);
         if (!success) {
-          delay(retryInterval); 
+          delay(retryInterval);
         }
       }
 
@@ -984,28 +983,19 @@ void batteryStandby() {
   }
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if (((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
-          wake_threshold * 10) ||
-         (Inverter._Protocol.InputRegisters[P3000_PPV].value >=
-          sleep_threshold * 10)) &&
-        (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >
+    if ((Inverter._Protocol.InputRegisters[P3000_PPV].value <=
+         sleep_threshold * 10) &&
+        (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value ==
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value)) {
-      return;
-    }
-
-    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-        Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-            .value) {
-
-      const int maxRetries = 5;
-      const int retryInterval = 200; 
+      const int maxRetries = 4;
+      const int retryInterval = 200;
       bool success = false;
 
       for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
         success = Inverter.WriteHoldingReg(0, 2);
         if (!success) {
-          delay(retryInterval); 
+          delay(retryInterval);
         }
       }
 
@@ -1057,7 +1047,7 @@ void acchargeControl() {
     else
       targetpowerrate = static_cast<uint16_t>(roundedRate);
 #else
-    targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
+    targetpowerrate = std::clamp<int16_t>(roundedRate, 0, 100);
 #endif
 
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=

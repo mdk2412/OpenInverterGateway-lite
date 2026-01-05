@@ -34,9 +34,9 @@
 #define ENABLE_MODBUS_COMMUNICATION 1
 
 // Enable standby for battery to save power
-// if SoC = BDCDischargeStopSOC & PVTotalPower < sleep battery threshold
+// if SoC = BDCDischargeStopSOC & PVTotalPower <= sleep battery threshold
 // (configure in WiFiManager) battery is put to sleep 
-// if PTOGRID_TOTAL >= wake battery threshold 
+// if PVTotalPower >= wake battery threshold 
 // (configure in WiFiManager) battery is woken up
 #define BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000  // 60s default
