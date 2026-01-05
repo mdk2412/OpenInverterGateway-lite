@@ -36,7 +36,7 @@
 // Enable standby for battery to save power
 // if SoC = BDCDischargeStopSOC & PVTotalPower <= sleep battery threshold
 // (configure in WiFiManager) battery is put to sleep 
-// if PVTotalPower >= wake battery threshold 
+// if TotalReversePower >= wake battery threshold 
 // (configure in WiFiManager) battery is woken up
 #define BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000  // 60s default

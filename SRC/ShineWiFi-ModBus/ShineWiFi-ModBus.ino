@@ -957,18 +957,21 @@ void handleNTPSync() {
 // battery standby
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
-  uint32_t wake_threshold = Config.bat_wke_thr.toInt();
-  uint32_t sleep_threshold = Config.bat_slp_thr.toInt();
+  uint32_t wake_threshold = Config.bat_wke_thr.toInt() * 10;
+  uint32_t sleep_threshold = Config.bat_slp_thr.toInt() * 10;
 
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if (Inverter._Protocol.InputRegisters[P3000_PPV].value >=
-        wake_threshold * 10) {
+    if ((Inverter._Protocol.InputRegisters[P3000_PPV].value >=
+         wake_threshold) ||
+        (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <
+         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+             .value)) {
       const int maxRetries = 4;
       const int retryInterval = 200;
       bool success = false;
 
       for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
-        success = Inverter.WriteHoldingReg(0, 2);
+        success = Inverter.WriteHoldingReg(0, 3);
         if (!success) {
           delay(retryInterval);
         }
@@ -984,7 +987,7 @@ void batteryStandby() {
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
     if ((Inverter._Protocol.InputRegisters[P3000_PPV].value <=
-         sleep_threshold * 10) &&
+         sleep_threshold) &&
         (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value ==
          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
              .value)) {
