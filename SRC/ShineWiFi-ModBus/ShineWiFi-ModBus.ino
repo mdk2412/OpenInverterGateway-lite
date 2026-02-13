@@ -983,14 +983,13 @@ void batteryStandby() {
   }
 
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <=
-         sleep_threshold) &&
-        (Inverter._Protocol.InputRegisters[P3000_PPV].value <=
-         sleep_threshold) &&
-        (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10) &&
-        (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-         Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-             .value)) {
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <=
+            sleep_threshold &&
+        Inverter._Protocol.InputRegisters[P3000_PPV].value <= sleep_threshold &&
+        Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
+        Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
+            Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+                .value) {
       const int maxRetries = 4;
       const int retryInterval = 200;
       bool success = false;
