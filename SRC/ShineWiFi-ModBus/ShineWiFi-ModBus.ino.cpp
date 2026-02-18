@@ -1,3 +1,6 @@
+# 1 "/tmp/tmpe3o575c_"
+#include <Arduino.h>
+# 1 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
 #error Please rename Config.h.example to Config.h
@@ -10,18 +13,7 @@
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
-
-// #include <time.h>
-//  #d efine LOG_PRINTLN_TS(msg) { \
-//   time_t now = time(nullptr); \
-//   struct tm* t = localtime(&now); \
-//   char timestamp[20]; \
-//   strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t); \
-//   char buffer[256]; \
-//   snprintf(buffer, sizeof(buffer), "[%s] %s", timestamp, msg); \
-//   Log.println(buffer); \
-// }
-
+# 25 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 #if (BATTERY_STANDBY == 1 || ACCHARGE_CONTROL == 1)
 #include "GrowattTLXH.h"
 #endif
@@ -156,10 +148,36 @@ struct {
 } Config;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
-
-// -------------------------------------------------------
-// Set the red led in case of error
-// -------------------------------------------------------
+void updateRedLed();
+void WiFi_Reconnect();
+void InverterReconnect(void);
+void configureLogging();
+void setupGPIO();
+void setupWifiHost();
+void startWdt();
+void setup();
+void setupMenu(WiFiManager& wm, bool enableCustomParams);
+void sendJson(JsonDocument& doc);
+void sendJsonSite(void);
+void sendUiJsonSite(void);
+void sendMetrics(void);
+boolean sendMqttJson(void);
+void startConfigAccessPoint(void);
+void rebootESP(void);
+void loadFirst(void);
+void batteryFirst(void);
+void gridFirst(void);
+void sendDebug(void);
+void sendMainPage(void);
+void sendPostSite(void);
+void handlePostData();
+bool sendSingleValue(void);
+void handleNotFound();
+void handleNTPSync();
+void batteryStandby();
+void acchargeControl();
+void loop();
+#line 163 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void updateRedLed() {
   uint8_t state = 0;
   if (!readoutSucceeded) {
@@ -176,9 +194,9 @@ void updateRedLed() {
   digitalWrite(LED_RT, state);
 }
 
-// -------------------------------------------------------
-// Check the WiFi status and reconnect if necessary
-// -------------------------------------------------------
+
+
+
 void WiFi_Reconnect() {
   if (WiFi.status() != WL_CONNECTED) {
     digitalWrite(LED_GN, 0);
@@ -187,10 +205,10 @@ void WiFi_Reconnect() {
       delay(200);
       Log.print(F("."));
       digitalWrite(LED_RT,
-                   !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
+                   !digitalRead(LED_RT));
     }
 
-    // todo: use Log
+
     WiFi.printDiag(Serial);
     Log.print(F("Local IP: "));
     Log.println(WiFi.localIP());
@@ -198,20 +216,13 @@ void WiFi_Reconnect() {
     Log.println(Config.hostname);
 
     Log.println(F("WiFi reconnected"));
-    
+
     updateRedLed();
   }
 }
-
-// Connection can fail after sunrise. The stick powers up before the inverter.
-// So the detection of the inverter will fail. If no inverter is detected, we
-// have to retry later (s. loop() ) The detection without running inverter will
-// take several seconds, because the ModBus-Lib has a timeout of 2s for each
-// read access (and we do several of them). The WiFi can crash during this
-// function. Perhaps we can fix this by using the callback function of the
-// ModBus-Lib
+# 213 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void InverterReconnect(void) {
-  // Baudrate will be set here, depending on the version of the stick
+
   Inverter.begin(Serial);
 
   if (Inverter.GetWiFiStickType() == ShineWiFi_X)
@@ -349,7 +360,7 @@ void configureLogging() {
 #endif
   if (!Config.syslog_ip.isEmpty()) {
     syslogStream.setDestination(Config.syslog_ip.c_str());
-    // syslogStream.setRaw(true);
+
     const std::shared_ptr<LOGBase> syslogStreamPtr =
         std::make_shared<SyslogStream>(syslogStream);
     Log.addPrintStream(syslogStreamPtr);
@@ -366,7 +377,7 @@ void setupGPIO() {
 
 void setupWifiHost() {
   WiFi.hostname(Config.hostname);
-  WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
+  WiFi.mode(WIFI_STA);
 #if OTA_SUPPORTED == 0
   MDNS.begin(Config.hostname);
 #endif
@@ -375,17 +386,7 @@ void setupWifiHost() {
 }
 
 #if defined(ESP32)
-// void startWdt() {
-//   Log.println(F("Configuring WDT"));
-//   esp_task_wdt_deinit();
-//   esp_task_wdt_config_t twdt_config = {
-//       .timeout_ms = REFRESH_TIMER * 5,
-//       .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
-//       .trigger_panic = true};
-//   esp_task_wdt_deinit();
-//   esp_task_wdt_init(&twdt_config);
-//   esp_task_wdt_add(NULL);
-// }
+# 389 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void startWdt() {
     Log.print(F("Configuring WDT with Timeout of "));
     Log.print(WDT_TIMEOUT);
@@ -394,30 +395,7 @@ void startWdt() {
     esp_task_wdt_add(NULL);
 }
 #endif
-
-// #if defined(ESP32)
-// void handleWdtReset(boolean mqttSuccess) {
-// #if MQTT_SUPPORTED == 1
-//   if (mqttSuccess) {
-//     resetWdt();
-//   } else {
-//     if (!shineMqtt.mqttEnabled()) {
-//       resetWdt();
-//     }
-//   }
-// #else
-//   resetWdt();
-// #endif
-// }
-// #endif
-
-// #if defined(ESP32)
-// void resetWdt() {
-//   // Log.println(F("WDT reset..."));
-//   esp_task_wdt_reset();
-// }
-// #endif
-
+# 421 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void setup() {
   WiFiManager wm;
 
@@ -452,8 +430,8 @@ void setup() {
   digitalWrite(LED_RT, 0);
   digitalWrite(LED_GN, 0);
 
-  // Set a timeout so the ESP doesn't hang waiting to be configured, for
-  // instance after a power failure
+
+
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
@@ -487,7 +465,7 @@ void setup() {
     ESP.restart();
   }
 
-  // Set static ip
+
   if (!Config.static_ip.isEmpty() && !Config.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
     ip.fromString(Config.static_ip);
@@ -509,20 +487,20 @@ void setup() {
     }
   }
 
-  // Automatically connect using saved credentials,
-  // if connection fails, it starts an access point with the specified name
-  // ("GrowattConfig")
+
+
+
   int connect_timeout_seconds = 15;
   wm.setConnectTimeout(connect_timeout_seconds);
   bool res = wm.autoConnect("GrowattConfig",
-                            APPassword);  // password protected wificonfig ap
+                            APPassword);
 
   if (!res) {
     Log.println(F("Failed to connect WiFi!"));
     ESP.restart();
   } else {
     digitalWrite(LED_BL, 0);
-    // if you get here you have connected to the WiFi
+
     Log.println(F("WiFi connected"));
 #if BATTERY_STANDBY == 1
     Log.print(F("Battery Standby active, "));
@@ -585,16 +563,7 @@ void setup() {
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
 #endif
 #endif
-
-// #if ACCHARGE_CONTROL == 1
-//   Log.print(F("AC Charge Power Rate active, "));
-//   Log.print(F("Inverter Maximum Power: "));
-//   Log.print(ACCHARGE_CONTROL_MAXPOWER);
-//   Log.print(F(" W, "));
-//   Log.print(F("Offset: "));
-//   Log.print(ACCHARGE_CONTROL_OFFSET);
-//   Log.println(F(" %"));
-// #endif
+# 598 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 #if defined(ESP32)
 startWdt();
 #endif
@@ -672,11 +641,11 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   setupMenu(wm, true);
 }
 
-/**
- * @brief create custom wifimanager menu entries
- *
- * @param enableCustomParams enable custom params aka. mqtt settings
- */
+
+
+
+
+
 void setupMenu(WiFiManager& wm, bool enableCustomParams) {
   Log.println(F("Setting up WiFiManager menu"));
   std::vector<const char*> menu = {"wifi", "wifinoscan", "update"};
@@ -687,7 +656,7 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
   menu.push_back("erase");
   menu.push_back("restart");
 
-  wm.setMenu(menu);  // custom menu, pass vector
+  wm.setMenu(menu);
 }
 
 void sendJson(JsonDocument& doc) {
@@ -818,10 +787,10 @@ void handlePostData() {
   uint32_t u32Tmp;
 
   if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("val"))) {
-    // If the POST request doesn't have data
+
     httpServer.send(400, F("text/plain"),
-                    F("400: Invalid Request"));  // The request is invalid, so
-                                                 // send HTTP status 400
+                    F("400: Invalid Request"));
+
     return;
   } else {
     if (httpServer.arg(F("operation")) == "R") {
@@ -954,7 +923,7 @@ void handleNTPSync() {
 }
 #endif
 
-// battery standby
+
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
   uint32_t wake_threshold = Config.bat_wke_thr.toInt() * 10;
@@ -964,7 +933,7 @@ void batteryStandby() {
       Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
           Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
               .value) {
-    // Nur schreiben, wenn 3036 nicht bereits 0 ist
+
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 0) {
       const int maxRetries = 4;
       const int retryInterval = 200;
@@ -985,7 +954,7 @@ void batteryStandby() {
              Inverter._Protocol
                  .HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5]
                  .value) {
-    // Nur schreiben, wenn 3036 nicht bereits 100 ist
+
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 100) {
       const int maxRetries = 4;
       const int retryInterval = 200;
@@ -1054,7 +1023,7 @@ void batteryStandby() {
 }
 #endif
 
-// ac charge power rate
+
 #if ACCHARGE_CONTROL == 1
 void acchargeControl() {
   uint32_t max_power = Config.ac_max_pow.toInt();
@@ -1075,11 +1044,11 @@ void acchargeControl() {
         static_cast<int64_t>(
             Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value);
 
-    // double rawRate = (delta * 10.0) / ACCHARGE_CONTROL_MAXPOWER;
+
     double rawRate = (delta * 10.0) / max_power;
 
     int32_t roundedRate =
-        // static_cast<int32_t>(std::round(rawRate) - ACCHARGE_CONTROL_OFFSET);
+
         static_cast<int32_t>(std::round(rawRate) - off_set);
 
     uint16_t targetpowerrate;
@@ -1107,9 +1076,9 @@ void acchargeControl() {
 }
 #endif
 
-// -------------------------------------------------------
-// Main loop
-// -------------------------------------------------------
+
+
+
 #if ENABLE_AP_BUTTON == 1
 unsigned long ButtonTimer = 0;
 #endif
@@ -1171,8 +1140,8 @@ void loop() {
 
   httpServer.handleClient();
 
-  // Toggle green LED with 1 Hz (alive)
-  // ------------------------------------------------------------
+
+
   if ((now - LEDTimer) > LED_TIMER) {
     if (WiFi.status() == WL_CONNECTED)
       digitalWrite(LED_GN, !digitalRead(LED_GN));
@@ -1182,25 +1151,25 @@ void loop() {
     LEDTimer = now;
   }
 
-  // InverterReconnect() takes a long time --> wifi will crash
-  // Do it only every two minutes
+
+
   if ((now - WifiRetryTimer) > WIFI_RETRY_TIMER) {
     if (Inverter.GetWiFiStickType() == Undef_stick) InverterReconnect();
     WifiRetryTimer = now;
   }
 
-  // Read Inverter every REFRESH_TIMER ms [defined in config.h]
-  // ------------------------------------------------------------
+
+
   if ((now - RefreshTimer) > REFRESH_TIMER) {
     if ((WiFi.status() == WL_CONNECTED) && (Inverter.GetWiFiStickType())) {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
       readoutSucceeded =
-          Inverter.ReadData(NUM_OF_RETRIES);  // get new data from inverter
+          Inverter.ReadData(NUM_OF_RETRIES);
 #endif
       if (readoutSucceeded) {
-        // boolean mqttSuccess = false;
+
 
 #if MQTT_SUPPORTED == 1
         if (shineMqtt.mqttEnabled()) {
@@ -1216,7 +1185,7 @@ void loop() {
     updateRedLed();
 
 #if PINGER_SUPPORTED == 1
-    // frequently check if gateway is reachable
+
     if (pinger.Ping(GATEWAY_IP) == false) {
       digitalWrite(LED_RT, 1);
       delay(3000);
@@ -1231,7 +1200,7 @@ void loop() {
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-  // set inverter datetime, initially after 60 seconds and then after 1 hour
+
   if (!initialSyncDone && now > 60000) {
     handleNTPSync();
     lastSync = now;
@@ -1245,11 +1214,11 @@ void loop() {
 #endif
 
 #if OTA_SUPPORTED == 1
-  // check for OTA updates
+
   ArduinoOTA.handle();
 #else
 #ifndef ESP32
-  // Handle MDNS requests on ESP8266
+
   MDNS.update();
 #endif
 #endif
