@@ -954,70 +954,61 @@ void handleNTPSync() {
 }
 #endif
 
-// battery standby
+// Retry helper function
+bool writeWithRetry(uint16_t reg, uint16_t value) {
+  const int maxRetries = 4;
+  const int retryInterval = 200;
+
+  for (int attempts = 0; attempts < maxRetries; attempts++) {
+    if (Inverter.WriteHoldingReg(reg, value)) {
+      return true;
+    }
+    delay(retryInterval);
+  }
+  return false;
+}
+
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
-  uint32_t wake_threshold = Config.bat_wke_thr.toInt() * 10;
+
+  uint32_t wake_threshold  = Config.bat_wke_thr.toInt() * 10;
   uint32_t sleep_threshold = Config.bat_slp_thr.toInt() * 10;
 
+  // Disable discharging
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
       Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-              .value) {
-    // Nur schreiben, wenn 3036 nicht bereits 0 ist
+          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) {
+
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 0) {
-      const int maxRetries = 4;
-      const int retryInterval = 200;
-      bool success = false;
 
-      for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
-        success = Inverter.WriteHoldingReg(3036, 0);
-        if (!success) delay(retryInterval);
-      }
-
-      if (success)
+      if (writeWithRetry(3036, 0)) {
         Log.println(F("Battery discharging deactivated"));
-      else
+      } else {
         Log.println(F("Battery discharging still activated!"));
-    }
-
-  } else if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >=
-             Inverter._Protocol
-                 .HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5]
-                 .value) {
-    // Nur schreiben, wenn 3036 nicht bereits 100 ist
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 100) {
-      const int maxRetries = 4;
-      const int retryInterval = 200;
-      bool success = false;
-
-      for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
-        success = Inverter.WriteHoldingReg(3036, 100);
-        if (!success) delay(retryInterval);
       }
-
-      if (success)
-        Log.println(F("Battery discharging activated"));
-      else
-        Log.println(F("Battery discharging still deactivated!"));
     }
   }
 
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if ((Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
-         wake_threshold)) {
-      const int maxRetries = 4;
-      const int retryInterval = 200;
-      bool success = false;
+  // Enable discharging
+  else if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >=
+           Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5].value) {
 
-      for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
-        success = Inverter.WriteHoldingReg(0, 3);
-        if (!success) {
-          delay(retryInterval);
-        }
+    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 100) {
+
+      if (writeWithRetry(3036, 100)) {
+        Log.println(F("Battery discharging activated"));
+      } else {
+        Log.println(F("Battery discharging still deactivated!"));
       }
+    }
+  }
 
-      if (success) {
+  // Battery OFF → wake
+  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
+
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >= wake_threshold) {
+
+      if (writeWithRetry(0, 3)) {
         Log.println(F("Battery activated"));
       } else {
         Log.println(F("Battery still deactivated!"));
@@ -1025,26 +1016,16 @@ void batteryStandby() {
     }
   }
 
+  // Battery ON → sleep
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <=
-            sleep_threshold &&
+
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <= sleep_threshold &&
         Inverter._Protocol.InputRegisters[P3000_PPV].value <= sleep_threshold &&
         Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
         Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-            Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-                .value) {
-      const int maxRetries = 4;
-      const int retryInterval = 200;
-      bool success = false;
+            Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) {
 
-      for (int attempts = 0; attempts < maxRetries && !success; attempts++) {
-        success = Inverter.WriteHoldingReg(0, 2);
-        if (!success) {
-          delay(retryInterval);
-        }
-      }
-
-      if (success) {
+      if (writeWithRetry(0, 2)) {
         Log.println(F("Battery deactivated"));
       } else {
         Log.println(F("Battery still activated!"));
@@ -1059,6 +1040,7 @@ void batteryStandby() {
 void acchargeControl() {
   uint32_t max_power = Config.ac_max_pow.toInt();
   uint32_t off_set = Config.ac_off_set.toInt();
+
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
           1) {
@@ -1075,12 +1057,8 @@ void acchargeControl() {
         static_cast<int64_t>(
             Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value);
 
-    // double rawRate = (delta * 10.0) / ACCHARGE_CONTROL_MAXPOWER;
     double rawRate = (delta * 10.0) / max_power;
-
-    int32_t roundedRate =
-        // static_cast<int32_t>(std::round(rawRate) - ACCHARGE_CONTROL_OFFSET);
-        static_cast<int32_t>(std::round(rawRate) - off_set);
+    int32_t roundedRate = static_cast<int32_t>(std::round(rawRate) - off_set);
 
     uint16_t targetpowerrate;
 
@@ -1095,13 +1073,13 @@ void acchargeControl() {
     targetpowerrate = std::clamp<int16_t>(roundedRate, 0, 100);
 #endif
 
+    // Nur schreiben, wenn sich der Wert geändert hat
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
-      StaticJsonDocument<128> req, res;
-      char payload[16];
-      snprintf(payload, sizeof(payload), "{\"value\": %u}", targetpowerrate);
-      Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
-                             strlen(payload), req, res);
+      // Hier wird jetzt die Retry-Funktion genutzt
+      if (!writeWithRetry(3047, targetpowerrate)) {
+        Log.println(F("Failed to set BDCChargePowerRate!"));
+      }
     }
   }
 }
