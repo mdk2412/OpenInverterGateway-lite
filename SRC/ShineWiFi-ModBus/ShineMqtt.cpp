@@ -40,7 +40,7 @@ String ShineMqtt::getId() {
 #elif defined(ESP32)
   uint64_t id = ESP.getEfuseMac();
 #endif
-  return DEFAULT_HOSTNAME + String(id & 0xffffffff);
+  return WiFi.getHostname() + String(id & 0xffffffff);
 }
 
 boolean ShineMqtt::mqttEnabled() { return !this->mqttconfig.server.isEmpty(); }
