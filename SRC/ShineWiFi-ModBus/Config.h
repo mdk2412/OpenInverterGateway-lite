@@ -100,7 +100,7 @@
 // Data of the Wifi access point
 // Default IP 192.168.4.1
 // Hold down the Button for a few seconds to enter Access Point mode
-#define DEFAULT_HOSTNAME "Growatt"
+#define DEFAULT_HOSTNAME "growatt"
 #define APPassword "growsolar"
 
 // Username and password for firmware update
