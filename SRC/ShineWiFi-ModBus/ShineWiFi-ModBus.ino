@@ -1005,9 +1005,9 @@ void batteryStandby() {
 
   // Battery OFF → wake
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >= wake_threshold) {
-
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
+         wake_threshold &&
+        Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value == 1) {
       if (writeWithRetry(0, 3)) {
         Log.println(F("Battery activated"));
       } else {
