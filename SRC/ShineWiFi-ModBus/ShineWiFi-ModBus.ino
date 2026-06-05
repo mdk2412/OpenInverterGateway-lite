@@ -814,99 +814,96 @@ void sendPostSite(void) {
 
 void handlePostData() {
   char msg[256];
-  uint16_t u16Tmp;
-  uint32_t u32Tmp;
 
-  // `reg` is always required. `val` is only required for write operations;
-  // reads ignore it. This lets clients omit val (or pass a dummy 0) for reads.
-  const bool isWrite = httpServer.arg(F("operation")) == "W";
+  // --- Parameter einlesen ---
+  const String opStr = httpServer.arg(F("operation"));
+  const String regStr = httpServer.arg(F("reg"));
+  const String valStr = httpServer.arg(F("val"));
+  const String typeStr = httpServer.arg(F("type"));
+  const String regTypeStr = httpServer.arg(F("registerType"));
+
+  const bool isWrite = (opStr == "W");
+  const bool isRead = (opStr == "R");
+  const bool is16 = (typeStr == "16b");
+  const bool isInput = (regTypeStr == "I");
+  const bool isHolding = (regTypeStr == "H");
+
+  // --- Pflichtparameter prüfen ---
   if (!httpServer.hasArg(F("reg")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
     return;
-  } else {
-    if (httpServer.arg(F("operation")) == "R") {
-      if (httpServer.arg(F("registerType")) == "I") {
-        if (httpServer.arg(F("type")) == "16b") {
-          if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(),
-                                    &u16Tmp)) {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 16-bit Input Register %ld "
-                            "succeeded"),
-                       u16Tmp, httpServer.arg("reg").toInt());
-          } else {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 16-bit Input Register %ld failed!"),
-                       httpServer.arg("reg").toInt());
-          }
-        } else {
-          if (Inverter.ReadInputReg(httpServer.arg(F("reg")).toInt(),
-                                    &u32Tmp)) {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 32-bit Input Register %ld "
-                            "succeeded"),
-                       u32Tmp, httpServer.arg("reg").toInt());
-          } else {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 32-bit Input Register %ld failed!"),
-                       httpServer.arg("reg").toInt());
-          }
-        }
-      } else {
-        if (httpServer.arg(F("type")) == "16b") {
-          if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(),
-                                      &u16Tmp)) {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 16-bit Holding Register %ld "
-                            "succeeded"),
-                       u16Tmp, httpServer.arg("reg").toInt());
-          } else {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 16-bit Holding Register %ld failed!"),
-                       httpServer.arg("reg").toInt());
-          }
-        } else {
-          if (Inverter.ReadHoldingReg(httpServer.arg(F("reg")).toInt(),
-                                      &u32Tmp)) {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading Value %d from 32-bit Holding Register %ld "
-                            "succeeded"),
-                       u32Tmp, httpServer.arg("reg").toInt());
-          } else {
-            snprintf_P(msg, sizeof(msg),
-                       PSTR("Reading from 32-bit Holding Register %ld failed!"),
-                       httpServer.arg("reg").toInt());
-          }
-        }
-      }
-    } else {
-      if (httpServer.arg(F("registerType")) == "H") {
-        if (httpServer.arg(F("type")) == "16b") {
-          if (Inverter.WriteHoldingReg(httpServer.arg(F("reg")).toInt(),
-                                       httpServer.arg(F("val")).toInt())) {
-            snprintf_P(
-                msg, sizeof(msg),
-                PSTR("Writing Value %ld to Holding Register %ld succeeded"),
-                httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
-          } else {
-            snprintf_P(
-                msg, sizeof(msg),
-                PSTR("Writing Value %ld to Holding Register %ld failed!"),
-                httpServer.arg("val").toInt(), httpServer.arg("reg").toInt());
-          }
-        } else {
-          snprintf_P(
-              msg, sizeof(msg),
-              PSTR("Writing to double (32-bit) Registers not supported!"));
-        }
-      } else {
-        snprintf_P(msg, sizeof(msg),
-                   PSTR("Writing to Input Registers not possible!"));
-      }
+  }
+
+  const uint16_t reg = regStr.toInt();
+
+  // --- READ ---
+  if (isRead) {
+    if (!isInput && !isHolding) {
+      httpServer.send(400, F("text/plain"), F("400: Invalid registerType"));
+      return;
     }
+
+    if (is16) {
+      uint16_t val;
+      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
+                        : Inverter.ReadHoldingReg(reg, &val);
+
+      snprintf_P(
+          msg, sizeof(msg),
+          ok ? PSTR("Reading Value %u from 16-bit %s Register %u succeeded")
+             : PSTR("Reading from 16-bit %s Register %u failed!"),
+          val, isInput ? "Input" : "Holding", reg);
+
+    } else if (typeStr == "32b") {
+      uint32_t val;
+      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
+                        : Inverter.ReadHoldingReg(reg, &val);
+
+      snprintf_P(
+          msg, sizeof(msg),
+          ok ? PSTR("Reading Value %lu from 32-bit %s Register %u succeeded")
+             : PSTR("Reading from 32-bit %s Register %u failed!"),
+          val, isInput ? "Input" : "Holding", reg);
+
+    } else {
+      snprintf_P(msg, sizeof(msg), PSTR("Unknown type (expected 16b or 32b)"));
+    }
+
     httpServer.send(200, F("text/plain"), msg);
     return;
   }
+
+  // --- WRITE ---
+  if (isWrite) {
+    if (!isHolding) {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing to Input Registers not possible!"));
+      httpServer.send(200, F("text/plain"), msg);
+      return;
+    }
+
+    if (!is16) {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing to 32-bit Registers not supported!"));
+      httpServer.send(200, F("text/plain"), msg);
+      return;
+    }
+
+    uint16_t val = valStr.toInt();
+    bool ok = Inverter.WriteHoldingReg(reg, val);
+
+    snprintf_P(msg, sizeof(msg),
+               ok ? PSTR("Writing Value %u to Holding Register %u succeeded")
+                  : PSTR("Writing Value %u to Holding Register %u failed!"),
+               val, reg);
+
+    httpServer.send(200, F("text/plain"), msg);
+    return;
+  }
+
+  // --- Unbekannte Operation ---
+  httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
 }
 
 bool sendSingleValue(void) {
