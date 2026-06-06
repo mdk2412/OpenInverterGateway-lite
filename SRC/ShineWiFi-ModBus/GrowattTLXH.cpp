@@ -72,7 +72,7 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
 #endif
 
   return std::make_tuple(
-      true, String(F("Set BDCChargePowerRate to ")) + value + F(" %"));
+      true, String(F("Set BDCChargePowerRate: ")) + value + F(" %"));
 };
 
 std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
