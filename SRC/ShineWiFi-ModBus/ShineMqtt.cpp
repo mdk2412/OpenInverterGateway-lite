@@ -9,6 +9,8 @@
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
     : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {
   mqttclient.setBufferSize(BUFFER_SIZE);
+  // Optimierung 2: schnelleres Timeout
+  mqttclient.setSocketTimeout(2);
 }
 
 // -------------------------------------------------------
@@ -172,7 +174,13 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 
 // -------------------------------------------------------
 void ShineMqtt::loop() {
-  // Loop muss sehr häufig laufen
-  mqttclient.loop();
+  uint32_t now = millis();
+
+  // loop() mindestens alle 50ms aufrufen
+  if ((uint32_t)(now - lastMqttLoop) >= 50) {
+    mqttclient.loop();
+    lastMqttLoop = now;
+  }
 }
+
 #endif
