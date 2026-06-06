@@ -22,7 +22,7 @@ String ShineMqtt::getId() {
 #elif defined(ESP32)
   uint32_t id = (uint32_t)(ESP.getEfuseMac() & 0xFFFFFFFF);
 #endif
-  return "Growatt-" + String(id, HEX);
+  return "growatt-min_tl-xh-" + String(id, HEX);
 }
 
 // -------------------------------------------------------
