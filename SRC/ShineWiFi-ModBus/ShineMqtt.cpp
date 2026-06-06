@@ -1,177 +1,178 @@
 #include "ShineMqtt.h"
 #include "Growatt.h"
+
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
 #include <StreamUtils.h>
-#include "PubSubClient.h"
+#include <PubSubClient.h>
 
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
-    : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {}
+    : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {
+  mqttclient.setBufferSize(BUFFER_SIZE);
+}
 
+// -------------------------------------------------------
+// Sichere, gültige MQTT-Client-ID
+// -------------------------------------------------------
+String ShineMqtt::getId() {
+#if defined(ESP8266)
+  uint32_t id = ESP.getChipId();
+#elif defined(ESP32)
+  uint32_t id = (uint32_t)(ESP.getEfuseMac() & 0xFFFFFFFF);
+#endif
+  return "Growatt-" + String(id, HEX);
+}
+
+// -------------------------------------------------------
+boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
+boolean ShineMqtt::mqttConnected() { return mqttclient.connected(); }
+
+// -------------------------------------------------------
+// Setup
+// -------------------------------------------------------
 void ShineMqtt::mqttSetup(const MqttConfig& config) {
-  this->mqttconfig = config;
+  mqttconfig = config;
 
-  uint16_t intPort = this->mqttconfig.port.toInt();
-  if (intPort == 0) intPort = 1883;
+  uint16_t port = mqttconfig.port.toInt();
+  if (port == 0) port = 1883;
 
   Log.print(F("MQTT Server: "));
-  Log.println(this->mqttconfig.server);
-  if (!this->mqttconfig.user.isEmpty()) {
-    Log.print(F("MQTT User: "));
-    Log.println(this->mqttconfig.user.c_str());
-  }
-  Log.print(F("MQTT Port: "));
-  Log.println(intPort);
-  Log.print(F("MQTT Topic: "));
-  Log.println(this->mqttconfig.topic);
+  Log.println(mqttconfig.server);
 
-  this->mqttclient.setServer(this->mqttconfig.server.c_str(), intPort);
+  Log.print(F("MQTT User: "));
+  Log.println(mqttconfig.user);
+
+  Log.print(F("MQTT Port: "));
+  Log.println(port);
+
+  Log.print(F("MQTT Topic: "));
+  Log.println(mqttconfig.topic);
+
+  mqttclient.setServer(mqttconfig.server.c_str(), port);
+
 #if MQTT_COMMANDS == 1
-  this->mqttclient.setCallback(
+  mqttclient.setCallback(
       [this](char* topic, byte* payload, unsigned int length) {
         this->onMqttMessage(topic, payload, length);
       });
 #endif
 }
 
-String ShineMqtt::getId() {
-#if defined(ESP8266)
-  uint64_t id = ESP.getChipId();
-#elif defined(ESP32)
-  uint64_t id = ESP.getEfuseMac();
-#endif
-  return WiFi.getHostname() + String(id & 0xffffffff);
-}
-
-boolean ShineMqtt::mqttEnabled() { return !this->mqttconfig.server.isEmpty(); }
-boolean ShineMqtt::mqttConnected() { return this->mqttclient.connected(); }
-
 // -------------------------------------------------------
-// Check the Mqtt status and reconnect if necessary
+// Stabile Reconnect-Logik
 // -------------------------------------------------------
 bool ShineMqtt::mqttReconnect() {
-  if (!this->mqttEnabled()) {
-    // No server configured
-    return false;
-  }
-
+  if (!mqttEnabled()) return false;
   if (WiFi.status() != WL_CONNECTED) return false;
 
-  if (this->mqttclient.connected()) return true;
+  // Bereits verbunden?
+  if (mqttclient.connected()) return true;
 
-  if (millis() - this->previousConnectTryMillis >= (5000)) {
-    // Log.print(F("MqttServer: "));
-    // Log.println(this->mqttconfig.server.c_str());
-    // if (!this->mqttconfig.user.isEmpty()) {
-    //   Log.print(F("MqttUser: "));
-    //   Log.println(this->mqttconfig.user.c_str());
-    // }
-    // Log.print(F("MqttTopic: "));
-    // Log.println(this->mqttconfig.topic.c_str());
-    Log.print(F("MQTT Connection... "));
+  // Reconnect nur alle 5 Sekunden
+  if (millis() - previousConnectTryMillis < 5000) return false;
+  previousConnectTryMillis = millis();
 
-    // Run only once every 5 seconds
-    this->previousConnectTryMillis = millis();
-    // Attempt to connect with last will
-    if (this->mqttclient.connect(getId().c_str(), this->mqttconfig.user.c_str(),
-                                 this->mqttconfig.pwd.c_str(),
-                                 this->mqttconfig.topic.c_str(), 1, 1,
-                                 "{\"InverterStatus\": -1 }")) {
-      Log.println(F("succeeded"));
+  Log.print(F("MQTT Connection... "));
+
+  bool ok = mqttclient.connect(getId().c_str(), mqttconfig.user.c_str(),
+                               mqttconfig.pwd.c_str(), mqttconfig.topic.c_str(),
+                               1, true, "{\"InverterStatus\": -1}");
+
+  if (!ok) {
+    Log.print(F("failed, rc="));
+    Log.println(mqttclient.state());
+    return false;
+  }
+
+  Log.println(F("succeeded"));
+
 #if MQTT_COMMANDS == 1
-      String commandTopic = this->mqttconfig.topic + "/command/#";
-      if (this->mqttclient.subscribe(commandTopic.c_str(), 1)) {
-        Log.println("Subscribed to " + commandTopic);
-      } else {
-        Log.println("Failed to subscribe to " + commandTopic);
-      }
+  String commandTopic = mqttconfig.topic + "/command/#";
+  if (mqttclient.subscribe(commandTopic.c_str(), 1)) {
+    Log.print(F("Subscribed: "));
+    Log.println(commandTopic);
+  } else {
+    Log.print(F("Subscribe failed: "));
+    Log.println(commandTopic);
+  }
 #endif
-      return true;
-    } else {
-      Log.print(F("failed, rc="));
-      Log.print(this->mqttclient.state());
-      Log.println(F(", trying again in 5 seconds"));
-      // Log.println(F("MQTT connect failed!"));
-      previousConnectTryMillis = millis();
-    }
-  }
-  return false;
+
+  return true;
 }
 
+// -------------------------------------------------------
+// Publish String
+// -------------------------------------------------------
 boolean ShineMqtt::mqttPublish(const String& jsonString) {
+  if (!mqttclient.connected()) return false;
+
   if (jsonString.length() >= BUFFER_SIZE) {
-    Log.println(F("MQTT Message too long for buffer!"));
-
+    Log.println(F("MQTT Message too long!"));
     return false;
   }
 
-  // Log.print(F("Publishing MQTT message... "));
-  if (this->mqttclient.connected()) {
-    bool res = this->mqttclient.publish(this->mqttconfig.topic.c_str(),
-                                        jsonString.c_str(), true);
-    // Log.println(res ? "succeeded" : "failed");
-
-    return res;
-  } else {
-    // Log.println(F("not connected!"));
-    Log.print(F("."));
-
-    return false;
-  }
+  return mqttclient.publish(mqttconfig.topic.c_str(), jsonString.c_str(), true);
 }
 
+// -------------------------------------------------------
+// Publish JSON-Dokument
+// -------------------------------------------------------
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
-  // Log.print(F("Publishing MQTT message... "));
+  if (!mqttclient.connected()) return false;
+  if (topic.isEmpty()) topic = mqttconfig.topic;
 
-  if (topic.isEmpty()) {
-    topic = this->mqttconfig.topic;
-  }
+  size_t len = measureJson(doc);
 
-  if (this->mqttclient.connected()) {
-    bool res =
-        this->mqttclient.beginPublish(topic.c_str(), measureJson(doc), true);
-    BufferingPrint bufferedClient(this->mqttclient, BUFFER_SIZE);
-    serializeJson(doc, this->mqttclient);
-    bufferedClient.flush();
-    this->mqttclient.endPublish();
-
-    // Log.println(res ? "succeeded" : "failed");
-
-    return res;
-  } else {
-    // Log.println(F("not connected!"));
-    Log.print(F("."));
-
+  if (!mqttclient.beginPublish(topic.c_str(), len, true)) {
+    Log.println(F("beginPublish failed"));
     return false;
   }
+
+  BufferingPrint buffered(mqttclient, BUFFER_SIZE);
+  serializeJson(doc, buffered);
+  buffered.flush();
+
+  return mqttclient.endPublish();
 }
 
+// -------------------------------------------------------
+// MQTT Commands
+// -------------------------------------------------------
 #if MQTT_COMMANDS == 1
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  StaticJsonDocument<1024> req;
-  StaticJsonDocument<1024> res;
   String strTopic(topic);
 
-  Log.print(F("MQTT Message received: ["));
+  Log.print(F("MQTT Message: ["));
   Log.print(strTopic);
   Log.print(F("] "));
 
+  // Sichere Payload-Kopie
   String messagePayload;
+  messagePayload.reserve(length + 1);
   for (unsigned int i = 0; i < length; i++) {
     messagePayload += (char)payload[i];
   }
   Log.println(messagePayload);
 
-  String command =
-      strTopic.substring(String(this->mqttconfig.topic + "/command/").length());
-  if (command.isEmpty()) {
-    return;
-  }
+  String prefix = mqttconfig.topic + "/command/";
+  if (!strTopic.startsWith(prefix)) return;
 
-  this->inverter.HandleCommand(command, payload, length, req, res);
-  mqttPublish(res, this->mqttconfig.topic + "/result");
+  String command = strTopic.substring(prefix.length());
+  if (command.isEmpty()) return;
+
+  StaticJsonDocument<1024> req;
+  StaticJsonDocument<1024> res;
+
+  inverter.HandleCommand(command, (byte*)messagePayload.c_str(),
+                         messagePayload.length(), req, res);
+
+  mqttPublish(res, mqttconfig.topic + "/result");
 }
 #endif
 
-void ShineMqtt::loop() { this->mqttclient.loop(); }
+// -------------------------------------------------------
+void ShineMqtt::loop() {
+  // Loop muss sehr häufig laufen
+  mqttclient.loop();
+}
 #endif

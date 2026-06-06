@@ -773,7 +773,7 @@ void rebootESP(void) {
 }
 
 void loadFirst(void) {
-  httpServer.send(200, "text/plain", "Load First");
+  httpServer.send(200, F("text/plain"), F("Load First"));
   StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 0}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
@@ -781,7 +781,7 @@ void loadFirst(void) {
 }
 
 void batteryFirst(void) {
-  httpServer.send(200, "text/plain", "Battery First");
+  httpServer.send(200, F("text/plain"), F("Battery First"));
   StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 1}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
@@ -789,7 +789,7 @@ void batteryFirst(void) {
 }
 
 void gridFirst(void) {
-  httpServer.send(200, "text/plain", "Grid First");
+  httpServer.send(200, F("text/plain"), F("Grid First"));
   StaticJsonDocument<128> req, res;
   const char* payload = "{\"mode\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
@@ -800,15 +800,15 @@ void gridFirst(void) {
 void sendDebug(void) {
   httpServer.sendHeader("Location",
                         "http://" + WiFi.localIP().toString() + ":8080/", true);
-  httpServer.send(302, "text/plain", "");
+  httpServer.send(302, F("text/plain"), "");
 }
 #endif
 
-void sendMainPage(void) { httpServer.send(200, "text/html", MAIN_page); }
+void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
 
 #if ENABLE_MODBUS_COMMUNICATION == 1
 void sendPostSite(void) {
-  httpServer.send(200, "text/html", SendPostSite_page);
+  httpServer.send(200, F("text/html"), SendPostSite_page);
 }
 #endif
 
@@ -927,14 +927,14 @@ void handleNotFound() {
       return;
     }
   }
-  httpServer.send(404, F("text/plain"),
-                  String("Not found: " + httpServer.uri()));
+  String msg = "Not found: " + httpServer.uri();
+  httpServer.send(404, F("text/plain"), msg);
 }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 void handleNTPSync() {
   int reachable = sntp_getreachability(0);
-  Log.print(F("NTP server: "));
+  Log.print(F("NTP Server: "));
   Log.print(DEFAULT_NTP_SERVER);
   Log.print(F(" reachable "));
   Log.println(reachable & 1);
