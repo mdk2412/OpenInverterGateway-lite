@@ -1,0 +1,10 @@
+{
+  "name": "TLog",
+  "version": "1.0.0",
+  "description": "Local modified version",
+  "authors": [
+    { "name": "mdk2412" }
+  ],
+  "frameworks": "arduino",
+  "platforms": "*"
+}
