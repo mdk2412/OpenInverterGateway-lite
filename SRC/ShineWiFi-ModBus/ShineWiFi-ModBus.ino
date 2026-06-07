@@ -365,12 +365,19 @@ void setupGPIO() {
 }
 
 void setupWifiHost() {
+#ifdef ESP32
+  // ESP32 needs this here (before WiFi.mode) for core 2.0.0
   WiFi.hostname(Config.hostname);
+#endif
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
+#ifdef ESP8266
+  // ESP8266 needs this here (after WiFi.mode)
+  WiFi.hostname(Config.hostname);
+#endif
 #if OTA_SUPPORTED == 0
   MDNS.begin(Config.hostname);
 #endif
-  Log.print(F("SetupWiFiHost: hostname "));
+  Log.print(F("setupWifiHost: hostname "));
   Log.println(Config.hostname);
 }
 
@@ -908,7 +915,7 @@ void handlePostData() {
 
 bool sendSingleValue(void) {
   if (!readoutSucceeded) {
-    httpServer.send(503, F("text/plain"), F("Service Unavailable"));
+    httpServer.send(503, F("text/plain"), F("Service unavailable"));
     return true;
   }
   const String& key = httpServer.uri().substring(7);
