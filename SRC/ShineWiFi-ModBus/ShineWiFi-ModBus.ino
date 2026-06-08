@@ -1192,7 +1192,10 @@ void loop() {
 #endif
       } else {
 #if MQTT_SUPPORTED == 1
-        shineMqtt.mqttPublish(String(F("{\"InverterStatus\": -1 }")));
+        StaticJsonDocument<64> doc;
+        doc["InverterStatus"] = -1;
+        shineMqtt.mqttPublish(doc);
+
 #endif
       }
     }

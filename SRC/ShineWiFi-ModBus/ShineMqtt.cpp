@@ -103,35 +103,23 @@ bool ShineMqtt::mqttReconnect() {
 }
 
 // -------------------------------------------------------
-// Publish String
-// -------------------------------------------------------
-boolean ShineMqtt::mqttPublish(const String& jsonString) {
-  if (!mqttclient.connected()) return false;
-
-  if (jsonString.length() >= BUFFER_SIZE) {
-    Log.println(F("MQTT Message too long!"));
-    return false;
-  }
-
-  return mqttclient.publish(mqttconfig.topic.c_str(), jsonString.c_str(), true);
-}
-
-// -------------------------------------------------------
 // Publish JSON-Dokument
 // -------------------------------------------------------
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   if (!mqttclient.connected()) return false;
   if (topic.isEmpty()) topic = mqttconfig.topic;
 
-  size_t len = measureJson(doc);
+  const size_t len = measureJson(doc);
 
+  // Zero-Copy Publish
   if (!mqttclient.beginPublish(topic.c_str(), len, true)) {
     Log.println(F("beginPublish failed"));
     return false;
   }
 
-  serializeJson(doc, this->mqttclient);
- 
+  // JSON direkt in den TCP-Socket streamen
+  serializeJson(doc, mqttclient);
+
   return mqttclient.endPublish();
 }
 
