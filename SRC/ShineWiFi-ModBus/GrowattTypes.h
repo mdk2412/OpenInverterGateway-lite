@@ -4,7 +4,7 @@
 #include <StreamUtils.h>
 
 #define JSON_DOCUMENT_SIZE 4096
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 3072
 
 typedef enum {
   Undef_stick = 0,
