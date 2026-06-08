@@ -3,7 +3,7 @@
 
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
-#include <StreamUtils.h>
+
 #include <PubSubClient.h>
 
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
@@ -130,10 +130,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
     return false;
   }
 
-  BufferingPrint buffered(mqttclient, BUFFER_SIZE);
-  serializeJson(doc, buffered);
-  buffered.flush();
-
+  serializeJson(doc, this->mqttclient);
+ 
   return mqttclient.endPublish();
 }
 
