@@ -700,9 +700,9 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
 void sendJson(JsonDocument& doc) {
   httpServer.setContentLength(measureJson(doc));
   httpServer.send(200, "application/json", "");
-  WiFiClient client = httpServer.client();
-  WriteBufferingStream bufferedWifiClient{client, BUFFER_SIZE};
-  serializeJson(doc, bufferedWifiClient);
+
+  // Zero-Copy: direkt in den TCP-Socket
+  serializeJson(doc, httpServer.client());
 }
 
 void sendJsonSite(void) {
