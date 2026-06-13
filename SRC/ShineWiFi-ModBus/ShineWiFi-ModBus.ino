@@ -10,6 +10,8 @@
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
+#include <LittleFS.h>
+//#define LITTLEFS LittleFS
 
 // #include <time.h>
 //  #d efine LOG_PRINTLN_TS(msg) { \
@@ -426,10 +428,18 @@ void startWdt() {
 // #endif
 
 void setup() {
+  LittleFS.begin();
+  httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
+
   WiFiManager wm;
 
   Log.println(F("Setup()"));
-
+  // >>> LittleFS mounten (MUSS als erstes passieren)
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS mount failed!");
+  } else {
+    Serial.println("LittleFS OK");
+  }
   setupGPIO();
 
 #if ENABLE_DOUBLE_RESET == 1
@@ -549,6 +559,7 @@ void setup() {
     Log.print(Config.ac_off_set);
     Log.println(F(" %"));
 #endif
+
   }
 
   while (WiFi.status() != WL_CONNECTED) {

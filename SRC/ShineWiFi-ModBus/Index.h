@@ -1,173 +1,118 @@
 #pragma once
 const char MAIN_page[] PROGMEM = R"=====(
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset='utf-8'>
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Growatt MIN TL-XH</title>
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      max-width: 90vw;
-      margin: 0 auto;
-      font-family: Arial, sans-serif;
-      font-size: 1rem;
-      padding: 1em;
-    }
-
-    h2 {
-      font-size: 2rem;
-      text-align: center;
-      margin-bottom: 1em;
-    }
-
-    h3 {
-      font-size: 1.1em;
-      margin: 0;
-    }
-
-    .dataContainer {
-      display: grid;
-      grid-template-columns: max-content minmax(80px, 1fr);
-      column-gap: 0.5em;
-      row-gap: 0.7em;
-      width: 100%;
-    }
-
-    .dataContainer .label {
-      text-align: left;
-    }
-
-    .dataContainer .value {
-      text-align: right;
-    }
-
-    .buttonRow-green,
-    .buttonRow-yellow,
-    .buttonRow-red {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.5em;
-      margin-bottom: 1.2em;
-    }
-
-    .linkButton {
-      border-radius: 4px;
-      border: 1px solid #91ca5f;
-      background: #6eb92b;
-      color: #fff;
-      padding: 0.6em 1em;
-      text-decoration: none;
-      font-size: 0.9em;
-      min-width: 120px;
-      text-align: center;
-    }
-
-    .linkButton.yellow {
-      border-color: #cabd5f;
-      background: #b9b22b;
-    }
-
-    .linkButton.red {
-      border-color: #ca5f5f;
-      background: #b92b2b;
-    }
-
-    .sectionDivider {
-      width: 100%;
-      border: none;
-      border-top: 2px solid #ccc;
-      margin: 2em 0 1.5em 0;
-    }
-
-    @media (max-width: 600px) {
-      h2 {
-        font-size: 1.5rem;
-      }
-
-      .linkButton {
-        font-size: 1em;
-        min-width: auto;
-        flex: 1 1 auto;
-        text-align: center;
-      }
-
-      .buttonRow-green,
-      .buttonRow-yellow,
-      .buttonRow-red {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-      }
-    }
-
-    @media (min-width: 800px) {
-      .dataContainer {
-        grid-template-columns: max-content minmax(80px, 200px);
-        column-gap: 0.3em;
-      }
-    }
-  </style>
-
+  <link rel="stylesheet" href="/pico.min.css">
 </head>
-
 <body>
+<main class="container">
+
   <h2>Growatt MIN TL-XH</h2>
 
-  <div class="dataContainer">
-    <span class="label">Priority Mode:</span> <span id="priorityMode" class="value">Loading...</span>
-    <span class="label">Output Power:</span> <span id="outputPower" class="value">Loading...</span>
-    <span class="label">PV2 Power:</span> <span id="pv2Power" class="value">Loading...</span>
-    <span class="label">PV2 Voltage:</span> <span id="pv2Voltage" class="value">Loading...</span>
-    <span class="label">Inverter Temperature:</span> <span id="inverterTemperature" class="value">Loading...</span>
-    <span class="label">State of Charge:</span> <span id="stateofCharge" class="value">Loading...</span>
-    <span class="label">Charging Power (Limit):</span> <span id="batteryCharge" class="value">Loading...</span>
-    <span class="label">Discharging Power (Limit):</span> <span id="batteryDischarge" class="value">Loading...</span>
-    <span class="label">Battery Temperature:</span> <span id="batteryTemperature" class="value">Loading...</span>
+<table>
+  <tbody>
+    <tr>
+      <th style="width: 50%">Priority Mode</th>
+      <td id="priorityMode">Loading...</td>
+    </tr>
+    <tr>
+      <th>Output Power</th>
+      <td id="outputPower">Loading...</td>
+    </tr>
+    <tr>
+      <th>PV2 Power</th>
+      <td id="pv2Power">Loading...</td>
+    </tr>
+    <tr>
+      <th>PV2 Voltage</th>
+      <td id="pv2Voltage">Loading...</td>
+    </tr>
+    <tr>
+      <th>Inverter Temperature</th>
+      <td id="inverterTemperature">Loading...</td>
+    </tr>
+    <tr>
+      <th>State of Charge</th>
+      <td id="stateofCharge">Loading...</td>
+    </tr>
+    <tr>
+      <th>Charging Power (Limit)</th>
+      <td id="batteryCharge">Loading...</td>
+    </tr>
+    <tr>
+      <th>Discharging Power (Limit)</th>
+      <td id="batteryDischarge">Loading...</td>
+    </tr>
+    <tr>
+      <th>Battery Temperature</th>
+      <td id="batteryTemperature">Loading...</td>
+    </tr>
+  </tbody>
+</table>
+
+  <hr>
+
+  <!-- PRIORITY BUTTONS -->
+<div class="grid" style="margin-bottom: 1rem;">
+  <a href="#" role="button"
+     onclick="if(confirm('Set priority to load first?')) fetch('/loadfirst'); return false;">
+     Load First
+  </a>
+
+  <a href="#" role="button"
+     onclick="if(confirm('Set priority to battery first?')) fetch('/batteryfirst'); return false;">
+     Battery First
+  </a>
+
+  <a href="#" role="button"
+     onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;">
+     Grid First
+  </a>
+
+    )====="
+#if ENABLE_MODBUS_COMMUNICATION == 1
+R"=====(
+    <a href="./postCommunicationModbus" role="button">Modbus Access</a>
+)====="
+#else
+R"=====(
+    <a href="./postCommunicationModbus" role="button" disabled>Modbus Access</a>
+)====="
+#endif
+R"=====(
   </div>
 
-  <hr class="sectionDivider">
+<!-- STATUS BUTTONS -->
+<div class="grid" style="margin-bottom: 1rem;">
+  <a href="./status" role="button" class="secondary">JSON</a>
+  <a href="./uiStatus" role="button" class="secondary">UI JSON</a>
+  <a href="./metrics" role="button" class="secondary">Metrics</a>
+)====="
+  #ifdef ENABLE_WEB_DEBUG
+R"=====(
+    <a href="./debug" role="button" class="secondary">Log</a>
+)====="
+#else
+R"=====(
+    <a href="./debug" role="button" class="secondary" disabled>Log</a>
+)====="
+#endif
+R"=====(
 
-  <div class="buttonRow-green">
-    <a href="./status" class="linkButton">JSON</a>
-    <a href="./uiStatus" class="linkButton">UI JSON</a>
-    <a href="./metrics" class="linkButton">Metrics</a>
-    )====="
+</div>
 
-    #ifdef ENABLE_WEB_DEBUG
-    R"=====(
-    <a href="./debug" class="linkButton">Log</a>
-    )====="
-    #endif
+<!-- SYSTEM BUTTONS -->
+<div class="grid" style="margin-bottom: 1rem;">
+  <a href="./startAp" role="button" class="contrast"
+     onclick="return confirm('Start Config AP?');">Start Config AP</a>
 
-    R"=====(
-
-  </div>
-
-  <div class="buttonRow-yellow">
-    <a onclick="return confirm('Start Config AP?');" href="./startAp" class="linkButton yellow">Start Config AP</a>
-    <a onclick="return confirm('Reboot?');" href="./reboot" class="linkButton yellow">Reboot</a>
-  </div>
-
-  <div class="buttonRow-red">
-    <a href="#" onclick="if(confirm('Set priority to load first?')) fetch('/loadfirst'); return false;"
-      class="linkButton red">Load First</a>
-    <a href="#" onclick="if(confirm('Set priority to battery first?')) fetch('/batteryfirst'); return false;"
-      class="linkButton red">Battery First</a>
-    <a href="#" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;"
-      class="linkButton red">Grid First</a>
-    )====="
-    #if ENABLE_MODBUS_COMMUNICATION == 1
-    R"=====(
-    <a href="./postCommunicationModbus" class="linkButton red">Modbus Access</a>
-    )====="
-    #endif
-    R"=====(
-  </div>
+  <a href="./reboot" role="button" class="contrast"
+     onclick="return confirm('Reboot?');">Reboot</a>
+</div>
 
   <script>
     async function loadData() {
@@ -191,196 +136,71 @@ const char MAIN_page[] PROGMEM = R"=====(
     loadData();
     setInterval(loadData, 1000);
   </script>
-</body>
 
+</main>
+</body>
 </html>
 )=====";
+
 #if ENABLE_MODBUS_COMMUNICATION == 1
 const char SendPostSite_page[] PROGMEM = R"=====(
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset='utf-8'>
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Growatt MIN TL-XH</title>
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      max-width: 90vw;
-      margin: 0 auto;
-      font-family: Arial, sans-serif;
-      font-size: 1rem;
-      padding: 1em;
-    }
-
-    h2 {
-      font-size: 2rem;
-      text-align: center;
-      margin-bottom: 1em;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.7em;
-      width: 100%;
-      max-width: 400px;
-    }
-
-    input[type="text"],
-    select {
-      padding: 0.5em;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .linkButton {
-      border-radius: 4px;
-      border: 1px solid #91ca5f;
-      background: #6eb92b;
-      color: #fff;
-      padding: 0.6em 1em;
-      text-decoration: none;
-      font-size: 0.9em;
-      min-width: 120px;
-      text-align: center;
-      display: inline-block;
-    }
-
-    .linkButton.yellow {
-      border-color: #cabd5f !important;
-      background: #b9b22b !important;
-    }
-
-    .linkButton.red {
-      border-color: #ca5f5f !important;
-      background: #b92b2b !important;
-    }
-
-    .operationButtons {
-      display: flex;
-      justify-content: space-between;
-      gap: 1em;
-      width: 100%;
-    }
-
-    .operationButtons button {
-      flex: 1 1 45%;
-      text-align: center;
-    }
-
-    .sectionDivider {
-      width: 100%;
-      border: none;
-      border-top: 2px solid #ccc;
-      margin: 2em 0 1.5em 0;
-    }
-
-    @media (max-width: 600px) {
-      h2 {
-        font-size: 1.5rem;
-      }
-
-      .linkButton {
-        font-size: 1em;
-        min-width: auto;
-        flex: 1 1 auto;
-        text-align: center;
-      }
-
-      .operationButtons {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-      }
-    }
-
-    .fieldLabel {
-      font-weight: normal;
-      margin-bottom: 0.2em;
-    }
-
-    .valueUpdated {
-      animation: highlightField 1s ease;
-    }
-
-    @keyframes highlightField {
-      0% {
-        background-color: #6eb92b;
-      }
-
-      50% {
-        background-color: #c5ebaf;
-      }
-
-      100% {
-        background-color: #6eb92b;
-      }
-    }
-
-    .valueError {
-      animation: errorFlash 1s ease;
-    }
-
-    @keyframes errorFlash {
-      0% {
-        background-color: #b92b2b;
-      }
-
-      50% {
-        background-color: #f5b5b9;
-      }
-
-      100% {
-        background-color: #b92b2b;
-      }
-  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 </head>
 
 <body>
+<main class="container">
+
   <h2>Modbus Access</h2>
 
   <form id="modbusForm">
-    <div>
-      <div class="fieldLabel">Register ID</div>
-      <input type="text" name="reg" placeholder="" value="0">
-    </div>
 
-    <div>
-      <div class="fieldLabel">Register Value</div>
-      <input type="text" name="val" placeholder="" readonly>
-    </div>
+    <label>
+      Register ID
+      <input type="text" name="reg" value="0">
+    </label>
 
-    <select name="type">
-      <option value="16b" selected>16-bit</option>
-      <option value="32b">32-bit</option>
-    </select>
+    <label>
+      Register Value
+      <input type="text" name="val" readonly>
+    </label>
 
-    <select name="registerType">
-      <option value="I">Input Register</option>
-      <option value="H" selected>Holding Register</option>
-    </select>
+    <label>
+      Type
+      <select name="type">
+        <option value="16b" selected>16-bit</option>
+        <option value="32b">32-bit</option>
+      </select>
+    </label>
 
-    <div class="operationButtons">
-      <button type="button" class="linkButton yellow" onclick="submitOperation('R')">Read</button>
-      <button type="button" class="linkButton red" onclick="submitOperation('W')">Write</button>
+    <label>
+      Register Type
+      <select name="registerType">
+        <option value="I">Input Register</option>
+        <option value="H" selected>Holding Register</option>
+      </select>
+    </label>
+
+    <div class="grid" style="margin-bottom: 1rem;">
+      <button type="button" onclick="submitOperation('R')">Read</button>
+      <button type="button" class="secondary" onclick="submitOperation('W')">Write</button>
     </div>
 
   </form>
 
-  <hr class="sectionDivider">
-
-  <a href="." class="linkButton">Back</a>
+  <div class="grid" style="margin-bottom: 1rem;">
+    <a href="." role="button" class="contrast">Back</a>
+   </div>
 
   <script>
     const typeSelect = document.querySelector('select[name="type"]');
     const regSelect = document.querySelector('select[name="registerType"]');
-    const writeButton = document.querySelector('.linkButton.red');
+    const writeButton = document.querySelector('button.danger');
     const valueInput = document.querySelector('input[name="val"]');
 
     function updateUI() {
@@ -389,36 +209,19 @@ const char SendPostSite_page[] PROGMEM = R"=====(
       const isHolding = regSelect.value === 'H';
       const isInput = regSelect.value === 'I';
 
-      // Write-Button nur bei 16-bit UND Holding Register sichtbar
-      if (is16Bit && isHolding) {
-        writeButton.style.display = 'inline-block';
-      } else {
-        writeButton.style.display = 'none';
-      }
+      writeButton.style.display = (is16Bit && isHolding) ? 'inline-block' : 'none';
 
-      // Eingabefeld sperren, wenn:
-      // - Input Register gewählt ist ODER
-      // - Holding Register + 32-bit gewählt sind
       if (isInput || (isHolding && is32Bit)) {
         valueInput.readOnly = true;
-        valueInput.placeholder = "";
-        valueInput.style.opacity = 0.5;
-        valueInput.style.cursor = "not-allowed";
       } else {
         valueInput.readOnly = false;
-        valueInput.placeholder = "";
-        valueInput.style.opacity = 1;
-        valueInput.style.cursor = "text";
       }
     }
-    // Beim Laden direkt prüfen
-    updateUI();
 
-    // Bei jeder Änderung überwachen
+    updateUI();
     typeSelect.addEventListener('change', updateUI);
     regSelect.addEventListener('change', updateUI);
 
-    // Vorhandene POST-Funktion
     async function submitOperation(op) {
       const form = document.getElementById("modbusForm");
       const formData = new FormData(form);
@@ -433,41 +236,23 @@ const char SendPostSite_page[] PROGMEM = R"=====(
         const text = await response.text();
         const trimmed = text.trim();
 
-        // Extrahiere den Wert
         let extractedValue = trimmed;
         const match = trimmed.match(/(?:Reading|Writing) Value\s+(.+?)\s+(?:from|to)/i);
-        if (match) {
-          extractedValue = match[1];
-        }
+        if (match) extractedValue = match[1];
 
         if (op === 'R' || op === 'W') {
           valueInput.value = extractedValue;
-
-          // Statusprüfung für Highlighting
-          const lowerTrimmed = trimmed.toLowerCase();
-
-          if (lowerTrimmed.includes("succeeded")) {
-            valueInput.classList.add("valueUpdated");
-            setTimeout(() => {
-              valueInput.classList.remove("valueUpdated");
-            }, 1000);
-          } else if (lowerTrimmed.includes("failed")) {
-            valueInput.classList.add("valueError");
-            setTimeout(() => {
-              valueInput.classList.remove("valueError");
-            }, 1000);
-          }
         }
 
       } catch (e) {
         console.error("Error:", e.message);
       }
     }
-
   </script>
 
+</main>
 </body>
-
 </html>
 )=====";
+
 #endif
