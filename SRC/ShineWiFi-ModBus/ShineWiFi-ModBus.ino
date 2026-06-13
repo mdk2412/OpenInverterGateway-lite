@@ -159,6 +159,7 @@ struct {
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
+
 // -------------------------------------------------------
 // Set the red led in case of error
 // -------------------------------------------------------
@@ -427,6 +428,27 @@ void startWdt() {
 // }
 // #endif
 
+void loadSettingsFromPrefs() {
+  Preferences prefs;
+  prefs.begin("config", true);
+
+  Config.hostname       = prefs.getString("hostname", "Growatt");
+  Config.static_ip      = prefs.getString("static_ip", "");
+  Config.static_netmask = prefs.getString("static_netmask", "");
+  Config.static_gateway = prefs.getString("static_gateway", "");
+  Config.static_dns     = prefs.getString("static_dns", "");
+
+#if MQTT_SUPPORTED == 1
+  Config.mqtt.server = prefs.getString("mqtt_server", "");
+  Config.mqtt.port   = prefs.getString("mqtt_port", "1883");
+  Config.mqtt.topic  = prefs.getString("mqtt_topic", "growatt");
+  Config.mqtt.user   = prefs.getString("mqtt_user", "");
+  Config.mqtt.pwd    = prefs.getString("mqtt_pwd", "");
+#endif
+
+  prefs.end();
+}
+
 void setup() {
   LittleFS.begin();
   httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
@@ -446,7 +468,8 @@ void setup() {
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 #endif
 
-  prefs.begin("ShineWiFi");
+prefs.begin("ShineWiFi");
+loadSettingsFromPrefs();
 
   loadConfig();
   configureLogging();
@@ -581,10 +604,10 @@ void setup() {
   httpServer.on("/loadfirst", loadFirst);
   httpServer.on("/batteryfirst", batteryFirst);
   httpServer.on("/gridfirst", gridFirst);
-#if ENABLE_MODBUS_COMMUNICATION == 1
-  httpServer.on("/postCommunicationModbus", sendPostSite);
-  httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
-#endif
+//  #if ENABLE_MODBUS_COMMUNICATION == 1
+//    httpServer.on("/postCommunicationModbus", sendPostSite);
+    httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
+//  #endif
   httpServer.on("/", sendMainPage);
 #ifdef ENABLE_WEB_DEBUG
   httpServer.on("/debug", sendDebug);
@@ -593,6 +616,41 @@ void setup() {
 
   Inverter.InitProtocol();
   InverterReconnect();
+
+httpServer.on("/saveSettings", HTTP_POST, []() {
+
+  String hostname       = httpServer.arg("hostname");
+  String static_ip      = httpServer.arg("static_ip");
+  String static_netmask = httpServer.arg("static_netmask");
+  String static_gateway = httpServer.arg("static_gateway");
+  String static_dns     = httpServer.arg("static_dns");
+
+  String mqtt_server = httpServer.arg("mqtt_server");
+  String mqtt_port   = httpServer.arg("mqtt_port");
+  String mqtt_topic  = httpServer.arg("mqtt_topic");
+  String mqtt_user   = httpServer.arg("mqtt_user");
+  String mqtt_pwd    = httpServer.arg("mqtt_pwd");
+
+  Preferences prefs;
+  prefs.begin("config", false);
+
+  prefs.putString("hostname", hostname);
+  prefs.putString("static_ip", static_ip);
+  prefs.putString("static_netmask", static_netmask);
+  prefs.putString("static_gateway", static_gateway);
+  prefs.putString("static_dns", static_dns);
+
+  prefs.putString("mqtt_server", mqtt_server);
+  prefs.putString("mqtt_port", mqtt_port);
+  prefs.putString("mqtt_topic", mqtt_topic);
+  prefs.putString("mqtt_user", mqtt_user);
+  prefs.putString("mqtt_pwd", mqtt_pwd);
+
+  prefs.end();
+
+  httpServer.send(200, "text/plain", "Settings saved. Reboot required.");
+});
+
   httpServer.begin();
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -824,11 +882,11 @@ void sendDebug(void) {
 
 void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
 
-#if ENABLE_MODBUS_COMMUNICATION == 1
-void sendPostSite(void) {
-  httpServer.send(200, F("text/html"), SendPostSite_page);
-}
-#endif
+// #if ENABLE_MODBUS_COMMUNICATION == 1
+// void sendPostSite(void) {
+//   httpServer.send(200, F("text/html"), SendPostSite_page);
+// }
+// #endif
 
 void handlePostData() {
   char msg[256];
