@@ -7,7 +7,7 @@ const char MAIN_page[] PROGMEM = R"=====(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Growatt MIN TL-XH</title>
-  <link rel="stylesheet" href="/pico.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 </head>
 
 <body>
@@ -22,18 +22,13 @@ const char MAIN_page[] PROGMEM = R"=====(
 
         <li>
           <a href="#" role="button" class="secondary tab" data-tab="modbus">
-            Modbus Access
+            Modbus
           </a>
         </li>
 
         <li>
           <a href="#" role="button" class="secondary tab" data-tab="log">
-            Web Debug
-          </a>
-        </li>
-        <li>
-          <a href="#" role="button" class="secondary tab" data-tab="settings">
-            Settings
+            Log
           </a>
         </li>
       </ul>
@@ -130,56 +125,59 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- ==================== MODBUS ACCESS ======================= -->
     <!-- ========================================================= -->
     <section id="modbus" class="tab-content" hidden>
-      <fieldset class="no-border">
-        <label>
-          Register ID
-          <input type="text" name="reg">
-        </label>
-
-        <label>
-          Register Value
-          <input type="text" name="val" id="modbusVal" readonly>
-        </label>
-
+      <form id="modbusForm">
         <fieldset class="no-border">
-          <h4>Register Width</h4>
-
           <label>
-            <input type="radio" name="type" value="16b" checked>
-            16‑bit
+            Register ID
+            <input type="text" name="reg">
           </label>
 
           <label>
-            <input type="radio" name="type" value="32b">
-            32‑bit
+            Register Value
+            <input type="text" name="val" id="modbusVal" readonly>
           </label>
+
+          <fieldset class="no-border">
+            <h4>Register Width</h4>
+
+            <label>
+              <input type="radio" name="type" value="16b" checked>
+              16‑bit
+            </label>
+
+            <label>
+              <input type="radio" name="type" value="32b">
+              32‑bit
+            </label>
+          </fieldset>
+
+          <fieldset class="no-border">
+            <h4>Register Type</h4>
+
+            <label>
+              <input type="radio" name="registerType" value="I">
+              Input
+            </label>
+
+            <label>
+              <input type="radio" name="registerType" value="H" checked>
+              Holding
+            </label>
+          </fieldset>
+
+          <fieldset class="no-border">
+            <div class="grid">
+              <button type="button" onclick="submitOperation('R')">Read</button>
+              <button type="button" class="secondary" onclick="submitOperation('W')">Write</button>
+            </div>
+          </fieldset>
+
         </fieldset>
-
-        <fieldset class="no-border">
-          <h4>Register Type</h4>
-
-          <label>
-            <input type="radio" name="registerType" value="I">
-            Input
-          </label>
-
-          <label>
-            <input type="radio" name="registerType" value="H" checked>
-            Holding
-          </label>
-        </fieldset>
-
-        <fieldset class="no-border">
-          <div class="grid">
-            <button type="button" onclick="submitOperation('R')">Read</button>
-            <button type="button" class="secondary" onclick="submitOperation('W')">Write</button>
-          </div>
-        </fieldset>
-
-      </fieldset>
+      </form>
     </section>
+
     <!-- ========================================================= -->
-    <!-- ==================== Web Debug ========================== -->
+    <!-- ==================== Log ================================ -->
     <!-- ========================================================= -->
 
     <section id="log" class="tab-content" hidden>
@@ -188,73 +186,6 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     </section>
 
-    <!-- ========================================================= -->
-    <!-- ==================== Settings =========================== -->
-    <!-- ========================================================= -->
-    <section id="settings" class="tab-content" hidden>
-
-      <form id="settingsForm">
-
-        <h3>Network</h3>
-
-        <label>
-          Hostname
-          <input type="text" name="hostname" id="hostname">
-        </label>
-
-        <label>
-          Static IP
-          <input type="text" name="static_ip" id="static_ip">
-        </label>
-
-        <label>
-          Netmask
-          <input type="text" name="static_netmask" id="static_netmask">
-        </label>
-
-        <label>
-          Gateway
-          <input type="text" name="static_gateway" id="static_gateway">
-        </label>
-
-        <label>
-          DNS
-          <input type="text" name="static_dns" id="static_dns">
-        </label>
-
-        <h3>MQTT</h3>
-
-        <label>
-          Server
-          <input type="text" name="mqtt_server" id="mqtt_server">
-        </label>
-
-        <label>
-          Port
-          <input type="number" name="mqtt_port" id="mqtt_port">
-        </label>
-
-        <label>
-          Topic
-          <input type="text" name="mqtt_topic" id="mqtt_topic">
-        </label>
-
-        <label>
-          User
-          <input type="text" name="mqtt_user" id="mqtt_user">
-        </label>
-
-        <label>
-          Password
-          <input type="password" name="mqtt_pwd" id="mqtt_pwd">
-        </label>
-
-        <button type="button" onclick="saveSettings()">Save</button>
-
-      </form>
-
-    </section>
-  
     <!-- ========================================================= -->
     <!-- ====================== JAVASCRIPT ======================== -->
     <!-- ========================================================= -->
@@ -271,26 +202,8 @@ const char MAIN_page[] PROGMEM = R"=====(
           const target = tab.dataset.tab;
           document.querySelectorAll(".tab-content").forEach(sec => sec.hidden = true);
           document.getElementById(target).hidden = false;
-          if (target === "settings") loadSettings();
         });
       });
-function loadSettings() {
-  fetch("/getSettings")
-    .then(r => r.json())
-    .then(cfg => {
-      document.getElementById("hostname").value = cfg.hostname;
-      document.getElementById("static_ip").value = cfg.static_ip;
-      document.getElementById("static_netmask").value = cfg.static_netmask;
-      document.getElementById("static_gateway").value = cfg.static_gateway;
-      document.getElementById("static_dns").value = cfg.static_dns;
-
-      document.getElementById("mqtt_server").value = cfg.mqtt_server;
-      document.getElementById("mqtt_port").value = cfg.mqtt_port;
-      document.getElementById("mqtt_topic").value = cfg.mqtt_topic;
-      document.getElementById("mqtt_user").value = cfg.mqtt_user;
-      document.getElementById("mqtt_pwd").value = cfg.mqtt_pwd;
-    });
-}
 
       // MAIN PAGE AUTO-UPDATE
       async function loadData() {
@@ -315,25 +228,47 @@ function loadSettings() {
       setInterval(loadData, 1000);
 
 
-      // MODBUS ACCESS LOGIC
-      const typeSelect = document.querySelector('select[name="type"]');
-      const regSelect = document.querySelector('select[name="registerType"]');
-      const writeButton = document.querySelector('button.secondary');
-      const valueInput = document.querySelector('input[name="val"]');
+      // ============================================================
+      // MODBUS ACCESS LOGIC (KORRIGIERT)
+      // ============================================================
+
+      const valueInput = document.getElementById("modbusVal");
+      const writeButton = document.querySelector("button.secondary");
+
+      // Radio-Helper
+      function getSelected(name) {
+        return document.querySelector(`input[name="${name}"]:checked`);
+      }
 
       function updateUI() {
-        const is16Bit = typeSelect.value === '16b';
-        const is32Bit = typeSelect.value === '32b';
-        const isHolding = regSelect.value === 'H';
-        const isInput = regSelect.value === 'I';
+        const typeSel = getSelected("type");
+        const regSel = getSelected("registerType");
 
-        writeButton.style.display = (is16Bit && isHolding) ? 'inline-block' : 'none';
+        const is16Bit = typeSel?.value === "16b";
+        const is32Bit = typeSel?.value === "32b";
+        const isHolding = regSel?.value === "H";
+        const isInput = regSel?.value === "I";
+
+        writeButton.style.display = (is16Bit && isHolding) ? "inline-block" : "none";
         valueInput.readOnly = isInput || (isHolding && is32Bit);
       }
 
+      // Initiales UI-Update
       updateUI();
-      typeSelect.addEventListener('change', updateUI);
-      regSelect.addEventListener('change', updateUI);
+
+      // Event Listener für Radio Buttons
+      document.querySelectorAll('input[name="type"]').forEach(r =>
+        r.addEventListener("change", updateUI)
+      );
+
+      document.querySelectorAll('input[name="registerType"]').forEach(r =>
+        r.addEventListener("change", updateUI)
+      );
+
+
+      // ============================================================
+      // SUBMIT OPERATION
+      // ============================================================
 
       async function submitOperation(op) {
         const form = document.getElementById("modbusForm");
@@ -346,28 +281,24 @@ function loadSettings() {
             body: formData
           });
 
-          const text = await response.text();
-          const trimmed = text.trim();
+          const trimmed = (await response.text()).trim();
 
-          // Wert extrahieren
+          // Wert extrahieren: Zahl nach "Value"
           let extractedValue = trimmed;
-          const match = trimmed.match(/(?:Reading|Writing) Value\s+(.+?)\s+(?:from|to)/i);
+          const match = trimmed.match(/Value\s+(\d+)/i);
           if (match) extractedValue = match[1];
 
-          const lower = trimmed.toLowerCase();
-
-          // READ → immer extrahierten Wert anzeigen
           if (op === 'R') {
-            modbusVal.value = extractedValue;
+            valueInput.value = extractedValue;
             return;
           }
 
-          // WRITE → Fehler oder Wert anzeigen
           if (op === 'W') {
+            const lower = trimmed.toLowerCase();
             if (lower.includes("failed")) {
-              modbusVal.value = trimmed;     // komplette Fehlermeldung
+              valueInput.value = trimmed;   // komplette Fehlermeldung
             } else {
-              modbusVal.value = extractedValue;
+              valueInput.value = extractedValue;
             }
           }
 
@@ -376,19 +307,8 @@ function loadSettings() {
         }
       }
 
-      async function saveSettings() {
-        const form = document.getElementById("settingsForm");
-        const formData = new FormData(form);
-
-        const response = await fetch("/saveSettings", {
-          method: "POST",
-          body: formData
-        });
-
-        alert(await response.text());
-      }
-
     </script>
+
   </main>
 </body>
 
