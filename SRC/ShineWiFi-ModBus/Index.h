@@ -124,13 +124,13 @@ const char MAIN_page[] PROGMEM = R"=====(
             <h4>Register Width</h4>
 
             <label>
-              <input type="radio" name="type" value="16b" checked>
-              16‑bit
+              <input type="radio" name="width" value="16b" checked>
+              16-bit
             </label>
 
             <label>
-              <input type="radio" name="type" value="32b">
-              32‑bit
+              <input type="radio" name="width" value="32b">
+              32-bit
             </label>
           </fieldset>
 
@@ -138,12 +138,12 @@ const char MAIN_page[] PROGMEM = R"=====(
             <h4>Register Type</h4>
 
             <label>
-              <input type="radio" name="registerType" value="I">
+              <input type="radio" name="type" value="I">
               Input
             </label>
 
             <label>
-              <input type="radio" name="registerType" value="H" checked>
+              <input type="radio" name="type" value="H" checked>
               Holding
             </label>
           </fieldset>
@@ -277,13 +277,13 @@ const char MAIN_page[] PROGMEM = R"=====(
       }
 
       function updateUI() {
+        const widthSel = getSelected("width");
         const typeSel = getSelected("type");
-        const regSel = getSelected("registerType");
 
-        const is16Bit = typeSel?.value === "16b";
-        const is32Bit = typeSel?.value === "32b";
-        const isHolding = regSel?.value === "H";
-        const isInput = regSel?.value === "I";
+        const is16Bit = widthSel?.value === "16b";
+        const is32Bit = widthSel?.value === "32b";
+        const isHolding = typeSel?.value === "H";
+        const isInput = typeSel?.value === "I";
 
         writeButton.style.display = (is16Bit && isHolding) ? "inline-block" : "none";
         valueInput.readOnly = isInput || (isHolding && is32Bit);
@@ -293,11 +293,11 @@ const char MAIN_page[] PROGMEM = R"=====(
       updateUI();
 
       // Event Listener für Radio Buttons
-      document.querySelectorAll('input[name="type"]').forEach(r =>
+      document.querySelectorAll('input[name="width"]').forEach(r =>
         r.addEventListener("change", updateUI)
       );
 
-      document.querySelectorAll('input[name="registerType"]').forEach(r =>
+      document.querySelectorAll('input[name="type"]').forEach(r =>
         r.addEventListener("change", updateUI)
       );
 
@@ -311,8 +311,8 @@ const char MAIN_page[] PROGMEM = R"=====(
         payload.append("operation", op);
         payload.append("reg", data.get("reg"));
         payload.append("val", data.get("val"));
+        payload.append("width", data.get("width"));
         payload.append("type", data.get("type"));
-        payload.append("registerType", data.get("registerType"));
 
         try {
           const response = await fetch("/postCommunicationModbus_p", {
