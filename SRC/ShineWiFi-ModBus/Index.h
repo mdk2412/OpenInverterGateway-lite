@@ -31,7 +31,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             Log
           </a>
         </li>
-        
+
         <li>
           <a href="#" role="button" class="secondary tab" data-tab="system">
             System
@@ -200,29 +200,65 @@ const char MAIN_page[] PROGMEM = R"=====(
         tab.addEventListener("click", (e) => {
           e.preventDefault();
 
-          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          document.querySelector(".tab.active")?.classList.remove("active");
+
+          // neuen Tab aktiv setzen
           tab.classList.add("active");
 
           const target = tab.dataset.tab;
-          document.querySelectorAll(".tab-content").forEach(sec => sec.hidden = true);
-          document.getElementById(target).hidden = false;
+
+          // Inhalte umschalten
+          document.querySelectorAll(".tab-content").forEach(sec => {
+            sec.hidden = sec.id !== target;
+          });
         });
       });
 
       // MAIN PAGE AUTO-UPDATE
       async function loadData() {
+        // Dashboard nur aktualisieren, wenn es sichtbar ist
+        const dashboard = document.getElementById("main");
+        if (dashboard.hidden) return;
+
         try {
           const response = await fetch("/uiStatus");
+          if (!response.ok) {
+            console.error("HTTP error:", response.status);
+            return;
+          }
+
           const data = await response.json();
-          document.getElementById("priorityMode").textContent = data.Priority[0] + " " + data.Priority[1];
-          document.getElementById("outputPower").textContent = data.OutputPower[0] + " " + data.OutputPower[1];
-          document.getElementById("pv2Power").textContent = data.PV2Power[0] + " " + data.PV2Power[1];
-          document.getElementById("pv2Voltage").textContent = data.PV2Voltage[0] + " " + data.PV2Voltage[1];
-          document.getElementById("inverterTemperature").textContent = data.InverterTemperature[0] + " " + data.InverterTemperature[1];
-          document.getElementById("stateofCharge").textContent = data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
-          document.getElementById("batteryCharge").textContent = data.BDCChargePower[0] + " " + data.BDCChargePower[1] + " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
-          document.getElementById("batteryDischarge").textContent = data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] + " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
-          document.getElementById("batteryTemperature").textContent = data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];
+
+          // Werte setzen
+          document.getElementById("priorityMode").textContent =
+            data.Priority[0] + " " + data.Priority[1];
+
+          document.getElementById("outputPower").textContent =
+            data.OutputPower[0] + " " + data.OutputPower[1];
+
+          document.getElementById("pv2Power").textContent =
+            data.PV2Power[0] + " " + data.PV2Power[1];
+
+          document.getElementById("pv2Voltage").textContent =
+            data.PV2Voltage[0] + " " + data.PV2Voltage[1];
+
+          document.getElementById("inverterTemperature").textContent =
+            data.InverterTemperature[0] + " " + data.InverterTemperature[1];
+
+          document.getElementById("stateofCharge").textContent =
+            data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
+
+          document.getElementById("batteryCharge").textContent =
+            data.BDCChargePower[0] + " " + data.BDCChargePower[1] +
+            " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
+
+          document.getElementById("batteryDischarge").textContent =
+            data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] +
+            " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
+
+          document.getElementById("batteryTemperature").textContent =
+            data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];
+
         } catch (e) {
           console.error("Error fetching data:", e);
         }
@@ -233,7 +269,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
       // MODBUS ACCESS LOGIC
       const valueInput = document.getElementById("modbusVal");
-      const writeButton = document.querySelector("button.secondary");
+      const writeButton = document.querySelector("#modbusForm button.secondary");
 
       // Radio-Helper
       function getSelected(name) {
@@ -269,31 +305,35 @@ const char MAIN_page[] PROGMEM = R"=====(
 
       async function submitOperation(op) {
         const form = document.getElementById("modbusForm");
-        const formData = new FormData(form);
-        formData.append("operation", op);
+        const data = new FormData(form);
+
+        const payload = new URLSearchParams();
+        payload.append("operation", op);
+        payload.append("reg", data.get("reg"));
+        payload.append("val", data.get("val"));
+        payload.append("type", data.get("type"));
+        payload.append("registerType", data.get("registerType"));
 
         try {
           const response = await fetch("/postCommunicationModbus_p", {
             method: "POST",
-            body: formData
+            body: payload
           });
 
           const trimmed = (await response.text()).trim();
 
-          // Wert extrahieren: Zahl nach "Value"
           let extractedValue = trimmed;
           const match = trimmed.match(/Value\s+(\d+)/i);
           if (match) extractedValue = match[1];
 
-          if (op === 'R') {
+          if (op === "R") {
             valueInput.value = extractedValue;
             return;
           }
 
-          if (op === 'W') {
-            const lower = trimmed.toLowerCase();
-            if (lower.includes("failed")) {
-              valueInput.value = trimmed;   // komplette Fehlermeldung
+          if (op === "W") {
+            if (trimmed.toLowerCase().includes("failed")) {
+              valueInput.value = trimmed;
             } else {
               valueInput.value = extractedValue;
             }
