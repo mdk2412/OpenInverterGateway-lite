@@ -895,14 +895,14 @@ void handlePostData() {
   const String opStr = httpServer.arg(F("operation"));
   const String regStr = httpServer.arg(F("reg"));
   const String valStr = httpServer.arg(F("val"));
+  const String widthStr = httpServer.arg(F("width"));
   const String typeStr = httpServer.arg(F("type"));
-  const String regTypeStr = httpServer.arg(F("registerType"));
 
   const bool isWrite = (opStr == "W");
   const bool isRead = (opStr == "R");
-  const bool is16 = (typeStr == "16b");
-  const bool isInput = (regTypeStr == "I");
-  const bool isHolding = (regTypeStr == "H");
+  const bool is16 = (widthStr == "16b");
+  const bool isInput = (typeStr == "I");
+  const bool isHolding = (typeStr == "H");
 
   // --- Pflichtparameter prüfen ---
   if (!httpServer.hasArg(F("reg")) ||
@@ -916,7 +916,7 @@ void handlePostData() {
   // --- READ ---
   if (isRead) {
     if (!isInput && !isHolding) {
-      httpServer.send(400, F("text/plain"), F("400: Invalid registerType"));
+      httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
       return;
     }
 
@@ -931,7 +931,7 @@ void handlePostData() {
              : PSTR("Reading from 16-bit %s Register %u failed!"),
           val, isInput ? "Input" : "Holding", reg);
 
-    } else if (typeStr == "32b") {
+    } else if (widthStr == "32b") {
       uint32_t val;
       bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
                         : Inverter.ReadHoldingReg(reg, &val);

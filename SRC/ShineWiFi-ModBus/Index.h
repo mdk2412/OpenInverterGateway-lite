@@ -327,18 +327,18 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           if (op === "R") {
             if (trimmed.toLowerCase().includes("succeeded")) {
-              valueInput.value = extractedValue;   // Erfolgsfall → Wert anzeigen
+              valueInput.value = extractedValue;   
             } else {
-              valueInput.value = trimmed;          // Alles andere → Fehlermeldung anzeigen
+              valueInput.value = trimmed;          
             }
             return;
           }
 
           if (op === "W") {
             if (trimmed.toLowerCase().includes("succeeded")) {
-              valueInput.value = extractedValue;   // Erfolgsfall → Wert anzeigen
+              valueInput.value = extractedValue;   
             } else {
-              valueInput.value = trimmed;          // Fehlerfall → komplette Meldung
+              valueInput.value = trimmed;          
             }
           }
 
