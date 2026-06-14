@@ -41,7 +41,6 @@ const char MAIN_page[] PROGMEM = R"=====(
     </nav>
 
     <!-- Dashboard -->
-
     <section id="main" class="tab-content">
 
       <table>
@@ -327,15 +326,19 @@ const char MAIN_page[] PROGMEM = R"=====(
           if (match) extractedValue = match[1];
 
           if (op === "R") {
-            valueInput.value = extractedValue;
+            if (trimmed.toLowerCase().includes("succeeded")) {
+              valueInput.value = extractedValue;   // Erfolgsfall → Wert anzeigen
+            } else {
+              valueInput.value = trimmed;          // Alles andere → Fehlermeldung anzeigen
+            }
             return;
           }
 
           if (op === "W") {
-            if (trimmed.toLowerCase().includes("failed")) {
-              valueInput.value = trimmed;
+            if (trimmed.toLowerCase().includes("succeeded")) {
+              valueInput.value = extractedValue;   // Erfolgsfall → Wert anzeigen
             } else {
-              valueInput.value = extractedValue;
+              valueInput.value = trimmed;          // Fehlerfall → komplette Meldung
             }
           }
 
