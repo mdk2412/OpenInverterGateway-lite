@@ -31,12 +31,16 @@ const char MAIN_page[] PROGMEM = R"=====(
             Log
           </a>
         </li>
+        
+        <li>
+          <a href="#" role="button" class="secondary tab" data-tab="system">
+            System
+          </a>
+        </li>
       </ul>
     </nav>
 
-    <!-- ========================================================= -->
-    <!-- ====================== Dashboard ======================== -->
-    <!-- ========================================================= -->
+    <!-- Dashboard -->
 
     <section id="main" class="tab-content">
 
@@ -99,31 +103,10 @@ const char MAIN_page[] PROGMEM = R"=====(
         </div>
       </fieldset>
 
-      <!-- STATUS BUTTONS -->
-      <fieldset class="no-border">
-        <div class="grid">
-          <a href="./status" role="button" class="secondary">JSON</a>
-          <a href="./uiStatus" role="button" class="secondary">UI JSON</a>
-          <a href="./metrics" role="button" class="secondary">Metrics</a>
-        </div>
-      </fieldset>
-
-      <!-- SYSTEM BUTTONS -->
-      <fieldset class="no-border">
-        <div class="grid">
-          <a href="./startAp" role="button" class="contrast" onclick="return confirm('Start Config AP?');">Start Config
-            AP</a>
-
-          <a href="./reboot" role="button" class="contrast" onclick="return confirm('Reboot?');">Reboot</a>
-        </div>
-      </fieldset>
-
     </section>
 
+    <!-- MODBUS -->
 
-    <!-- ========================================================= -->
-    <!-- ==================== MODBUS ACCESS ======================= -->
-    <!-- ========================================================= -->
     <section id="modbus" class="tab-content" hidden>
       <form id="modbusForm">
         <fieldset class="no-border">
@@ -176,9 +159,7 @@ const char MAIN_page[] PROGMEM = R"=====(
       </form>
     </section>
 
-    <!-- ========================================================= -->
-    <!-- ==================== Log ================================ -->
-    <!-- ========================================================= -->
+    <!-- Log -->
 
     <section id="log" class="tab-content" hidden>
 
@@ -186,9 +167,32 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     </section>
 
-    <!-- ========================================================= -->
-    <!-- ====================== JAVASCRIPT ======================== -->
-    <!-- ========================================================= -->
+    <!-- System -->
+
+    <section id="system" class="tab-content" hidden>
+
+      <!-- STATUS BUTTONS -->
+      <fieldset class="no-border">
+        <div class="grid">
+          <a href="./status" role="button" class="secondary">JSON</a>
+          <a href="./uiStatus" role="button" class="secondary">UI JSON</a>
+          <a href="./metrics" role="button" class="secondary">Metrics</a>
+        </div>
+      </fieldset>
+
+      <!-- SYSTEM BUTTONS -->
+      <fieldset class="no-border">
+        <div class="grid">
+          <a href="./startAp" role="button" class="contrast" onclick="return confirm('Start Config AP?');">Start Config
+            AP</a>
+
+          <a href="./reboot" role="button" class="contrast" onclick="return confirm('Reboot?');">Reboot</a>
+        </div>
+      </fieldset>
+
+    </section>
+
+    <!-- JAVASCRIPT -->
 
     <script>
       // TAB SWITCHING
@@ -227,11 +231,7 @@ const char MAIN_page[] PROGMEM = R"=====(
       loadData();
       setInterval(loadData, 1000);
 
-
-      // ============================================================
-      // MODBUS ACCESS LOGIC (KORRIGIERT)
-      // ============================================================
-
+      // MODBUS ACCESS LOGIC
       const valueInput = document.getElementById("modbusVal");
       const writeButton = document.querySelector("button.secondary");
 
@@ -265,10 +265,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         r.addEventListener("change", updateUI)
       );
 
-
-      // ============================================================
       // SUBMIT OPERATION
-      // ============================================================
 
       async function submitOperation(op) {
         const form = document.getElementById("modbusForm");
