@@ -87,18 +87,18 @@ const char MAIN_page[] PROGMEM = R"=====(
       <!-- PRIORITY BUTTONS -->
       <fieldset class="no-border">
         <div class="grid">
-          <a role="button" onclick="if(confirm('Set priority to load first?')) fetch('/loadfirst'); return false;">
+          <button type="button" onclick="if (confirm('Set priority to load first?')) fetch('/loadfirst');">
             Load First
-          </a>
+          </button>
 
-          <a role="button"
-            onclick="if(confirm('Set priority to battery first?')) fetch('/batteryfirst'); return false;">
+          <button type="button" class="secondary" onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst');">
             Battery First
-          </a>
+          </button>
 
-          <a role="button" onclick="if(confirm('Set priority to grid first?')) fetch('/gridfirst'); return false;">
+          <button type="button" class="contrast" onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst');">
             Grid First
-          </a>
+          </button>
+
         </div>
       </fieldset>
 
@@ -150,7 +150,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           <fieldset class="no-border">
             <div class="grid">
               <button type="button" onclick="submitOperation('R')">Read</button>
-              <button type="button" class="secondary" onclick="submitOperation('W')">Write</button>
+              <button type="button" class="contrast" onclick="submitOperation('W')">Write</button>
             </div>
           </fieldset>
 
@@ -173,19 +173,22 @@ const char MAIN_page[] PROGMEM = R"=====(
       <!-- STATUS BUTTONS -->
       <fieldset class="no-border">
         <div class="grid">
-          <a href="./status" role="button" class="secondary">JSON</a>
-          <a href="./uiStatus" role="button" class="secondary">UI JSON</a>
-          <a href="./metrics" role="button" class="secondary">Metrics</a>
+          <button type="button" onclick="location.href='./status'">JSON</button>
+          <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
+          <button type="button" onclick="location.href='./metrics'">Metrics</button>
         </div>
       </fieldset>
 
       <!-- SYSTEM BUTTONS -->
       <fieldset class="no-border">
         <div class="grid">
-          <a href="./startAp" role="button" class="contrast" onclick="return confirm('Start Config AP?');">Start Config
-            AP</a>
+          <button type="button" class="contrast" onclick="if (confirm('Start Config AP?')) location.href='./startAp'">
+            Start Config AP
+          </button>
 
-          <a href="./reboot" role="button" class="contrast" onclick="return confirm('Reboot?');">Reboot</a>
+          <button type="button" class="contrast" onclick="if (confirm('Reboot?')) location.href='./reboot'">
+            Reboot
+          </button>
         </div>
       </fieldset>
 
@@ -327,18 +330,18 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           if (op === "R") {
             if (trimmed.toLowerCase().includes("succeeded")) {
-              valueInput.value = extractedValue;   
+              valueInput.value = extractedValue;
             } else {
-              valueInput.value = trimmed;          
+              valueInput.value = trimmed;
             }
             return;
           }
 
           if (op === "W") {
             if (trimmed.toLowerCase().includes("succeeded")) {
-              valueInput.value = extractedValue;   
+              valueInput.value = extractedValue;
             } else {
-              valueInput.value = trimmed;          
+              valueInput.value = trimmed;
             }
           }
 
