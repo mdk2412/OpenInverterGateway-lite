@@ -37,6 +37,12 @@ const char MAIN_page[] PROGMEM = R"=====(
             System
           </a>
         </li>
+
+        <li>
+          <a href="#" role="button" class="secondary outline tab" data-tab="extras">
+            Extras
+          </a>
+        </li>
       </ul>
     </nav>
 
@@ -196,6 +202,43 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     </section>
 
+    <!-- Extras -->
+
+    <section id="extras" class="tab-content" hidden>
+
+      <h3>Battery Standby Settings</h3>
+      <form id="extrasForm">
+        <fieldset class="no-border">
+          <label>
+            Battery Sleep Threshold (W)
+            <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="50">
+          </label>
+
+          <label>
+            Battery Wake Threshold (W)
+            <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="75">
+          </label>
+
+          <h3>AC Charge Control Settings</h3>
+
+          <label>
+            Inverter Maximum Power (W)
+            <input type="number" name="ac_max_pow" id="ac_max_pow" min="0" step="1" placeholder="2500">
+          </label>
+
+          <label>
+            Offset (%)
+            <input type="number" name="ac_off_set" id="ac_off_set" min="0" max="100" step="1" placeholder="1">
+          </label>
+
+          <button type="button" class="contrast" onclick="saveExtras()">Save Extras</button>
+        </fieldset>
+      </form>
+
+      <div id="extrasStatus"></div>
+
+    </section>
+
     <!-- JAVASCRIPT -->
 
     <script>
@@ -347,6 +390,64 @@ const char MAIN_page[] PROGMEM = R"=====(
           console.error("Error:", e.message);
         }
       }
+
+      // EXTRAS SETTINGS LOGIC
+      async function loadExtras() {
+        try {
+          const response = await fetch("/getExtras");
+          if (!response.ok) {
+            console.error("HTTP error:", response.status);
+            return;
+          }
+
+          const data = await response.json();
+
+          if (data.bat_slp_thr) document.getElementById("bat_slp_thr").value = data.bat_slp_thr;
+          if (data.bat_wke_thr) document.getElementById("bat_wke_thr").value = data.bat_wke_thr;
+          if (data.ac_max_pow) document.getElementById("ac_max_pow").value = data.ac_max_pow;
+          if (data.ac_off_set) document.getElementById("ac_off_set").value = data.ac_off_set;
+
+        } catch (e) {
+          console.error("Error loading extras:", e);
+        }
+      }
+
+      async function saveExtras() {
+        const bat_slp_thr = document.getElementById("bat_slp_thr").value;
+        const bat_wke_thr = document.getElementById("bat_wke_thr").value;
+        const ac_max_pow = document.getElementById("ac_max_pow").value;
+        const ac_off_set = document.getElementById("ac_off_set").value;
+
+        const payload = new URLSearchParams();
+        if (bat_slp_thr) payload.append("bat_slp_thr", bat_slp_thr);
+        if (bat_wke_thr) payload.append("bat_wke_thr", bat_wke_thr);
+        if (ac_max_pow) payload.append("ac_max_pow", ac_max_pow);
+        if (ac_off_set) payload.append("ac_off_set", ac_off_set);
+
+        try {
+          const response = await fetch("/saveExtras", {
+            method: "POST",
+            body: payload
+          });
+
+          const result = await response.text();
+          const statusDiv = document.getElementById("extrasStatus");
+          statusDiv.innerHTML = `<p style="color: green;"><strong>${result}</strong></p>`;
+
+          // Clear status after 3 seconds
+          setTimeout(() => {
+            statusDiv.innerHTML = "";
+          }, 3000);
+
+        } catch (e) {
+          const statusDiv = document.getElementById("extrasStatus");
+          statusDiv.innerHTML = `<p style="color: red;"><strong>Error: ${e.message}</strong></p>`;
+          console.error("Error saving extras:", e);
+        }
+      }
+
+      // Load extras when page loads
+      loadExtras();
 
     </script>
 

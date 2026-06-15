@@ -101,14 +101,7 @@ struct {
   WiFiManagerParameter* mqtt_pwd = NULL;
 #endif
   WiFiManagerParameter* syslog_ip = NULL;
-#if BATTERY_STANDBY == 1
-  WiFiManagerParameter* bat_slp_thr = NULL;
-  WiFiManagerParameter* bat_wke_thr = NULL;
-#endif
-#if ACCHARGE_CONTROL == 1
-  WiFiManagerParameter* ac_max_pow = NULL;
-  WiFiManagerParameter* ac_off_set = NULL;
-#endif
+
 } customWMParams;
 
 static const struct {
@@ -306,18 +299,6 @@ void saveParamCallback() {
   Config.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
 #endif
   Config.syslog_ip = customWMParams.syslog_ip->getValue();
-#if BATTERY_STANDBY == 1
-  Config.bat_slp_thr =
-      customWMParams.bat_slp_thr->getValue();
-  Config.bat_wke_thr =
-      customWMParams.bat_wke_thr->getValue();
-#endif
-#if ACCHARGE_CONTROL == 1
-  Config.ac_max_pow =
-      customWMParams.ac_max_pow->getValue();
-  Config.ac_off_set =
-      customWMParams.ac_off_set->getValue();
-#endif
 
   saveConfig();
 
@@ -651,6 +632,69 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
   httpServer.send(200, "text/plain", "Settings saved. Reboot required.");
 });
 
+httpServer.on("/saveExtras", HTTP_POST, []() {
+  Preferences prefs;
+  prefs.begin("config", false);
+
+#if BATTERY_STANDBY == 1
+  String bat_slp_thr = httpServer.arg("bat_slp_thr");
+  String bat_wke_thr = httpServer.arg("bat_wke_thr");
+  
+  if (!bat_slp_thr.isEmpty()) {
+    Config.bat_slp_thr = bat_slp_thr;
+    prefs.putString(ConfigFiles.bat_slp_thr, bat_slp_thr);
+    Log.print(F("Battery Sleep Threshold updated: "));
+    Log.println(bat_slp_thr);
+  }
+  
+  if (!bat_wke_thr.isEmpty()) {
+    Config.bat_wke_thr = bat_wke_thr;
+    prefs.putString(ConfigFiles.bat_wke_thr, bat_wke_thr);
+    Log.print(F("Battery Wake Threshold updated: "));
+    Log.println(bat_wke_thr);
+  }
+#endif
+
+#if ACCHARGE_CONTROL == 1
+  String ac_max_pow = httpServer.arg("ac_max_pow");
+  String ac_off_set = httpServer.arg("ac_off_set");
+  
+  if (!ac_max_pow.isEmpty()) {
+    Config.ac_max_pow = ac_max_pow;
+    prefs.putString(ConfigFiles.ac_max_pow, ac_max_pow);
+    Log.print(F("AC Max Power updated: "));
+    Log.println(ac_max_pow);
+  }
+  
+  if (!ac_off_set.isEmpty()) {
+    Config.ac_off_set = ac_off_set;
+    prefs.putString(ConfigFiles.ac_off_set, ac_off_set);
+    Log.print(F("AC Offset updated: "));
+    Log.println(ac_off_set);
+  }
+#endif
+
+  prefs.end();
+
+  httpServer.send(200, "text/plain", "Extra settings saved.");
+});
+
+httpServer.on("/getExtras", HTTP_GET, []() {
+  DynamicJsonDocument doc(512);
+
+#if BATTERY_STANDBY == 1
+  doc["bat_slp_thr"] = Config.bat_slp_thr;
+  doc["bat_wke_thr"] = Config.bat_wke_thr;
+#endif
+
+#if ACCHARGE_CONTROL == 1
+  doc["ac_max_pow"] = Config.ac_max_pow;
+  doc["ac_off_set"] = Config.ac_off_set;
+#endif
+
+  sendJson(doc);
+});
+
   httpServer.begin();
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -703,20 +747,6 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   customWMParams.syslog_ip = new WiFiManagerParameter(
       "syslogip", "Syslog Server IP (leave blank for none)",
       Config.syslog_ip.c_str(), 15);
-#if BATTERY_STANDBY == 1
-  customWMParams.bat_slp_thr = new WiFiManagerParameter(
-      "batslpthr", "Battery Sleep Threshold",
-      Config.bat_slp_thr.c_str(), 4);
-  customWMParams.bat_wke_thr =
-      new WiFiManagerParameter("batwkethr", "Battery Wake Threshold",
-                               Config.bat_wke_thr.c_str(), 4);
-#endif
-#if ACCHARGE_CONTROL == 1
-  customWMParams.ac_max_pow = new WiFiManagerParameter(
-      "acmaxpow", "Inverter Maximum Power", Config.ac_max_pow.c_str(), 4);
-  customWMParams.ac_off_set = new WiFiManagerParameter(
-      "acoffset", "Offset", Config.ac_off_set.c_str(), 3);
-#endif
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
   wm.addParameter(new WiFiManagerParameter(
@@ -735,14 +765,6 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   wm.addParameter(customWMParams.static_dns);
   wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
   wm.addParameter(customWMParams.syslog_ip);
-#if BATTERY_STANDBY == 1
-  wm.addParameter(customWMParams.bat_slp_thr);
-  wm.addParameter(customWMParams.bat_wke_thr);
-#endif
-#if ACCHARGE_CONTROL == 1
-  wm.addParameter(customWMParams.ac_max_pow);
-  wm.addParameter(customWMParams.ac_off_set);
-#endif
   wm.setSaveParamsCallback(saveParamCallback);
 
   setupMenu(wm, true);
