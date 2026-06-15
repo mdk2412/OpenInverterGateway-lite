@@ -12,28 +12,28 @@ const char MAIN_page[] PROGMEM = R"=====(
 
 <body>
   <main class="container">
-    <nav style="position: sticky; top: 0; z-index: 10;">
+    <nav>
       <ul>
         <li>
-          <a href="#" role="button" class="secondary tab active" data-tab="main">
+          <a href="#" role="button" class="secondary outline tab active" data-tab="main">
             Dashboard
           </a>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary tab" data-tab="modbus">
+          <a href="#" role="button" class="secondary outline tab" data-tab="modbus">
             Modbus
           </a>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary tab" data-tab="log">
+          <a href="#" role="button" class="secondary outline tab" data-tab="log">
             Log
           </a>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary tab" data-tab="system">
+          <a href="#" role="button" class="secondary outline tab" data-tab="system">
             System
           </a>
         </li>
@@ -91,11 +91,13 @@ const char MAIN_page[] PROGMEM = R"=====(
             Load First
           </button>
 
-          <button type="button" class="secondary" onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst');">
+          <button type="button" class="secondary"
+            onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst');">
             Battery First
           </button>
 
-          <button type="button" class="contrast" onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst');">
+          <button type="button" class="contrast"
+            onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst');">
             Grid First
           </button>
 
@@ -120,7 +122,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           </label>
 
           <fieldset class="no-border">
-            <h4>Register Width</h4>
+            Register Width
 
             <label>
               <input type="radio" name="width" value="16b" checked>
@@ -134,7 +136,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           </fieldset>
 
           <fieldset class="no-border">
-            <h4>Register Type</h4>
+            Register Type
 
             <label>
               <input type="radio" name="type" value="I">
@@ -271,35 +273,31 @@ const char MAIN_page[] PROGMEM = R"=====(
 
       // MODBUS ACCESS LOGIC
       const valueInput = document.getElementById("modbusVal");
-      const writeButton = document.querySelector("#modbusForm button.secondary");
+      const writeButton = document.querySelector("#modbusForm button.contrast");
 
       // Radio-Helper
       function getSelected(name) {
-        return document.querySelector(`input[name="${name}"]:checked`);
+        return document.querySelector(`input[name="${name}"]:checked`)?.value;
       }
 
       function updateUI() {
-        const widthSel = getSelected("width");
-        const typeSel = getSelected("type");
+        const width = getSelected("width");   // 16b / 32b
+        const type = getSelected("type");    // I / H
 
-        const is16Bit = widthSel?.value === "16b";
-        const is32Bit = widthSel?.value === "32b";
-        const isHolding = typeSel?.value === "H";
-        const isInput = typeSel?.value === "I";
+        const disableWrite = (width === "32b" || type === "I");
 
-        writeButton.style.display = (is16Bit && isHolding) ? "inline-block" : "none";
-        valueInput.readOnly = isInput || (isHolding && is32Bit);
+        // PicoCSS: disabled = automatisch ausgegraut
+        writeButton.disabled = disableWrite;
+
+        // Value-Feld readonly bei Input oder 32-bit
+        valueInput.readOnly = disableWrite;
       }
 
       // Initiales UI-Update
       updateUI();
 
       // Event Listener für Radio Buttons
-      document.querySelectorAll('input[name="width"]').forEach(r =>
-        r.addEventListener("change", updateUI)
-      );
-
-      document.querySelectorAll('input[name="type"]').forEach(r =>
+      document.querySelectorAll('input[name="width"], input[name="type"]').forEach(r =>
         r.addEventListener("change", updateUI)
       );
 
