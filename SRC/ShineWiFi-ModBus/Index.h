@@ -52,7 +52,7 @@ const char MAIN_page[] PROGMEM = R"=====(
       <table>
         <tbody>
           <tr>
-            <th style="width: 50%">Priority Mode</th>
+            <th>Priority Mode</th>
             <td id="priorityMode">Loading...</td>
           </tr>
           <tr>
@@ -91,22 +91,14 @@ const char MAIN_page[] PROGMEM = R"=====(
       </table>
 
       <!-- PRIORITY BUTTONS -->
-      <fieldset class="no-border">
+      <fieldset>
         <div class="grid">
-          <button type="button" onclick="if (confirm('Set priority to load first?')) fetch('/loadfirst');">
-            Load First
-          </button>
-
+          <button type="button" onclick="if (confirm('Set priority to load first?')) fetch('/loadfirst')">Load
+            First</button>
           <button type="button" class="secondary"
-            onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst');">
-            Battery First
-          </button>
-
+            onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst')">Battery First</button>
           <button type="button" class="contrast"
-            onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst');">
-            Grid First
-          </button>
-
+            onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst')">Grid First</button>
         </div>
       </fieldset>
 
@@ -116,7 +108,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     <section id="modbus" class="tab-content" hidden>
       <form id="modbusForm">
-        <fieldset class="no-border">
+        <fieldset>
           <label>
             Register ID
             <input type="text" name="reg">
@@ -127,41 +119,24 @@ const char MAIN_page[] PROGMEM = R"=====(
             <input type="text" name="val" id="modbusVal" readonly>
           </label>
 
-          <fieldset class="no-border">
+          <fieldset>
             Register Width
-
-            <label>
-              <input type="radio" name="width" value="16b" checked>
-              16-bit
-            </label>
-
-            <label>
-              <input type="radio" name="width" value="32b">
-              32-bit
-            </label>
+            <label><input type="radio" name="width" value="16b" checked> 16-bit</label>
+            <label><input type="radio" name="width" value="32b"> 32-bit</label>
           </fieldset>
 
-          <fieldset class="no-border">
+          <fieldset>
             Register Type
-
-            <label>
-              <input type="radio" name="type" value="I">
-              Input
-            </label>
-
-            <label>
-              <input type="radio" name="type" value="H" checked>
-              Holding
-            </label>
+            <label><input type="radio" name="type" value="I"> Input</label>
+            <label><input type="radio" name="type" value="H" checked> Holding</label>
           </fieldset>
 
-          <fieldset class="no-border">
+          <fieldset>
             <div class="grid">
               <button type="button" onclick="submitOperation('R')">Read</button>
               <button type="button" class="contrast" onclick="submitOperation('W')">Write</button>
             </div>
           </fieldset>
-
         </fieldset>
       </form>
     </section>
@@ -169,17 +144,13 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- Log -->
 
     <section id="log" class="tab-content" hidden>
-
-      <iframe src="./debug" style="width: 100%; height: 70vh; border: none;"></iframe>
-
+      <iframe src="./debug" style="width: 100%; height: 75vh; border: none;"></iframe>
     </section>
 
     <!-- System -->
 
     <section id="system" class="tab-content" hidden>
-
-      <!-- STATUS BUTTONS -->
-      <fieldset class="no-border">
+      <fieldset>
         <div class="grid">
           <button type="button" onclick="location.href='./status'">JSON</button>
           <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
@@ -187,56 +158,53 @@ const char MAIN_page[] PROGMEM = R"=====(
         </div>
       </fieldset>
 
-      <!-- SYSTEM BUTTONS -->
-      <fieldset class="no-border">
+      <fieldset>
         <div class="grid">
-          <button type="button" class="contrast" onclick="if (confirm('Start Config AP?')) location.href='./startAp'">
-            Start Config AP
-          </button>
-
-          <button type="button" class="contrast" onclick="if (confirm('Reboot?')) location.href='./reboot'">
-            Reboot
-          </button>
+          <button type="button" class="contrast"
+            onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
+          <button type="button" class="contrast"
+            onclick="if (confirm('Reboot?')) location.href='./reboot'">Reboot</button>
         </div>
       </fieldset>
-
     </section>
 
     <!-- Extras -->
 
     <section id="extras" class="tab-content" hidden>
-
-      <h3>Battery Standby Settings</h3>
       <form id="extrasForm">
-        <fieldset class="no-border">
-          <label>
-            Battery Sleep Threshold (W)
+        <fieldset>
+          <hr>
+          <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
+
+          <label>Sleep Threshold (W)
             <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="50">
           </label>
 
-          <label>
-            Battery Wake Threshold (W)
+          <label>Wake Threshold (W)
             <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="75">
           </label>
+          <hr>
+          <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
 
-          <h3>AC Charge Control Settings</h3>
-
-          <label>
-            Inverter Maximum Power (W)
+          <label>Inverter Maximum Power (W)
             <input type="number" name="ac_max_pow" id="ac_max_pow" min="0" step="1" placeholder="2500">
           </label>
 
-          <label>
-            Offset (%)
+          <label>Offset (%)
             <input type="number" name="ac_off_set" id="ac_off_set" min="0" max="100" step="1" placeholder="1">
           </label>
 
-          <button type="button" class="contrast" onclick="saveExtras()">Save Extras</button>
+          <fieldset>
+            <div class="grid">
+              <button type="button" class="contrast" onclick="saveExtras()">Save Extras</button>
+              <span id="extrasStatus" class="secondary"></span>
+            </div>
+          </fieldset>
+
         </fieldset>
       </form>
 
       <div id="extrasStatus"></div>
-
     </section>
 
     <!-- JAVASCRIPT -->
@@ -402,6 +370,11 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           const data = await response.json();
 
+          // BOOLS setzen
+          document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
+          document.querySelector('input[name="accharge"]').checked = !!data.accharge;
+
+          // NUMERISCHE FELDER setzen
           if (data.bat_slp_thr) document.getElementById("bat_slp_thr").value = data.bat_slp_thr;
           if (data.bat_wke_thr) document.getElementById("bat_wke_thr").value = data.bat_wke_thr;
           if (data.ac_max_pow) document.getElementById("ac_max_pow").value = data.ac_max_pow;
@@ -413,16 +386,34 @@ const char MAIN_page[] PROGMEM = R"=====(
       }
 
       async function saveExtras() {
-        const bat_slp_thr = document.getElementById("bat_slp_thr").value;
-        const bat_wke_thr = document.getElementById("bat_wke_thr").value;
-        const ac_max_pow = document.getElementById("ac_max_pow").value;
-        const ac_off_set = document.getElementById("ac_off_set").value;
+        const form = document.getElementById("extrasForm");
+        const btn = document.querySelector('button[onclick="saveExtras()"]');
 
         const payload = new URLSearchParams();
-        if (bat_slp_thr) payload.append("bat_slp_thr", bat_slp_thr);
-        if (bat_wke_thr) payload.append("bat_wke_thr", bat_wke_thr);
-        if (ac_max_pow) payload.append("ac_max_pow", ac_max_pow);
-        if (ac_off_set) payload.append("ac_off_set", ac_off_set);
+
+        // BOOL-WERTE
+        if (form.bat_standby.checked)
+          payload.append("bat_standby", "on");
+
+        if (form.accharge.checked)
+          payload.append("accharge", "on");
+
+        // NUMERISCHE WERTE
+        if (form.bat_slp_thr.value)
+          payload.append("bat_slp_thr", form.bat_slp_thr.value);
+
+        if (form.bat_wke_thr.value)
+          payload.append("bat_wke_thr", form.bat_wke_thr.value);
+
+        if (form.ac_max_pow.value)
+          payload.append("ac_max_pow", form.ac_max_pow.value);
+
+        if (form.ac_off_set.value)
+          payload.append("ac_off_set", form.ac_off_set.value);
+
+        // Original Button-Zustand sichern
+        const oldText = btn.textContent;
+        const oldClass = btn.className;
 
         try {
           const response = await fetch("/saveExtras", {
@@ -431,18 +422,26 @@ const char MAIN_page[] PROGMEM = R"=====(
           });
 
           const result = await response.text();
-          const statusDiv = document.getElementById("extrasStatus");
-          statusDiv.innerHTML = `<p style="color: green;"><strong>${result}</strong></p>`;
 
-          // Clear status after 3 seconds
+          // ✔ Button zeigt Erfolg + wird "contrast outline"
+          btn.textContent = result;
+          btn.className = "contrast outline";
+
           setTimeout(() => {
-            statusDiv.innerHTML = "";
-          }, 3000);
+            btn.textContent = oldText;
+            btn.className = oldClass;
+          }, 2000);
 
         } catch (e) {
-          const statusDiv = document.getElementById("extrasStatus");
-          statusDiv.innerHTML = `<p style="color: red;"><strong>Error: ${e.message}</strong></p>`;
-          console.error("Error saving extras:", e);
+
+          // ✔ Button zeigt Fehler + wird "contrast outline"
+          btn.textContent = "Error: " + e.message;
+          btn.className = "contrast outline";
+
+          setTimeout(() => {
+            btn.textContent = oldText;
+            btn.className = oldClass;
+          }, 3000);
         }
       }
 

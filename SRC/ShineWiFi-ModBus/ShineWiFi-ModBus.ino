@@ -11,7 +11,7 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 #include <LittleFS.h>
-//#define LITTLEFS LittleFS
+// #define LITTLEFS LittleFS
 
 // #include <time.h>
 //  #d efine LOG_PRINTLN_TS(msg) { \
@@ -119,14 +119,6 @@ static const struct {
 #endif
   const char* syslog_ip = "/syslogip";
   const char* force_ap = "/forceap";
-#if BATTERY_STANDBY == 1
-  const char* bat_slp_thr = "/batslpthr";
-  const char* bat_wke_thr = "/batwkethr";
-#endif
-#if ACCHARGE_CONTROL == 1
-  const char* ac_max_pow = "/acmaxpow";
-  const char* ac_off_set = "/acoffset";
-#endif
 } ConfigFiles;
 
 struct {
@@ -139,19 +131,23 @@ struct {
   MqttConfig mqtt;
 #endif
   String syslog_ip;
+
 #if BATTERY_STANDBY == 1
+  bool   bat_standby;     // <-- NEU
   String bat_slp_thr;
   String bat_wke_thr;
 #endif
+
 #if ACCHARGE_CONTROL == 1
+  bool   accharge;        // <-- NEU
   String ac_max_pow;
   String ac_off_set;
 #endif
+
   bool force_ap;
 } Config;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
-
 
 // -------------------------------------------------------
 // Set the red led in case of error
@@ -194,7 +190,7 @@ void WiFi_Reconnect() {
     Log.println(Config.hostname);
 
     Log.println(F("WiFi reconnected"));
-    
+
     updateRedLed();
   }
 }
@@ -237,18 +233,6 @@ void loadConfig() {
   Config.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
 #endif
   Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
-#if BATTERY_STANDBY == 1
-  Config.bat_slp_thr =
-      prefs.getString(ConfigFiles.bat_slp_thr, "50");
-  Config.bat_wke_thr =
-      prefs.getString(ConfigFiles.bat_wke_thr, "75");
-#endif
-#if ACCHARGE_CONTROL == 1
-  Config.ac_max_pow =
-      prefs.getString(ConfigFiles.ac_max_pow, "2500");
-  Config.ac_off_set =
-      prefs.getString(ConfigFiles.ac_off_set, "1");
-#endif
   Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
 
@@ -266,18 +250,6 @@ void saveConfig() {
   prefs.putString(ConfigFiles.mqtt_pwd, Config.mqtt.pwd);
 #endif
   prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
-#if BATTERY_STANDBY == 1
-  prefs.putString(ConfigFiles.bat_slp_thr,
-                  Config.bat_slp_thr);
-  prefs.putString(ConfigFiles.bat_wke_thr,
-                  Config.bat_wke_thr);
-#endif
-#if ACCHARGE_CONTROL == 1
-  prefs.putString(ConfigFiles.ac_max_pow,
-                  Config.ac_max_pow);
-  prefs.putString(ConfigFiles.ac_off_set,
-                  Config.ac_off_set);
-#endif
 }
 
 void saveParamCallback() {
@@ -378,11 +350,11 @@ void setupWifiHost() {
 //   esp_task_wdt_add(NULL);
 // }
 void startWdt() {
-    Log.print(F("Configuring WDT with Timeout of "));
-    Log.print(WDT_TIMEOUT);
-    Log.println(F(" Seconds"));
-    esp_task_wdt_init(WDT_TIMEOUT, true);
-    esp_task_wdt_add(NULL);
+  Log.print(F("Configuring WDT with Timeout of "));
+  Log.print(WDT_TIMEOUT);
+  Log.println(F(" Seconds"));
+  esp_task_wdt_init(WDT_TIMEOUT, true);
+  esp_task_wdt_add(NULL);
 }
 #endif
 
@@ -413,6 +385,9 @@ void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
 
+  //
+  // Standard-Settings
+  //
   Config.hostname       = prefs.getString("hostname", "Growatt");
   Config.static_ip      = prefs.getString("static_ip", "");
   Config.static_netmask = prefs.getString("static_netmask", "");
@@ -425,6 +400,24 @@ void loadSettingsFromPrefs() {
   Config.mqtt.topic  = prefs.getString("mqtt_topic", "growatt");
   Config.mqtt.user   = prefs.getString("mqtt_user", "");
   Config.mqtt.pwd    = prefs.getString("mqtt_pwd", "");
+#endif
+
+  //
+  // EXTRAS: Battery Standby
+  //
+#if BATTERY_STANDBY == 1
+  Config.bat_standby = prefs.getBool("bat_standby", false);
+  Config.bat_slp_thr = prefs.getString("bat_slp_thr", "50");
+  Config.bat_wke_thr = prefs.getString("bat_wke_thr", "75");
+#endif
+
+  //
+  // EXTRAS: AC Charging
+  //
+#if ACCHARGE_CONTROL == 1
+  Config.accharge   = prefs.getBool("accharge", false);
+  Config.ac_max_pow = prefs.getString("ac_max_pow", "2500");
+  Config.ac_off_set = prefs.getString("ac_off_set", "1");
 #endif
 
   prefs.end();
@@ -449,8 +442,8 @@ void setup() {
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 #endif
 
-prefs.begin("ShineWiFi");
-loadSettingsFromPrefs();
+  prefs.begin("ShineWiFi");
+  loadSettingsFromPrefs();
 
   loadConfig();
   configureLogging();
@@ -545,25 +538,6 @@ loadSettingsFromPrefs();
     digitalWrite(LED_BL, 0);
     // if you get here you have connected to the WiFi
     Log.println(F("WiFi connected"));
-#if BATTERY_STANDBY == 1
-    Log.print(F("Battery Standby active, "));
-    Log.print(F("Sleep Threshold: "));
-    Log.print(Config.bat_slp_thr);
-    Log.print(F(" W, "));
-    Log.print(F("Wake Threshold: "));
-    Log.print(Config.bat_wke_thr);
-    Log.println(F(" W"));
-#endif
-#if ACCHARGE_CONTROL == 1
-    Log.print(F("AC Charge Power Rate active, "));
-    Log.print(F("Inverter Maximum Power: "));
-    Log.print(Config.ac_max_pow);
-    Log.print(F(" W, "));
-    Log.print(F("Offset: "));
-    Log.print(Config.ac_off_set);
-    Log.println(F(" %"));
-#endif
-
   }
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -585,10 +559,10 @@ loadSettingsFromPrefs();
   httpServer.on("/loadfirst", loadFirst);
   httpServer.on("/batteryfirst", batteryFirst);
   httpServer.on("/gridfirst", gridFirst);
-//  #if ENABLE_MODBUS_COMMUNICATION == 1
-//    httpServer.on("/postCommunicationModbus", sendPostSite);
-    httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
-//  #endif
+  //  #if ENABLE_MODBUS_COMMUNICATION == 1
+  //    httpServer.on("/postCommunicationModbus", sendPostSite);
+  httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
+  //  #endif
   httpServer.on("/", sendMainPage);
 #ifdef ENABLE_WEB_DEBUG
   httpServer.on("/debug", sendDebug);
@@ -598,101 +572,130 @@ loadSettingsFromPrefs();
   Inverter.InitProtocol();
   InverterReconnect();
 
-httpServer.on("/saveSettings", HTTP_POST, []() {
+  httpServer.on("/saveSettings", HTTP_POST, []() {
+    String hostname = httpServer.arg("hostname");
+    String static_ip = httpServer.arg("static_ip");
+    String static_netmask = httpServer.arg("static_netmask");
+    String static_gateway = httpServer.arg("static_gateway");
+    String static_dns = httpServer.arg("static_dns");
 
-  String hostname       = httpServer.arg("hostname");
-  String static_ip      = httpServer.arg("static_ip");
-  String static_netmask = httpServer.arg("static_netmask");
-  String static_gateway = httpServer.arg("static_gateway");
-  String static_dns     = httpServer.arg("static_dns");
+    String mqtt_server = httpServer.arg("mqtt_server");
+    String mqtt_port = httpServer.arg("mqtt_port");
+    String mqtt_topic = httpServer.arg("mqtt_topic");
+    String mqtt_user = httpServer.arg("mqtt_user");
+    String mqtt_pwd = httpServer.arg("mqtt_pwd");
 
-  String mqtt_server = httpServer.arg("mqtt_server");
-  String mqtt_port   = httpServer.arg("mqtt_port");
-  String mqtt_topic  = httpServer.arg("mqtt_topic");
-  String mqtt_user   = httpServer.arg("mqtt_user");
-  String mqtt_pwd    = httpServer.arg("mqtt_pwd");
+    Preferences prefs;
+    prefs.begin("config", false);
 
-  Preferences prefs;
-  prefs.begin("config", false);
+    prefs.putString("hostname", hostname);
+    prefs.putString("static_ip", static_ip);
+    prefs.putString("static_netmask", static_netmask);
+    prefs.putString("static_gateway", static_gateway);
+    prefs.putString("static_dns", static_dns);
 
-  prefs.putString("hostname", hostname);
-  prefs.putString("static_ip", static_ip);
-  prefs.putString("static_netmask", static_netmask);
-  prefs.putString("static_gateway", static_gateway);
-  prefs.putString("static_dns", static_dns);
+    prefs.putString("mqtt_server", mqtt_server);
+    prefs.putString("mqtt_port", mqtt_port);
+    prefs.putString("mqtt_topic", mqtt_topic);
+    prefs.putString("mqtt_user", mqtt_user);
+    prefs.putString("mqtt_pwd", mqtt_pwd);
 
-  prefs.putString("mqtt_server", mqtt_server);
-  prefs.putString("mqtt_port", mqtt_port);
-  prefs.putString("mqtt_topic", mqtt_topic);
-  prefs.putString("mqtt_user", mqtt_user);
-  prefs.putString("mqtt_pwd", mqtt_pwd);
+    prefs.end();
 
-  prefs.end();
+    httpServer.send(200, "text/plain", "Settings saved. Reboot required.");
+  });
 
-  httpServer.send(200, "text/plain", "Settings saved. Reboot required.");
-});
+  httpServer.on("/saveExtras", HTTP_POST, []() {
+    Preferences prefs;
+    prefs.begin("config", false);
 
-httpServer.on("/saveExtras", HTTP_POST, []() {
-  Preferences prefs;
-  prefs.begin("config", false);
+bool bat_standby = (httpServer.arg("bat_standby") == "on");
+prefs.putBool("bat_standby", bat_standby);
+Config.bat_standby = bat_standby;
 
-#if BATTERY_STANDBY == 1
-  String bat_slp_thr = httpServer.arg("bat_slp_thr");
-  String bat_wke_thr = httpServer.arg("bat_wke_thr");
-  
-  if (!bat_slp_thr.isEmpty()) {
-    Config.bat_slp_thr = bat_slp_thr;
-    prefs.putString(ConfigFiles.bat_slp_thr, bat_slp_thr);
-    Log.print(F("Battery Sleep Threshold updated: "));
-    Log.println(bat_slp_thr);
-  }
-  
-  if (!bat_wke_thr.isEmpty()) {
-    Config.bat_wke_thr = bat_wke_thr;
-    prefs.putString(ConfigFiles.bat_wke_thr, bat_wke_thr);
-    Log.print(F("Battery Wake Threshold updated: "));
-    Log.println(bat_wke_thr);
-  }
-#endif
-
-#if ACCHARGE_CONTROL == 1
-  String ac_max_pow = httpServer.arg("ac_max_pow");
-  String ac_off_set = httpServer.arg("ac_off_set");
-  
-  if (!ac_max_pow.isEmpty()) {
-    Config.ac_max_pow = ac_max_pow;
-    prefs.putString(ConfigFiles.ac_max_pow, ac_max_pow);
-    Log.print(F("AC Max Power updated: "));
-    Log.println(ac_max_pow);
-  }
-  
-  if (!ac_off_set.isEmpty()) {
-    Config.ac_off_set = ac_off_set;
-    prefs.putString(ConfigFiles.ac_off_set, ac_off_set);
-    Log.print(F("AC Offset updated: "));
-    Log.println(ac_off_set);
-  }
-#endif
-
-  prefs.end();
-
-  httpServer.send(200, "text/plain", "Extra settings saved.");
-});
-
-httpServer.on("/getExtras", HTTP_GET, []() {
-  DynamicJsonDocument doc(512);
+Log.print(F("Battery Standby: "));
+Log.println(bat_standby ? F("ON") : F("OFF"));
 
 #if BATTERY_STANDBY == 1
-  doc["bat_slp_thr"] = Config.bat_slp_thr;
-  doc["bat_wke_thr"] = Config.bat_wke_thr;
+    String bat_slp_thr = httpServer.arg("bat_slp_thr");
+    String bat_wke_thr = httpServer.arg("bat_wke_thr");
+
+    if (!bat_slp_thr.isEmpty()) {
+      Config.bat_slp_thr = bat_slp_thr;
+      prefs.putString("bat_slp_thr", bat_slp_thr);
+      Log.print(F("Battery Sleep Threshold updated: "));
+      Log.println(bat_slp_thr);
+    }
+
+    if (!bat_wke_thr.isEmpty()) {
+      Config.bat_wke_thr = bat_wke_thr;
+      prefs.putString("bat_wke_thr", bat_wke_thr);
+      Log.print(F("Battery Wake Threshold updated: "));
+      Log.println(bat_wke_thr);
+    }
 #endif
+
+bool accharge = (httpServer.arg("accharge") == "on");
+prefs.putBool("accharge", accharge);
+Config.accharge = accharge;
+
+Log.print(F("AC Charging: "));
+Log.println(accharge ? F("ON") : F("OFF"));
 
 #if ACCHARGE_CONTROL == 1
-  doc["ac_max_pow"] = Config.ac_max_pow;
-  doc["ac_off_set"] = Config.ac_off_set;
+    String ac_max_pow = httpServer.arg("ac_max_pow");
+    String ac_off_set = httpServer.arg("ac_off_set");
+
+    if (!ac_max_pow.isEmpty()) {
+      Config.ac_max_pow = ac_max_pow;
+      prefs.putString("ac_max_pow", ac_max_pow);
+      Log.print(F("AC Max Power updated: "));
+      Log.println(ac_max_pow);
+    }
+
+    if (!ac_off_set.isEmpty()) {
+      Config.ac_off_set = ac_off_set;
+      prefs.putString("ac_off_set", ac_off_set);
+      Log.print(F("AC Offset updated: "));
+      Log.println(ac_off_set);
+    }
 #endif
 
-  sendJson(doc);
+    prefs.end();
+    httpServer.send(200, "text/plain", "Extra settings saved.");
+  });
+
+  httpServer.on("/getExtras", HTTP_GET, []() {
+    Preferences prefs;
+    prefs.begin("config", true);
+
+    DynamicJsonDocument doc(512);
+
+    //
+    // Battery Standby (bool)
+    //
+    bool bat_standby = prefs.getBool("bat_standby", Config.bat_standby);
+    doc["bat_standby"] = bat_standby;
+
+#if BATTERY_STANDBY == 1
+    doc["bat_slp_thr"] = prefs.getString("bat_slp_thr", Config.bat_slp_thr);
+    doc["bat_wke_thr"] = prefs.getString("bat_wke_thr", Config.bat_wke_thr);
+#endif
+
+    //
+    // AC Charging (bool)
+    //
+    bool accharge = prefs.getBool("accharge", Config.accharge);
+    doc["accharge"] = accharge;
+
+#if ACCHARGE_CONTROL == 1
+    doc["ac_max_pow"] = prefs.getString("ac_max_pow", Config.ac_max_pow);
+    doc["ac_off_set"] = prefs.getString("ac_off_set", Config.ac_off_set);
+#endif
+
+    prefs.end();
+
+    sendJson(doc);
 });
 
   httpServer.begin();
@@ -716,7 +719,7 @@ httpServer.on("/getExtras", HTTP_GET, []() {
 //   Log.println(F(" %"));
 // #endif
 #if defined(ESP32)
-startWdt();
+  startWdt();
 #endif
 }
 
@@ -1066,17 +1069,16 @@ bool writeWithRetry(uint16_t reg, uint16_t value) {
 
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
-
-  uint32_t wake_threshold  = Config.bat_wke_thr.toInt() * 10;
+  uint32_t wake_threshold = Config.bat_wke_thr.toInt() * 10;
   uint32_t sleep_threshold = Config.bat_slp_thr.toInt() * 10;
 
   // Disable discharging
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
       Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) {
-
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 0) {
-
+          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+              .value) {
+    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value !=
+        0) {
       if (writeWithRetry(3036, 0)) {
         Log.println(F("Battery discharging deactivated"));
       } else {
@@ -1087,10 +1089,10 @@ void batteryStandby() {
 
   // Enable discharging
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >=
-           Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5].value) {
-
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value != 100) {
-
+           Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5]
+               .value) {
+    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value !=
+        100) {
       if (writeWithRetry(3036, 100)) {
         Log.println(F("Battery discharging activated"));
       } else {
@@ -1102,7 +1104,7 @@ void batteryStandby() {
   // Battery OFF → wake
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
     if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
-         wake_threshold &&
+            wake_threshold &&
         Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value == 1) {
       if (writeWithRetry(0, 3)) {
         Log.println(F("Battery activated"));
@@ -1114,13 +1116,13 @@ void batteryStandby() {
 
   // Battery ON → sleep
   else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <= sleep_threshold &&
+    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <=
+            sleep_threshold &&
         Inverter._Protocol.InputRegisters[P3000_PPV].value <= sleep_threshold &&
         Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
         Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-            Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value) {
-
+            Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
+                .value) {
       if (writeWithRetry(0, 2)) {
         Log.println(F("Battery deactivated"));
       } else {
@@ -1302,9 +1304,9 @@ void loop() {
 #endif
 
     RefreshTimer = now;
-    #if defined(ESP32)
+#if defined(ESP32)
     esp_task_wdt_reset();
-    #endif
+#endif
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -1332,16 +1334,20 @@ void loop() {
 #endif
 
 #if BATTERY_STANDBY == 1
-  if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
-    batteryStandby();
-    BatteryStandbyTimer = now;
-  }
+if (Config.bat_standby) {
+    if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
+        batteryStandby();
+        BatteryStandbyTimer = now;
+    }
+}
 #endif
 
 #if ACCHARGE_CONTROL == 1
-  if ((now - ACChargeControlTimer) > ACCHARGE_CONTROL_TIMER) {
-    acchargeControl();
-    ACChargeControlTimer = now;
-  }
+if (Config.accharge) {
+    if ((now - ACChargeControlTimer) > ACCHARGE_CONTROL_TIMER) {
+        acchargeControl();
+        ACChargeControlTimer = now;
+    }
+}
 #endif
 }
