@@ -11,7 +11,14 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 #include <LittleFS.h>
-// #define LITTLEFS LittleFS
+// added for Modbus TCP
+#if MODBUS_TCP_SUPPORTED == 1
+#include "ModbusTCP.h"
+#endif
+
+#ifdef ESP32
+#include <esp_task_wdt.h>
+#endif
 
 // #include <time.h>
 //  #d efine LOG_PRINTLN_TS(msg) { \
@@ -68,6 +75,12 @@ WiFiClient espClient;
 #endif
 ShineMqtt shineMqtt(espClient, Inverter);
 #endif
+
+// new
+#if MODBUS_TCP_SUPPORTED == 1
+ModbusTCP modbusTCP(MODBUS_TCP_PORT);
+#endif
+
 
 #ifdef AP_BUTTON_PRESSED
 byte btnPressed = 0;
@@ -423,6 +436,22 @@ void loadSettingsFromPrefs() {
   prefs.end();
 }
 
+//new
+#if MODBUS_TCP_SUPPORTED == 1
+bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
+  return Inverter.ReadHoldingReg(address, value);
+}
+
+bool modbusReadInputRegister(uint16_t address, uint16_t* value) {
+  return Inverter.ReadInputReg(address, value);
+}
+
+bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
+  return Inverter.WriteHoldingReg(address, value);
+}
+#endif
+// new end
+
 void setup() {
   LittleFS.begin();
   httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
@@ -699,6 +728,14 @@ Log.println(accharge ? F("ON") : F("OFF"));
 });
 
   httpServer.begin();
+
+// new
+#if MODBUS_TCP_SUPPORTED == 1
+modbusTCP.readHoldingRegister = modbusReadHoldingRegister;
+modbusTCP.readInputRegister = modbusReadInputRegister;
+modbusTCP.writeHoldingRegister = modbusWriteHoldingRegister;
+modbusTCP.begin();
+#endif
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 #if defined(ESP32)
@@ -1246,6 +1283,14 @@ void loop() {
 #endif
 
   httpServer.handleClient();
+
+// new
+#if MODBUS_TCP_SUPPORTED == 1
+if (modbusTCP.isEnabled()) {
+  modbusTCP.loop();
+}
+#endif
+// 
 
   // Toggle green LED with 1 Hz (alive)
   // ------------------------------------------------------------

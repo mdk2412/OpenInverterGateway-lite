@@ -31,6 +31,7 @@ Implemented Features:
 * TLS support for esp32
 * Debugging via Web and Telnet
 * Power limiting (allows zero export)
+* ModbusTCP support on port 502
 
 Not supported:
 * It does not make use the RTC or SPI Flash of these boards.
