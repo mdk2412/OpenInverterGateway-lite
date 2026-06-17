@@ -416,7 +416,7 @@ void loadSettingsFromPrefs() {
 #endif
 
   //
-  // EXTRAS: Battery Standby
+  // SETTINGS: Battery Standby
   //
 #if BATTERY_STANDBY == 1
   Config.bat_standby = prefs.getBool("bat_standby", false);
@@ -425,7 +425,7 @@ void loadSettingsFromPrefs() {
 #endif
 
   //
-  // EXTRAS: AC Charging
+  // SETTINGS: AC Charging
   //
 #if ACCHARGE_CONTROL == 1
   Config.accharge   = prefs.getBool("accharge", false);
@@ -631,10 +631,10 @@ void setup() {
 
     prefs.end();
 
-    httpServer.send(200, "text/plain", "Settings saved. Reboot required.");
+    httpServer.send(200, "text/plain", "Settings saved");
   });
 
-  httpServer.on("/saveExtras", HTTP_POST, []() {
+  httpServer.on("/saveSettings", HTTP_POST, []() {
     Preferences prefs;
     prefs.begin("config", false);
 
@@ -691,10 +691,10 @@ Log.println(accharge ? F("ON") : F("OFF"));
 #endif
 
     prefs.end();
-    httpServer.send(200, "text/plain", "Extra settings saved.");
+    httpServer.send(200, "text/plain", "Settings saved");
   });
 
-  httpServer.on("/getExtras", HTTP_GET, []() {
+  httpServer.on("/getSettings", HTTP_GET, []() {
     Preferences prefs;
     prefs.begin("config", true);
 

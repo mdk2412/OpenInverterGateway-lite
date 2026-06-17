@@ -39,8 +39,8 @@ const char MAIN_page[] PROGMEM = R"=====(
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary outline tab" data-tab="extras">
-            Extras
+          <a href="#" role="button" class="secondary outline tab" data-tab="settings">
+            Settings
           </a>
         </li>
       </ul>
@@ -168,10 +168,10 @@ const char MAIN_page[] PROGMEM = R"=====(
       </fieldset>
     </section>
 
-    <!-- Extras -->
+    <!-- Settings -->
 
-    <section id="extras" class="tab-content" hidden>
-      <form id="extrasForm">
+    <section id="settings" class="tab-content" hidden>
+      <form id="settingsForm">
         <fieldset>
           <hr>
           <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
@@ -196,15 +196,15 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           <fieldset>
             <div class="grid">
-              <button type="button" class="contrast" onclick="saveExtras()">Save Extras</button>
-              <span id="extrasStatus" class="secondary"></span>
+              <button type="button" class="contrast" onclick="saveSettings()">Save Settings</button>
+              <span id="settingsStatus" class="secondary"></span>
             </div>
           </fieldset>
 
         </fieldset>
       </form>
 
-      <div id="extrasStatus"></div>
+      <div id="settingsStatus"></div>
     </section>
 
     <!-- JAVASCRIPT -->
@@ -359,10 +359,10 @@ const char MAIN_page[] PROGMEM = R"=====(
         }
       }
 
-      // EXTRAS SETTINGS LOGIC
-      async function loadExtras() {
+      // SETTINGS LOGIC
+      async function loadSettings() {
         try {
-          const response = await fetch("/getExtras");
+          const response = await fetch("/getSettings");
           if (!response.ok) {
             console.error("HTTP error:", response.status);
             return;
@@ -381,13 +381,13 @@ const char MAIN_page[] PROGMEM = R"=====(
           if (data.ac_off_set) document.getElementById("ac_off_set").value = data.ac_off_set;
 
         } catch (e) {
-          console.error("Error loading extras:", e);
+          console.error("Error loading settings:", e);
         }
       }
 
-      async function saveExtras() {
-        const form = document.getElementById("extrasForm");
-        const btn = document.querySelector('button[onclick="saveExtras()"]');
+      async function saveSettings() {
+        const form = document.getElementById("settingsForm");
+        const btn = document.querySelector('button[onclick="saveSettings()"]');
 
         const payload = new URLSearchParams();
 
@@ -416,7 +416,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         const oldClass = btn.className;
 
         try {
-          const response = await fetch("/saveExtras", {
+          const response = await fetch("/saveSettings", {
             method: "POST",
             body: payload
           });
@@ -445,8 +445,8 @@ const char MAIN_page[] PROGMEM = R"=====(
         }
       }
 
-      // Load extras when page loads
-      loadExtras();
+      // Load settings when page loads
+      loadSettings();
 
     </script>
 
