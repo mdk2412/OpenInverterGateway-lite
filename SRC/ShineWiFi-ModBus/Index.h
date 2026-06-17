@@ -197,14 +197,12 @@ const char MAIN_page[] PROGMEM = R"=====(
           <fieldset>
             <div class="grid">
               <button type="button" class="contrast" onclick="saveSettings()">Save Settings</button>
-              <span id="settingsStatus" class="secondary"></span>
             </div>
           </fieldset>
 
         </fieldset>
       </form>
 
-      <div id="settingsStatus"></div>
     </section>
 
     <!-- JAVASCRIPT -->
@@ -291,7 +289,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         return document.querySelector(`input[name="${name}"]:checked`)?.value;
       }
 
-      function updateUI() {
+      function updateDashboard() {
         const width = getSelected("width");   // 16b / 32b
         const type = getSelected("type");    // I / H
 
@@ -304,12 +302,12 @@ const char MAIN_page[] PROGMEM = R"=====(
         valueInput.readOnly = disableWrite;
       }
 
-      // Initiales UI-Update
-      updateUI();
+      // Initiales Dashboard-Update
+      updateDashboard();
 
       // Event Listener für Radio Buttons
       document.querySelectorAll('input[name="width"], input[name="type"]').forEach(r =>
-        r.addEventListener("change", updateUI)
+        r.addEventListener("change", updateDashboard)
       );
 
       // SUBMIT OPERATION
