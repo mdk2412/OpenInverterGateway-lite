@@ -37,7 +37,7 @@ void ModbusTCP::loop() {
 
   // Check for new client
   if (!client || !client.connected()) {
-    client = server->available();
+    client = server->accept();
     if (!client) return;
   }
 
@@ -58,9 +58,7 @@ void ModbusTCP::loop() {
 
 void ModbusTCP::processRequest() {
   // Parse MBAP header
-  uint16_t transactionId = (requestBuffer[0] << 8) | requestBuffer[1];
   uint16_t protocolId = (requestBuffer[2] << 8) | requestBuffer[3];
-  uint16_t length = (requestBuffer[4] << 8) | requestBuffer[5];
   uint8_t unitId = requestBuffer[6];
   uint8_t functionCode = requestBuffer[7];
 
@@ -95,7 +93,6 @@ void ModbusTCP::processRequest() {
     uint8_t byteCount = quantity * 2;
     responseBuffer[8] = byteCount;
 
-    bool success = true;
     for (uint16_t i = 0; i < quantity; i++) {
       uint16_t value = 0;
       bool result = false;
