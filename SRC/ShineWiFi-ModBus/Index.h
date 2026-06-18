@@ -295,11 +295,11 @@ const char MAIN_page[] PROGMEM = R"=====(
 
         const disableWrite = (width === "32b" || type === "I");
 
-        // PicoCSS: disabled = automatisch ausgegraut
+        // Write-Button deaktivieren (PicoCSS graut automatisch aus)
         writeButton.disabled = disableWrite;
 
-        // Value-Feld readonly bei Input oder 32-bit
-        valueInput.readOnly = disableWrite;
+        // Value-Feld ebenfalls deaktivieren
+        valueInput.disabled = disableWrite;
       }
 
       // Initiales Dashboard-Update
