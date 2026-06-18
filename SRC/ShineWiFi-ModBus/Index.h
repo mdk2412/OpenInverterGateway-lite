@@ -208,244 +208,205 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- JAVASCRIPT -->
 
     <script>
-      // TAB SWITCHING
-      document.querySelectorAll(".tab").forEach(tab => {
-        tab.addEventListener("click", (e) => {
-          e.preventDefault();
+      document.addEventListener("DOMContentLoaded", () => {
 
-          document.querySelector(".tab.active")?.classList.remove("active");
+        // TAB SWITCHING
+        document.querySelectorAll(".tab").forEach(tab => {
+          tab.addEventListener("click", (e) => {
+            e.preventDefault();
 
-          // neuen Tab aktiv setzen
-          tab.classList.add("active");
+            document.querySelector(".tab.active")?.classList.remove("active");
+            tab.classList.add("active");
 
-          const target = tab.dataset.tab;
+            const target = tab.dataset.tab;
 
-          // Inhalte umschalten
-          document.querySelectorAll(".tab-content").forEach(sec => {
-            sec.hidden = sec.id !== target;
+            document.querySelectorAll(".tab-content").forEach(sec => {
+              sec.hidden = sec.id !== target;
+            });
           });
         });
+
+        // MAIN PAGE AUTO-UPDATE
+        async function loadData() {
+          const dashboard = document.getElementById("main");
+          if (dashboard.hidden) return;
+
+          try {
+            const response = await fetch("/uiStatus");
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            document.getElementById("priorityMode").textContent =
+              data.Priority[0] + " " + data.Priority[1];
+
+            document.getElementById("outputPower").textContent =
+              data.OutputPower[0] + " " + data.OutputPower[1];
+
+            document.getElementById("pv2Power").textContent =
+              data.PV2Power[0] + " " + data.PV2Power[1];
+
+            document.getElementById("pv2Voltage").textContent =
+              data.PV2Voltage[0] + " " + data.PV2Voltage[1];
+
+            document.getElementById("inverterTemperature").textContent =
+              data.InverterTemperature[0] + " " + data.InverterTemperature[1];
+
+            document.getElementById("stateofCharge").textContent =
+              data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
+
+            document.getElementById("batteryCharge").textContent =
+              data.BDCChargePower[0] + " " + data.BDCChargePower[1] +
+              " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
+
+            document.getElementById("batteryDischarge").textContent =
+              data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] +
+              " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
+
+            document.getElementById("batteryTemperature").textContent =
+              data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];
+
+          } catch (e) {
+            console.error("Error fetching data:", e);
+          }
+        }
+
+        loadData();
+        setInterval(loadData, 1000);
+
+        // MODBUS ACCESS LOGIC
+        const valueInput = document.getElementById("modbusVal");
+        const writeButton = document.querySelector("#modbusForm button.contrast");
+
+        function getSelected(name) {
+          return document.querySelector(`input[name="${name}"]:checked`)?.value;
+        }
+
+        function updateDashboard() {
+          const width = getSelected("width");
+          const type = getSelected("type");
+
+          const disableWrite = (width === "32b" || type === "I");
+
+          writeButton.disabled = disableWrite;
+          valueInput.disabled = disableWrite;
+        }
+
+        updateDashboard();
+
+        document.querySelectorAll('input[name="width"], input[name="type"]').forEach(r =>
+          r.addEventListener("change", updateDashboard)
+        );
+
+        async function submitOperation(op) {
+          const form = document.getElementById("modbusForm");
+          const data = new FormData(form);
+
+          const payload = new URLSearchParams();
+          payload.append("operation", op);
+          payload.append("reg", data.get("reg"));
+          payload.append("val", data.get("val"));
+          payload.append("width", data.get("width"));
+          payload.append("type", data.get("type"));
+
+          try {
+            const response = await fetch("/postCommunicationModbus_p", {
+              method: "POST",
+              body: payload
+            });
+
+            const trimmed = (await response.text()).trim();
+
+            let extractedValue = trimmed;
+            const match = trimmed.match(/Value\s+(\d+)/i);
+            if (match) extractedValue = match[1];
+
+            if (op === "R") {
+              valueInput.value = trimmed.toLowerCase().includes("succeeded")
+                ? extractedValue
+                : trimmed;
+              return;
+            }
+
+            if (op === "W") {
+              valueInput.value = trimmed.toLowerCase().includes("succeeded")
+                ? extractedValue
+                : trimmed;
+            }
+
+          } catch (e) {
+            console.error("Error:", e.message);
+          }
+        }
+
+        // SETTINGS LOGIC
+        async function loadSettings() {
+          try {
+            const response = await fetch("/getSettings");
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
+            document.querySelector('input[name="accharge"]').checked = !!data.accharge;
+
+            if (data.bat_slp_thr) document.getElementById("bat_slp_thr").value = data.bat_slp_thr;
+            if (data.bat_wke_thr) document.getElementById("bat_wke_thr").value = data.bat_wke_thr;
+            if (data.ac_max_pow) document.getElementById("ac_max_pow").value = data.ac_max_pow;
+            if (data.ac_off_set) document.getElementById("ac_off_set").value = data.ac_off_set;
+
+          } catch (e) {
+            console.error("Error loading settings:", e);
+          }
+        }
+
+        async function saveSettings() {
+          const form = document.getElementById("settingsForm");
+          const btn = document.querySelector('button[onclick="saveSettings()"]');
+
+          const payload = new URLSearchParams();
+
+          if (form.bat_standby.checked) payload.append("bat_standby", "on");
+          if (form.accharge.checked) payload.append("accharge", "on");
+
+          if (form.bat_slp_thr.value) payload.append("bat_slp_thr", form.bat_slp_thr.value);
+          if (form.bat_wke_thr.value) payload.append("bat_wke_thr", form.bat_wke_thr.value);
+          if (form.ac_max_pow.value) payload.append("ac_max_pow", form.ac_max_pow.value);
+          if (form.ac_off_set.value) payload.append("ac_off_set", form.ac_off_set.value);
+
+          const oldText = btn.textContent;
+          const oldClass = btn.className;
+
+          try {
+            const response = await fetch("/saveSettings", {
+              method: "POST",
+              body: payload
+            });
+
+            const result = await response.text();
+
+            btn.textContent = result;
+            btn.className = "contrast outline";
+
+            setTimeout(() => {
+              btn.textContent = oldText;
+              btn.className = oldClass;
+            }, 2000);
+
+          } catch (e) {
+            btn.textContent = "Error: " + e.message;
+            btn.className = "contrast outline";
+
+            setTimeout(() => {
+              btn.textContent = oldText;
+              btn.className = oldClass;
+            }, 3000);
+          }
+        }
+
+        loadSettings();
+
       });
-
-      // MAIN PAGE AUTO-UPDATE
-      async function loadData() {
-        // Dashboard nur aktualisieren, wenn es sichtbar ist
-        const dashboard = document.getElementById("main");
-        if (dashboard.hidden) return;
-
-        try {
-          const response = await fetch("/uiStatus");
-          if (!response.ok) {
-            console.error("HTTP error:", response.status);
-            return;
-          }
-
-          const data = await response.json();
-
-          // Werte setzen
-          document.getElementById("priorityMode").textContent =
-            data.Priority[0] + " " + data.Priority[1];
-
-          document.getElementById("outputPower").textContent =
-            data.OutputPower[0] + " " + data.OutputPower[1];
-
-          document.getElementById("pv2Power").textContent =
-            data.PV2Power[0] + " " + data.PV2Power[1];
-
-          document.getElementById("pv2Voltage").textContent =
-            data.PV2Voltage[0] + " " + data.PV2Voltage[1];
-
-          document.getElementById("inverterTemperature").textContent =
-            data.InverterTemperature[0] + " " + data.InverterTemperature[1];
-
-          document.getElementById("stateofCharge").textContent =
-            data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
-
-          document.getElementById("batteryCharge").textContent =
-            data.BDCChargePower[0] + " " + data.BDCChargePower[1] +
-            " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
-
-          document.getElementById("batteryDischarge").textContent =
-            data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] +
-            " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
-
-          document.getElementById("batteryTemperature").textContent =
-            data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];
-
-        } catch (e) {
-          console.error("Error fetching data:", e);
-        }
-      }
-
-      loadData();
-      setInterval(loadData, 1000);
-
-      // MODBUS ACCESS LOGIC
-      const valueInput = document.getElementById("modbusVal");
-      const writeButton = document.querySelector("#modbusForm button.contrast");
-
-      // Radio-Helper
-      function getSelected(name) {
-        return document.querySelector(`input[name="${name}"]:checked`)?.value;
-      }
-
-      function updateDashboard() {
-        const width = getSelected("width");   // 16b / 32b
-        const type = getSelected("type");    // I / H
-
-        const disableWrite = (width === "32b" || type === "I");
-
-        // Write-Button deaktivieren (PicoCSS graut automatisch aus)
-        writeButton.disabled = disableWrite;
-
-        // Value-Feld ebenfalls deaktivieren
-        valueInput.disabled = disableWrite;
-      }
-
-      // Initiales Dashboard-Update
-      updateDashboard();
-
-      // Event Listener für Radio Buttons
-      document.querySelectorAll('input[name="width"], input[name="type"]').forEach(r =>
-        r.addEventListener("change", updateDashboard)
-      );
-
-      // SUBMIT OPERATION
-
-      async function submitOperation(op) {
-        const form = document.getElementById("modbusForm");
-        const data = new FormData(form);
-
-        const payload = new URLSearchParams();
-        payload.append("operation", op);
-        payload.append("reg", data.get("reg"));
-        payload.append("val", data.get("val"));
-        payload.append("width", data.get("width"));
-        payload.append("type", data.get("type"));
-
-        try {
-          const response = await fetch("/postCommunicationModbus_p", {
-            method: "POST",
-            body: payload
-          });
-
-          const trimmed = (await response.text()).trim();
-
-          let extractedValue = trimmed;
-          const match = trimmed.match(/Value\s+(\d+)/i);
-          if (match) extractedValue = match[1];
-
-          if (op === "R") {
-            if (trimmed.toLowerCase().includes("succeeded")) {
-              valueInput.value = extractedValue;
-            } else {
-              valueInput.value = trimmed;
-            }
-            return;
-          }
-
-          if (op === "W") {
-            if (trimmed.toLowerCase().includes("succeeded")) {
-              valueInput.value = extractedValue;
-            } else {
-              valueInput.value = trimmed;
-            }
-          }
-
-        } catch (e) {
-          console.error("Error:", e.message);
-        }
-      }
-
-      // SETTINGS LOGIC
-      async function loadSettings() {
-        try {
-          const response = await fetch("/getSettings");
-          if (!response.ok) {
-            console.error("HTTP error:", response.status);
-            return;
-          }
-
-          const data = await response.json();
-
-          // BOOLS setzen
-          document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
-          document.querySelector('input[name="accharge"]').checked = !!data.accharge;
-
-          // NUMERISCHE FELDER setzen
-          if (data.bat_slp_thr) document.getElementById("bat_slp_thr").value = data.bat_slp_thr;
-          if (data.bat_wke_thr) document.getElementById("bat_wke_thr").value = data.bat_wke_thr;
-          if (data.ac_max_pow) document.getElementById("ac_max_pow").value = data.ac_max_pow;
-          if (data.ac_off_set) document.getElementById("ac_off_set").value = data.ac_off_set;
-
-        } catch (e) {
-          console.error("Error loading settings:", e);
-        }
-      }
-
-      async function saveSettings() {
-        const form = document.getElementById("settingsForm");
-        const btn = document.querySelector('button[onclick="saveSettings()"]');
-
-        const payload = new URLSearchParams();
-
-        // BOOL-WERTE
-        if (form.bat_standby.checked)
-          payload.append("bat_standby", "on");
-
-        if (form.accharge.checked)
-          payload.append("accharge", "on");
-
-        // NUMERISCHE WERTE
-        if (form.bat_slp_thr.value)
-          payload.append("bat_slp_thr", form.bat_slp_thr.value);
-
-        if (form.bat_wke_thr.value)
-          payload.append("bat_wke_thr", form.bat_wke_thr.value);
-
-        if (form.ac_max_pow.value)
-          payload.append("ac_max_pow", form.ac_max_pow.value);
-
-        if (form.ac_off_set.value)
-          payload.append("ac_off_set", form.ac_off_set.value);
-
-        // Original Button-Zustand sichern
-        const oldText = btn.textContent;
-        const oldClass = btn.className;
-
-        try {
-          const response = await fetch("/saveSettings", {
-            method: "POST",
-            body: payload
-          });
-
-          const result = await response.text();
-
-          // ✔ Button zeigt Erfolg + wird "contrast outline"
-          btn.textContent = result;
-          btn.className = "contrast outline";
-
-          setTimeout(() => {
-            btn.textContent = oldText;
-            btn.className = oldClass;
-          }, 2000);
-
-        } catch (e) {
-
-          // ✔ Button zeigt Fehler + wird "contrast outline"
-          btn.textContent = "Error: " + e.message;
-          btn.className = "contrast outline";
-
-          setTimeout(() => {
-            btn.textContent = oldText;
-            btn.className = oldClass;
-          }, 3000);
-        }
-      }
-
-      // Load settings when page loads
-      loadSettings();
-
     </script>
 
   </main>
