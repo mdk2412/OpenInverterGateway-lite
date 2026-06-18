@@ -1,5 +1,6 @@
 // new
 #include "ModbusTCP.h"
+#include <TLog.h>
 
 ModbusTCP::ModbusTCP(uint16_t serverPort)
 : port(serverPort), enabled(false) {
@@ -16,8 +17,8 @@ void ModbusTCP::begin() {
   }
   server->begin();
   enabled = true;
-  Serial.print(F("Modbus TCP server started on port "));
-  Serial.println(port);
+  Log.print(F("Modbus TCP server started on port "));
+  Log.println(port);
 }
 
 void ModbusTCP::stop() {
