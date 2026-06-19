@@ -1,24 +1,21 @@
 #include "ShineWifi.h"
 
 bool ShineWifiDisconnect() {
-#if defined(ESP8266)
-  if ((WiFi.getMode() & WIFI_STA) != 0) {
-    bool ret;
-#ifdef WM_DEBUG_LEVEL
-    Log.print(F("WiFi station disconnected"));
-#endif
-    ETS_UART_INTR_DISABLE();  // @todo possibly not needed
-    ret = wifi_station_disconnect();
-    WiFi.mode(WIFI_OFF);
-    ETS_UART_INTR_ENABLE();
-    return ret;
-  }
-#elif defined(ESP32)
+#if defined(ESP8266) || defined(ESP32)
+
 #ifdef WM_DEBUG_LEVEL
   Log.print(F("WiFi station disconnected"));
 #endif
+
+  // Verbindung sauber trennen
+  bool ret = WiFi.disconnect(true);   // true = persistent (ESP8266), ignoriert auf ESP32
+
+  // WLAN komplett ausschalten
   WiFi.mode(WIFI_OFF);
-  return WiFi.disconnect();  // not persistent atm
-#endif
+
+  return ret;
+
+#else
   return false;
+#endif
 }
