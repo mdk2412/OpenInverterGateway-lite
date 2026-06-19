@@ -36,7 +36,7 @@ typedef enum {
 typedef enum {
   NONE,
   POWER_W,
-  POWER_KWH,
+  ENERGY_KWH,
   VOLTAGE,
   CURRENT,
   SECONDS,

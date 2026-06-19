@@ -168,11 +168,11 @@ void init_growatt120(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       52, 0, SIZE_16BIT, F("GridTRVoltage"), 0.1, 0.1, VOLTAGE, false, false};
   // 53. Eac today H Today generate energy (high) 0.1kWH
   Protocol.InputRegisters[P120_ENERGY_TODAY] = sGrowattModbusReg_t{
-      53, 0, SIZE_32BIT, F("EnergyToday"), 0.1, 0.1, POWER_KWH, true, false};
+      53, 0, SIZE_32BIT, F("EnergyToday"), 0.1, 0.1, ENERGY_KWH, true, false};
   // 54. Eac today L Today generate energy (low) 0.1kWH
   // 55. Eac total H Total generate energy (high) 0.1kWH
   Protocol.InputRegisters[P120_ENERGY_TOTAL] = sGrowattModbusReg_t{
-      55, 0, SIZE_32BIT, F("EnergyTotal"), 0.1, 0.1, POWER_KWH, true, false};
+      55, 0, SIZE_32BIT, F("EnergyTotal"), 0.1, 0.1, ENERGY_KWH, true, false};
   // 56. Eac total L Total generate energy (low) 0.1kWH
   // 57. Time total H Work time total (high) 0.5s
   Protocol.InputRegisters[P120_WORK_TIME_TOTAL] = sGrowattModbusReg_t{
@@ -181,86 +181,86 @@ void init_growatt120(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   // 59. Epv1_today H PV1 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV1_ENERGY_TODAY] = sGrowattModbusReg_t{
       59,        0,     SIZE_32BIT, F("PV1EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 60. Epv1_today L PV1 Energy today (low) 0.1kWh
   // 61. Epv1_total H PV1 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV1_ENERGY_TOTAL] = sGrowattModbusReg_t{
       61,        0,     SIZE_32BIT, F("PV1EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 62. Epv1_total L PV1 Energy total (low) 0.1kWh
   // 63. Epv2_today H PV2 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV2_ENERGY_TODAY] = sGrowattModbusReg_t{
       63,        0,     SIZE_32BIT, F("PV2EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 64. Epv2_today L PV2 Energy today (low) 0.1kWh
   // 65. Epv2_total H PV2 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV2_ENERGY_TOTAL] = sGrowattModbusReg_t{
       65,        0,     SIZE_32BIT, F("PV2EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 66. Epv2_total L PV2 Energy total (low) 0.1kWh
   // 67. Epv3_today H PV3 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV3_ENERGY_TODAY] = sGrowattModbusReg_t{
       67,        0,     SIZE_32BIT, F("PV3EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 68. Epv3_today L PV3 Energy today (low) 0.1kWh
   // 69. Epv3_total H PV3 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV3_ENERGY_TOTAL] = sGrowattModbusReg_t{
       69,        0,     SIZE_32BIT, F("PV3EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 70. Epv3_total L PV3 Energy total (low) 0.1kWh
   // 71. Epv4_today H PV4 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV4_ENERGY_TODAY] = sGrowattModbusReg_t{
       71,        0,     SIZE_32BIT, F("PV4EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 72. Epv4_today L PV4 Energy today (low) 0.1kWh
   // 73. Epv4_total H PV4 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV4_ENERGY_TOTAL] = sGrowattModbusReg_t{
       73,        0,     SIZE_32BIT, F("PV4EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 74. Epv4_total L PV4 Energy total (low) 0.1kWh
   // 75. Epv5_today H PV5 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV5_ENERGY_TODAY] = sGrowattModbusReg_t{
       75,        0,     SIZE_32BIT, F("PV5EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 76. Epv5_today L PV5 Energy today (low) 0.1kWh
   // 77. Epv5_total H PV5 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV5_ENERGY_TOTAL] = sGrowattModbusReg_t{
       77,        0,     SIZE_32BIT, F("PV5EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 78. Epv5_total L PV5 Energy total (low) 0.1kWh
   // 79. Epv6_today H PV6 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV6_ENERGY_TODAY] = sGrowattModbusReg_t{
       79,        0,     SIZE_32BIT, F("PV6EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 80. Epv6_today L PV6Energy today (low) 0.1kWh
   // 81. Epv6_total H PV6 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV6_ENERGY_TOTAL] = sGrowattModbusReg_t{
       81,        0,     SIZE_32BIT, F("PV6EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 82. Epv6_total L PV6 Energy total (low) 0.1kWh
   // 83. Epv7_today H PV7 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV7_ENERGY_TODAY] = sGrowattModbusReg_t{
       83,        0,     SIZE_32BIT, F("PV7EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 84. Epv7_today L PV7 Energy today (low) 0.1kWh
   // 85. Epv7_total H PV7 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV7_ENERGY_TOTAL] = sGrowattModbusReg_t{
       85,        0,     SIZE_32BIT, F("PV7EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 86. Epv7_total L PV7 Energy total (low) 0.1kWh
   // 87. Epv8_today H PV8 Energy today (high) 0.1kWh
   Protocol.InputRegisters[P120_PV8_ENERGY_TODAY] = sGrowattModbusReg_t{
       87,        0,     SIZE_32BIT, F("PV8EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 88. Epv8_today L PV8Energy today (low) 0.1kWh
   // 89. Epv8_total H PV8 Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV8_ENERGY_TOTAL] = sGrowattModbusReg_t{
       89,        0,     SIZE_32BIT, F("PV8EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};
+      ENERGY_KWH, false, false};
   // 90. Epv8_total L PV8 Energy total (low) 0.1kWh
   // 91. Epv_total H PV Energy total (high) 0.1kWh
   Protocol.InputRegisters[P120_PV_ENERGY_TOTAL] = sGrowattModbusReg_t{
-      91, 0, SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1, POWER_KWH, true, false};
+      91, 0, SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1, ENERGY_KWH, true, false};
   // 92. Epv_total L PV Energy total (low) 0.1kWh
   // 93. Temp1 Inverter temperature 0.1C
   Protocol.InputRegisters[P120_INVERTER_TEMPERATURE] = sGrowattModbusReg_t{

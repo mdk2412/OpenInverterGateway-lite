@@ -29,10 +29,10 @@ void init_growatt305(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       16, 0, SIZE_32BIT, F("AcPower"), 0.1, 0.1, POWER_W, true, true};  // #8
   Protocol.InputRegisters[P305_ENERGY_TODAY] = sGrowattModbusReg_t{
       26,        0,    SIZE_32BIT, F("EnergyToday"), 0.1, 0.1,
-      POWER_KWH, true, false};  // #9
+      ENERGY_KWH, true, false};  // #9
   Protocol.InputRegisters[P305_ENERGY_TOTAL] = sGrowattModbusReg_t{
       28,        0,    SIZE_32BIT, F("EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, true, false};  // #10
+      ENERGY_KWH, true, false};  // #10
   Protocol.InputRegisters[P305_OPERATING_TIME] =
       sGrowattModbusReg_t{30,      0,    SIZE_32BIT, F("OperatingTime"), 0.5, 1,
                           SECONDS, true, false};  // #11

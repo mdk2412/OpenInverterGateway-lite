@@ -75,29 +75,29 @@ void init_growattBP(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   // statistics
   Protocol.InputRegisters[BP_EAC_TODAY] = sGrowattModbusReg_t{
       53,        0,    SIZE_32BIT, F("TodayGenerateEnergy"), 0.1, 0.1,
-      POWER_KWH, true, false};  // #20
+      ENERGY_KWH, true, false};  // #20
   Protocol.InputRegisters[BP_EAC_TOTAL] = sGrowattModbusReg_t{
       55,        0,    SIZE_32BIT, F("TotalGenerateEnergy"), 0.1, 0.1,
-      POWER_KWH, true, false};  // #21
+      ENERGY_KWH, true, false};  // #21
   Protocol.InputRegisters[BP_TIME_TOTAL] = sGrowattModbusReg_t{
       57,      0,     SIZE_32BIT, F("TWorkTimeTotal"), 0.5, 1,
       SECONDS, false, false};  // #22
 
   Protocol.InputRegisters[BP_EPV1_TODAY] = sGrowattModbusReg_t{
       59,        0,     SIZE_32BIT, F("PV1EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};  // #23
+      ENERGY_KWH, false, false};  // #23
   Protocol.InputRegisters[BP_EPV1_TOTAL] = sGrowattModbusReg_t{
       61,        0,     SIZE_32BIT, F("PV1EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};  // #24
+      ENERGY_KWH, false, false};  // #24
   Protocol.InputRegisters[BP_EPV2_TODAY] = sGrowattModbusReg_t{
       63,        0,     SIZE_32BIT, F("PV2EnergyToday"), 0.1, 0.1,
-      POWER_KWH, false, false};  // #25
+      ENERGY_KWH, false, false};  // #25
   Protocol.InputRegisters[BP_EPV2_TOTAL] = sGrowattModbusReg_t{
       65,        0,     SIZE_32BIT, F("PV2EnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};  // #26
+      ENERGY_KWH, false, false};  // #26
   Protocol.InputRegisters[BP_EPV_TOTAL] = sGrowattModbusReg_t{
       91,        0,     SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1,
-      POWER_KWH, false, false};  // #27
+      ENERGY_KWH, false, false};  // #27
 
   // temperature
   Protocol.InputRegisters[BP_TEMP1] = sGrowattModbusReg_t{

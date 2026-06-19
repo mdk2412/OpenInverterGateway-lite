@@ -259,38 +259,38 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.InputRegisters[P3000_TIME_TOTAL] = sGrowattModbusReg_t{
       3047, 0, SIZE_32BIT, F("WorkTimeTotal"), 0.5, 1, SECONDS, false};
   Protocol.InputRegisters[P3000_EAC_TODAY] = sGrowattModbusReg_t{
-      3049, 0, SIZE_32BIT, F("TodayGenerateEnergy"), 0.1, 0.1, POWER_KWH, false};
+      3049, 0, SIZE_32BIT, F("TodayGenerateEnergy"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EAC_TOTAL] = sGrowattModbusReg_t{
-      3051, 0, SIZE_32BIT, F("TotalGenerateEnergy"), 0.1, 0.1, POWER_KWH, false};
+      3051, 0, SIZE_32BIT, F("TotalGenerateEnergy"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV_TOTAL] = sGrowattModbusReg_t{
-      3053, 0, SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1, POWER_KWH, false};
+      3053, 0, SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV1_TODAY] = sGrowattModbusReg_t{
-      3055, 0, SIZE_32BIT, F("PV1EnergyToday"), 0.1, 0.1, POWER_KWH, false};
+      3055, 0, SIZE_32BIT, F("PV1EnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV1_TOTAL] = sGrowattModbusReg_t{
-      3057, 0, SIZE_32BIT, F("PV1EnergyTotal"), 0.1, 0.1, POWER_KWH, false};
+      3057, 0, SIZE_32BIT, F("PV1EnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV2_TODAY] = sGrowattModbusReg_t{
-      3059, 0, SIZE_32BIT, F("PV2EnergyToday"), 0.1, 0.1, POWER_KWH, false};
+      3059, 0, SIZE_32BIT, F("PV2EnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV2_TOTAL] = sGrowattModbusReg_t{
-      3061, 0, SIZE_32BIT, F("PV2EnergyTotal"), 0.1, 0.1, POWER_KWH, false};
+      3061, 0, SIZE_32BIT, F("PV2EnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   // FRAGMENT 1: END
 
   // FRAGMENT 2: BEGIN
   Protocol.InputRegisters[P3000_ETOUSER_TODAY] = sGrowattModbusReg_t{
-      3067, 0, SIZE_32BIT, F("TodayEnergyToUser"), 0.1, 0.1, POWER_KWH, false};
+      3067, 0, SIZE_32BIT, F("TodayEnergyToUser"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ETOUSER_TOTAL] = sGrowattModbusReg_t{
-      3069, 0, SIZE_32BIT, F("TotalEnergyToUser"), 0.1, 0.1, POWER_KWH, false};
+      3069, 0, SIZE_32BIT, F("TotalEnergyToUser"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ETOGRID_TODAY] = sGrowattModbusReg_t{
-      3071, 0, SIZE_32BIT, F("TodayEnergyToGrid"), 0.1, 0.1, POWER_KWH, false};
+      3071, 0, SIZE_32BIT, F("TodayEnergyToGrid"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ETOGRID_TOTAL] = sGrowattModbusReg_t{
-      3073, 0, SIZE_32BIT, F("TotalEnergyToGrid"), 0.1, 0.1, POWER_KWH, false};
+      3073, 0, SIZE_32BIT, F("TotalEnergyToGrid"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ELOAD_TODAY] =
       sGrowattModbusReg_t{3075, 0,   SIZE_32BIT, F("TodayEnergyOfUserLoad"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_ELOAD_TOTAL] =
       sGrowattModbusReg_t{3077, 0,   SIZE_32BIT, F("TotalEnergyOfUserLoad"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_EPV_TODAY] = sGrowattModbusReg_t{
-      3083, 0, SIZE_32BIT, F("PVEnergyToday"), 0.1, 0.1, POWER_KWH, false};
+      3083, 0, SIZE_32BIT, F("PVEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_DERATING_MODE] =
       sGrowattModbusReg_t{3086, 0, SIZE_16BIT, F("DeratingMode"),
                           1,    1, NONE,       false};  // TODO: decode
@@ -345,32 +345,32 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.InputRegisters[P3000_PSELF] = sGrowattModbusReg_t{
       3121, 0, SIZE_32BIT, F("SelfUsePower"), 0.1, 0.1, POWER_W, false};
   Protocol.InputRegisters[P3000_ESYS_TODAY] = sGrowattModbusReg_t{
-      3123, 0, SIZE_32BIT, F("SystemEnergyToday"), 0.1, 0.1, POWER_KWH, false};
+      3123, 0, SIZE_32BIT, F("SystemEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   // FRAGMENT 2: END
 
   // FRAGMENT 3: BEGIN
   Protocol.InputRegisters[P3000_EDISCHR_TODAY] =
       sGrowattModbusReg_t{3125, 0,   SIZE_32BIT, F("DischargeEnergyToday"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_EDISCHR_TOTAL] =
       sGrowattModbusReg_t{3127, 0,   SIZE_32BIT, F("DischargeEnergyTotal"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_ECHR_TODAY] = sGrowattModbusReg_t{
-      3129, 0, SIZE_32BIT, F("ChargeEnergyToday"), 0.1, 0.1, POWER_KWH, false};
+      3129, 0, SIZE_32BIT, F("ChargeEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ECHR_TOTAL] = sGrowattModbusReg_t{
-      3131, 0, SIZE_32BIT, F("ChargeEnergyTotal"), 0.1, 0.1, POWER_KWH, false};
+      3131, 0, SIZE_32BIT, F("ChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EACCHR_TODAY] = sGrowattModbusReg_t{
-      3133, 0, SIZE_32BIT, F("ACChargeEnergyToday"), 0.1, 0.1, POWER_KWH, false};
+      3133, 0, SIZE_32BIT, F("ACChargeEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EACCHR_TOTAL] = sGrowattModbusReg_t{
-      3135, 0, SIZE_32BIT, F("ACChargeEnergyTotal"), 0.1, 0.1, POWER_KWH, false};
+      3135, 0, SIZE_32BIT, F("ACChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ESYS_TOTAL] = sGrowattModbusReg_t{
-      3137, 0, SIZE_32BIT, F("SystemEnergyTotal"), 0.1, 0.1, POWER_KWH, false};
+      3137, 0, SIZE_32BIT, F("SystemEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ESELF_TODAY] =
       sGrowattModbusReg_t{3139, 0,   SIZE_32BIT, F("SelfOutputEnergyToday"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_ESELF_TOTAL] =
       sGrowattModbusReg_t{3141, 0,   SIZE_32BIT, F("SelfOutputEnergyTotal"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_PRIORITY] =
       sGrowattModbusReg_t{3144, 0, SIZE_16BIT, F("Priority"), 1, 1, NONE, true};
   Protocol.InputRegisters[P3000_BDC_DERATINGMODE] = sGrowattModbusReg_t{
@@ -407,10 +407,10 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3180, 0, SIZE_32BIT, F("BDCChargePower"), 0.1, 0.1, POWER_W, true};
   Protocol.InputRegisters[P3000_BDC_EDISCHR_TOTAL] =
       sGrowattModbusReg_t{3182, 0,   SIZE_32BIT, F("BDCDischargeEnergyTotal"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   Protocol.InputRegisters[P3000_BDC_ECHR_TOTAL] =
       sGrowattModbusReg_t{3184, 0,   SIZE_32BIT, F("BDCChargeEnergyTotal"),
-                          0.1,  0.1, POWER_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH,  false};
   // FRAGMENT 3: END
 
   Protocol.InputReadFragments[Protocol.InputFragmentCount++] =
