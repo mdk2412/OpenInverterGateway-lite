@@ -298,46 +298,44 @@ const char MAIN_page[] PROGMEM = R"=====(
           r.addEventListener("change", updateDashboard)
         );
 
-        async function submitOperation(op) {
-          const form = document.getElementById("modbusForm");
-          const data = new FormData(form);
+        window.submitOperation = async function(op) {
+  const form = document.getElementById("modbusForm");
+  const data = new FormData(form);
+  const valueInput = document.getElementById("modbusVal");
 
-          const payload = new URLSearchParams();
-          payload.append("operation", op);
-          payload.append("reg", data.get("reg"));
-          payload.append("val", data.get("val"));
-          payload.append("width", data.get("width"));
-          payload.append("type", data.get("type"));
+  const payload = new URLSearchParams();
+  payload.append("operation", op);
+  payload.append("reg", data.get("reg"));
+  payload.append("val", data.get("val"));
+  payload.append("width", data.get("width"));
+  payload.append("type", data.get("type"));
 
-          try {
-            const response = await fetch("/postCommunicationModbus_p", {
-              method: "POST",
-              body: payload
-            });
+  try {
+    const response = await fetch("/postCommunicationModbus_p", {
+      method: "POST",
+      body: payload
+    });
 
-            const trimmed = (await response.text()).trim();
+    const trimmed = (await response.text()).trim();
+    console.log("RAW RESPONSE:", trimmed);
 
-            let extractedValue = trimmed;
-            const match = trimmed.match(/Value\s+(\d+)/i);
-            if (match) extractedValue = match[1];
+    let extractedValue = trimmed;
+    const match = trimmed.match(/(\d+)/);
+    if (match) extractedValue = match[1];
 
-            if (op === "R") {
-              valueInput.value = trimmed.toLowerCase().includes("succeeded")
-                ? extractedValue
-                : trimmed;
-              return;
-            }
+    if (op === "R") {
+      valueInput.value = extractedValue;
+      return;
+    }
 
-            if (op === "W") {
-              valueInput.value = trimmed.toLowerCase().includes("succeeded")
-                ? extractedValue
-                : trimmed;
-            }
+    if (op === "W") {
+      valueInput.value = trimmed;
+    }
 
-          } catch (e) {
-            console.error("Error:", e.message);
-          }
-        }
+  } catch (e) {
+    console.error("Error:", e);
+  }
+};
 
         // SETTINGS LOGIC
         async function loadSettings() {
@@ -360,7 +358,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           }
         }
 
-        async function saveSettings() {
+        window.saveSettings = async function() {
           const form = document.getElementById("settingsForm");
           const btn = document.querySelector('button[onclick="saveSettings()"]');
 
