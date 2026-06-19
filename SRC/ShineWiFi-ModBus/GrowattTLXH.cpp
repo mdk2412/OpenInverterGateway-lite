@@ -222,7 +222,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       0.1,  0.1, CURRENT,    false};
   Protocol.InputRegisters[P3000_PAC1] = sGrowattModbusReg_t{
       3028, 0,   SIZE_32BIT, F("L1ThreePhaseGridOutputPower"),
-      0.1,  0.1, VA,         false};
+      0.1,  0.1, POWER_W,         false};
   Protocol.InputRegisters[P3000_VAC2] =
       sGrowattModbusReg_t{3030, 0,   SIZE_16BIT, F("L2ThreePhaseGridVoltage"),
                           0.1,  0.1, VOLTAGE,    false};
@@ -231,7 +231,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       0.1,  0.1, CURRENT,    false};
   Protocol.InputRegisters[P3000_PAC2] = sGrowattModbusReg_t{
       3032, 0,   SIZE_32BIT, F("L2ThreePhaseGridOutputPower"),
-      0.1,  0.1, VA,         false};
+      0.1,  0.1, POWER_W,    false};
   Protocol.InputRegisters[P3000_VAC3] =
       sGrowattModbusReg_t{3034, 0,   SIZE_16BIT, F("L3ThreePhaseGridVoltage"),
                           0.1,  0.1, VOLTAGE,    false};
@@ -240,7 +240,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       0.1,  0.1, CURRENT,    false};
   Protocol.InputRegisters[P3000_PAC3] = sGrowattModbusReg_t{
       3036, 0,   SIZE_32BIT, F("L3ThreePhaseGridOutputPower"),
-      0.1,  0.1, VA,         false};
+      0.1,  0.1, POWER_W,    false};
   Protocol.InputRegisters[P3000_VAC_RS] =
       sGrowattModbusReg_t{3038, 0,   SIZE_16BIT, F("RSThreePhaseGridVoltage"),
                           0.1,  0.1, VOLTAGE,    false};
@@ -390,9 +390,9 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.InputRegisters[P3000_BDC_SOC] = sGrowattModbusReg_t{
       3171, 0, SIZE_16BIT, F("BDCStateOfCharge"), 1, 1, PERCENTAGE, true};
   Protocol.InputRegisters[P3000_BDC_VBUS1] = sGrowattModbusReg_t{
-      3172, 0, SIZE_16BIT, F("BDCTotalBusVoltage"), 0.1, 0.1, CURRENT, false};
+      3172, 0, SIZE_16BIT, F("BDCTotalBusVoltage"), 0.1, 0.1, VOLTAGE, false};
   Protocol.InputRegisters[P3000_BDC_VBUS2] = sGrowattModbusReg_t{
-      3173, 0, SIZE_16BIT, F("BDCOnTheBusVoltage"), 0.1, 0.1, CURRENT, false};
+      3173, 0, SIZE_16BIT, F("BDCOnTheBusVoltage"), 0.1, 0.1, VOLTAGE, false};
   Protocol.InputRegisters[P3000_BDC_IBB] = sGrowattModbusReg_t{
       3174, 0, SIZE_16BIT, F("BDCBuckBoostCurrent"), 0.1, 0.1, CURRENT, false};
   Protocol.InputRegisters[P3000_BDC_ILLC] = sGrowattModbusReg_t{
