@@ -2,14 +2,11 @@
 #include "ModbusTCP.h"
 #include <TLog.h>
 
-ModbusTCP::ModbusTCP(uint16_t serverPort)
-: port(serverPort), enabled(false) {
+ModbusTCP::ModbusTCP(uint16_t serverPort) : port(serverPort), enabled(false) {
   server = nullptr;
 }
 
-ModbusTCP::~ModbusTCP() {
-  stop();
-}
+ModbusTCP::~ModbusTCP() { stop(); }
 
 void ModbusTCP::begin() {
   if (server == nullptr) {
@@ -43,7 +40,7 @@ void ModbusTCP::loop() {
   }
 
   // Check if data available
-  if (client.available() >= 12) { // Minimum Modbus TCP request size
+  if (client.available() >= 12) {  // Minimum Modbus TCP request size
     uint16_t bytesRead = 0;
 
     // Read MBAP header (7 bytes) + PDU
@@ -70,75 +67,74 @@ void ModbusTCP::processRequest() {
   }
 
   // Build response header
-  responseBuffer[0] = requestBuffer[0]; // Transaction ID high
-  responseBuffer[1] = requestBuffer[1]; // Transaction ID low
-  responseBuffer[2] = 0; // Protocol ID high
-  responseBuffer[3] = 0; // Protocol ID low
-  responseBuffer[6] = unitId; // Unit ID
-  responseBuffer[7] = functionCode; // Function code
+  responseBuffer[0] = requestBuffer[0];  // Transaction ID high
+  responseBuffer[1] = requestBuffer[1];  // Transaction ID low
+  responseBuffer[2] = 0;                 // Protocol ID high
+  responseBuffer[3] = 0;                 // Protocol ID low
+  responseBuffer[6] = unitId;            // Unit ID
+  responseBuffer[7] = functionCode;      // Function code
 
   uint16_t responseLength = 0;
 
   switch (functionCode) {
-  case FC_READ_HOLDING_REGISTERS:
-  case FC_READ_INPUT_REGISTERS:
-  {
-    uint16_t startAddress = (requestBuffer[8] << 8) | requestBuffer[9];
-    uint16_t quantity = (requestBuffer[10] << 8) | requestBuffer[11];
+    case FC_READ_HOLDING_REGISTERS:
+    case FC_READ_INPUT_REGISTERS: {
+      uint16_t startAddress = (requestBuffer[8] << 8) | requestBuffer[9];
+      uint16_t quantity = (requestBuffer[10] << 8) | requestBuffer[11];
 
-    if (quantity < 1 || quantity > 125) {
-      sendException(functionCode, EX_ILLEGAL_DATA_VALUE);
-      return;
-    }
-
-    uint8_t byteCount = quantity * 2;
-    responseBuffer[8] = byteCount;
-
-    for (uint16_t i = 0; i < quantity; i++) {
-      uint16_t value = 0;
-      bool result = false;
-
-      if (functionCode == FC_READ_HOLDING_REGISTERS && readHoldingRegister) {
-        result = readHoldingRegister(startAddress + i, &value);
-      } else if (functionCode == FC_READ_INPUT_REGISTERS && readInputRegister) {
-        result = readInputRegister(startAddress + i, &value);
-      }
-
-      if (!result) {
-        sendException(functionCode, EX_ILLEGAL_DATA_ADDRESS);
+      if (quantity < 1 || quantity > 125) {
+        sendException(functionCode, EX_ILLEGAL_DATA_VALUE);
         return;
       }
 
-      responseBuffer[9 + (i * 2)] = value >> 8;
-      responseBuffer[10 + (i * 2)] = value & 0xFF;
+      uint8_t byteCount = quantity * 2;
+      responseBuffer[8] = byteCount;
+
+      for (uint16_t i = 0; i < quantity; i++) {
+        uint16_t value = 0;
+        bool result = false;
+
+        if (functionCode == FC_READ_HOLDING_REGISTERS && readHoldingRegister) {
+          result = readHoldingRegister(startAddress + i, &value);
+        } else if (functionCode == FC_READ_INPUT_REGISTERS &&
+                   readInputRegister) {
+          result = readInputRegister(startAddress + i, &value);
+        }
+
+        if (!result) {
+          sendException(functionCode, EX_ILLEGAL_DATA_ADDRESS);
+          return;
+        }
+
+        responseBuffer[9 + (i * 2)] = value >> 8;
+        responseBuffer[10 + (i * 2)] = value & 0xFF;
+      }
+
+      responseLength = 9 + byteCount;
+      break;
     }
 
-    responseLength = 9 + byteCount;
-    break;
-  }
+    case FC_WRITE_SINGLE_REGISTER: {
+      uint16_t address = (requestBuffer[8] << 8) | requestBuffer[9];
+      uint16_t value = (requestBuffer[10] << 8) | requestBuffer[11];
 
-  case FC_WRITE_SINGLE_REGISTER:
-  {
-    uint16_t address = (requestBuffer[8] << 8) | requestBuffer[9];
-    uint16_t value = (requestBuffer[10] << 8) | requestBuffer[11];
+      if (writeHoldingRegister && writeHoldingRegister(address, value)) {
+        // Echo back the request for write single register
+        responseBuffer[8] = requestBuffer[8];
+        responseBuffer[9] = requestBuffer[9];
+        responseBuffer[10] = requestBuffer[10];
+        responseBuffer[11] = requestBuffer[11];
+        responseLength = 12;
+      } else {
+        sendException(functionCode, EX_ILLEGAL_DATA_ADDRESS);
+        return;
+      }
+      break;
+    }
 
-    if (writeHoldingRegister && writeHoldingRegister(address, value)) {
-      // Echo back the request for write single register
-      responseBuffer[8] = requestBuffer[8];
-      responseBuffer[9] = requestBuffer[9];
-      responseBuffer[10] = requestBuffer[10];
-      responseBuffer[11] = requestBuffer[11];
-      responseLength = 12;
-    } else {
-      sendException(functionCode, EX_ILLEGAL_DATA_ADDRESS);
+    default:
+      sendException(functionCode, EX_ILLEGAL_FUNCTION);
       return;
-    }
-    break;
-  }
-
-  default:
-    sendException(functionCode, EX_ILLEGAL_FUNCTION);
-    return;
   }
 
   // Set length field (Unit ID + PDU length)
@@ -152,7 +148,7 @@ void ModbusTCP::processRequest() {
 }
 
 void ModbusTCP::sendException(uint8_t functionCode, uint8_t exceptionCode) {
-  responseBuffer[7] = functionCode | 0x80; // Set exception bit
+  responseBuffer[7] = functionCode | 0x80;  // Set exception bit
   responseBuffer[8] = exceptionCode;
 
   // Set length (3 bytes: Unit ID + Function code + Exception code)
