@@ -11,9 +11,12 @@ ModbusTCP::~ModbusTCP() { stop(); }
 void ModbusTCP::begin() {
   if (server == nullptr) {
     server = new WiFiServer(port);
+    server->setNoDelay(true);   // Sofortiges Senden aktivieren (Modbus‑TCP optimiert)
   }
+
   server->begin();
   enabled = true;
+
   Log.print(F("Modbus TCP server started on port "));
   Log.println(port);
 }
