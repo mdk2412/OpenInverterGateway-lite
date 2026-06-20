@@ -219,7 +219,9 @@ const char MAIN_page[] PROGMEM = R"=====(
     <script>
       document.addEventListener("DOMContentLoaded", () => {
 
+        // -------------------------------
         // TAB SWITCHING
+        // -------------------------------
         document.addEventListener("click", e => {
           const tab = e.target.closest(".tab");
           if (!tab) return;
@@ -232,7 +234,9 @@ const char MAIN_page[] PROGMEM = R"=====(
           );
         });
 
+        // -------------------------------
         // MAIN PAGE AUTO-UPDATE
+        // -------------------------------
         async function loadData() {
           const dashboard = document.getElementById("main");
           if (dashboard.hidden) return;
@@ -277,10 +281,9 @@ const char MAIN_page[] PROGMEM = R"=====(
           }
         }
 
-        loadData();
-        setInterval(loadData, 1000);
-
-        // MODBUS ACCESS LOGIC
+        // -------------------------------
+        // MODBUS UI LOGIC
+        // -------------------------------
         const valueInput = document.getElementById("modbusVal");
         const writeButton = document.querySelector("#modbusForm button.contrast");
 
@@ -301,16 +304,35 @@ const char MAIN_page[] PROGMEM = R"=====(
         document.querySelectorAll('input[name="width"], input[name="type"]')
           .forEach(r => r.addEventListener("change", updateModbusUI));
 
-        updateModbusUI();
+        // -------------------------------
+        // SETTINGS LOADING
+        // -------------------------------
+        async function loadSettings() {
+          try {
+            const response = await fetch("/getSettings");
+            if (!response.ok) return;
 
-        setInterval(() => {
-          if (!document.getElementById("main").hidden) loadData();
-        }, 1000);
+            const data = await response.json();
 
+            document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
+            document.querySelector('input[name="accharge"]').checked = !!data.accharge;
+
+            document.getElementById("bat_slp_thr").value = data.bat_slp_thr || "";
+            document.getElementById("bat_wke_thr").value = data.bat_wke_thr || "";
+            document.getElementById("ac_max_pow").value = data.ac_max_pow || "";
+            document.getElementById("ac_off_set").value = data.ac_off_set || "";
+
+          } catch (e) {
+            console.error("Error loading settings:", e);
+          }
+        }
+
+        // -------------------------------
+        // GLOBAL: submitOperation
+        // -------------------------------
         window.submitOperation = async function (op) {
           const form = document.getElementById("modbusForm");
           const data = new FormData(form);
-          const valueInput = document.getElementById("modbusVal");
 
           const payload = new URLSearchParams();
           payload.append("operation", op);
@@ -326,129 +348,67 @@ const char MAIN_page[] PROGMEM = R"=====(
             });
 
             const trimmed = (await response.text()).trim();
-            //console.log("RAW RESPONSE:", trimmed);
-
-            // Fehlererkennung
             const isError = trimmed.toLowerCase().includes("failed");
 
-            // Extrahierter Wert (erste Zahl)
             let extractedValue = trimmed;
             const match = trimmed.match(/(\d+)/);
             if (match) extractedValue = match[1];
 
-            // Einheitliche Ausgabe für R und W
             valueInput.value = isError ? trimmed : extractedValue;
 
           } catch (e) {
-            //console.error("Error: ", e);
             valueInput.value = "JS Error: " + e.message;
           }
         };
 
-        // SETTINGS LOGIC
-        async function loadSettings() {
-          try {
-            const response = await fetch("/getSettings");
-            if (!response.ok) return;
+        // -------------------------------
+        // GLOBAL: saveSettings
+        // -------------------------------
+window.saveSettings = async function () {
+  const form = document.getElementById("settingsForm");
+  const btn = document.querySelector('#settings button[type="button"]');
 
-            const data = await response.json();
+  const payload = new URLSearchParams();
 
-            document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
-            document.querySelector('input[name="accharge"]').checked = !!data.accharge;
+  payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
+  payload.append("accharge", form.accharge.checked ? "on" : "off");
 
-            if (data.bat_slp_thr) document.getElementById("bat_slp_thr").value = data.bat_slp_thr;
-            if (data.bat_wke_thr) document.getElementById("bat_wke_thr").value = data.bat_wke_thr;
-            if (data.ac_max_pow) document.getElementById("ac_max_pow").value = data.ac_max_pow;
-            if (data.ac_off_set) document.getElementById("ac_off_set").value = data.ac_off_set;
+  payload.append("bat_slp_thr", form.bat_slp_thr.value);
+  payload.append("bat_wke_thr", form.bat_wke_thr.value);
+  payload.append("ac_max_pow", form.ac_max_pow.value);
+  payload.append("ac_off_set", form.ac_off_set.value);
 
-          } catch (e) {
-            console.error("Error loading settings:", e);
-          }
-        }
+  const oldText = btn.textContent;
+  const oldClass = btn.className;
 
-        window.saveSettings = async function () {
-          const form = document.getElementById("settingsForm");
-          const btn = document.querySelector('#settings button[type="button"]');
+  // WICHTIG: Outline behalten!
+  btn.classList.add("outline");
 
-          const payload = new URLSearchParams();
+  try {
+    const response = await fetch("/saveSettings", {
+      method: "POST",
+      body: payload
+    });
 
-          // Checkboxen: nur senden, wenn ON (Backend erwartet das so!)
-          if (form.bat_standby.checked) payload.append("bat_standby", "on");
-          if (form.accharge.checked) payload.append("accharge", "on");
+    btn.textContent = (await response.text()).trim();
 
-          // Zahlenfelder: nur senden, wenn nicht leer
-          if (form.bat_slp_thr.value) payload.append("bat_slp_thr", form.bat_slp_thr.value);
-          if (form.bat_wke_thr.value) payload.append("bat_wke_thr", form.bat_wke_thr.value);
-          if (form.ac_max_pow.value) payload.append("ac_max_pow", form.ac_max_pow.value);
-          if (form.ac_off_set.value) payload.append("ac_off_set", form.ac_off_set.value);
+  } catch {
+    btn.textContent = "Error";
+  }
 
-          // Button-Feedback
-          const oldText = btn.textContent;
-          const oldClass = btn.className;
+  setTimeout(() => {
+    btn.textContent = oldText;
+    btn.className = oldClass;
+  }, 2000);
+};
 
-          btn.textContent = "Saving…";
-          btn.classList.add("outline");
-
-          try {
-            const response = await fetch("/saveSettings", {
-              method: "POST",
-              body: payload
-            });
-
-            btn.textContent = (await response.text()).trim();
-
-          } catch (e) {
-            btn.textContent = "Error";
-          }
-
-          setTimeout(() => {
-            btn.textContent = oldText;
-            btn.className = oldClass;
-          }, 2000);
-        };
-
+        // -------------------------------
+        // INITIALIZATION
+        // -------------------------------
+        updateModbusUI();
         loadSettings();
-
-        window.saveSettings = async function () {
-          const form = document.getElementById("settingsForm");
-          const btn = document.querySelector('#settings button[type="button"]');
-
-          const payload = new URLSearchParams();
-
-          // Checkboxen: explizit senden
-          payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
-          payload.append("accharge", form.accharge.checked ? "on" : "off");
-
-          // Zahlenfelder: explizit senden (auch wenn leer → dann wird "" gespeichert)
-          payload.append("bat_slp_thr", form.bat_slp_thr.value);
-          payload.append("bat_wke_thr", form.bat_wke_thr.value);
-          payload.append("ac_max_pow", form.ac_max_pow.value);
-          payload.append("ac_off_set", form.ac_off_set.value);
-
-          const oldText = btn.textContent;
-          const oldClass = btn.className;
-
-          btn.textContent = "Saving…";
-          btn.classList.add("outline");
-
-          try {
-            const response = await fetch("/saveSettings", {
-              method: "POST",
-              body: payload
-            });
-
-            btn.textContent = (await response.text()).trim();
-          } catch {
-            btn.textContent = "Error";
-          }
-
-          setTimeout(() => {
-            btn.textContent = oldText;
-            btn.className = oldClass;
-          }, 2000);
-        };
-
-        loadSettings();
+        loadData();
+        setInterval(loadData, 1000);
 
       });
     </script>
