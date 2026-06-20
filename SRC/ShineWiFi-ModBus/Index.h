@@ -10,38 +10,47 @@ const char MAIN_page[] PROGMEM = R"=====(
   <link rel="stylesheet" href="/pico.min.css">
 </head>
 
+<style>
+  .debug-frame {
+    width: 100%;
+    height: 75vh;
+    border: none;
+    display: block;
+  }
+</style>
+
 <body>
   <main class="container">
     <nav>
       <ul>
         <li>
-          <a href="#" role="button" class="secondary outline tab active" data-tab="main">
+          <button class="secondary outline tab active" data-tab="main">
             Dashboard
-          </a>
+          </button>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary outline tab" data-tab="modbus">
+          <button class="secondary outline tab" data-tab="modbus">
             Modbus
-          </a>
+          </button>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary outline tab" data-tab="log">
+          <button class="secondary outline tab" data-tab="log">
             Log
-          </a>
+          </button>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary outline tab" data-tab="system">
+          <button class="secondary outline tab" data-tab="system">
             System
-          </a>
+          </button>
         </li>
 
         <li>
-          <a href="#" role="button" class="secondary outline tab" data-tab="settings">
+          <button class="secondary outline tab" data-tab="settings">
             Settings
-          </a>
+          </button>
         </li>
       </ul>
     </nav>
@@ -116,7 +125,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           <label>
             Register Value
-            <input type="text" name="val" id="modbusVal" readonly>
+            <input type="text" name="val" id="modbusVal">
           </label>
 
           <fieldset>
@@ -144,7 +153,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- Log -->
 
     <section id="log" class="tab-content" hidden>
-      <iframe src="./debug" style="width: 100%; height: 75vh; border: none;"></iframe>
+      <iframe src="./debug" class="debug-frame"></iframe>
     </section>
 
     <!-- System -->
@@ -211,19 +220,16 @@ const char MAIN_page[] PROGMEM = R"=====(
       document.addEventListener("DOMContentLoaded", () => {
 
         // TAB SWITCHING
-        document.querySelectorAll(".tab").forEach(tab => {
-          tab.addEventListener("click", (e) => {
-            e.preventDefault();
+        document.addEventListener("click", e => {
+          const tab = e.target.closest(".tab");
+          if (!tab) return;
 
-            document.querySelector(".tab.active")?.classList.remove("active");
-            tab.classList.add("active");
+          document.querySelector(".tab.active")?.classList.remove("active");
+          tab.classList.add("active");
 
-            const target = tab.dataset.tab;
-
-            document.querySelectorAll(".tab-content").forEach(sec => {
-              sec.hidden = sec.id !== target;
-            });
-          });
+          document.querySelectorAll(".tab-content").forEach(sec =>
+            sec.hidden = sec.id !== tab.dataset.tab
+          );
         });
 
         // MAIN PAGE AUTO-UPDATE
@@ -282,60 +288,62 @@ const char MAIN_page[] PROGMEM = R"=====(
           return document.querySelector(`input[name="${name}"]:checked`)?.value;
         }
 
-        function updateDashboard() {
+        function updateModbusUI() {
           const width = getSelected("width");
           const type = getSelected("type");
 
-          const disableWrite = (width === "32b" || type === "I");
+          const disable = (width === "32b" || type === "I");
 
-          writeButton.disabled = disableWrite;
-          valueInput.disabled = disableWrite;
+          writeButton.disabled = disable;
+          valueInput.disabled = disable;
         }
 
-        updateDashboard();
+        document.querySelectorAll('input[name="width"], input[name="type"]')
+          .forEach(r => r.addEventListener("change", updateModbusUI));
 
-        document.querySelectorAll('input[name="width"], input[name="type"]').forEach(r =>
-          r.addEventListener("change", updateDashboard)
-        );
+        updateModbusUI();
 
-        window.submitOperation = async function(op) {
-  const form = document.getElementById("modbusForm");
-  const data = new FormData(form);
-  const valueInput = document.getElementById("modbusVal");
+        setInterval(() => {
+          if (!document.getElementById("main").hidden) loadData();
+        }, 1000);
 
-  const payload = new URLSearchParams();
-  payload.append("operation", op);
-  payload.append("reg", data.get("reg"));
-  payload.append("val", data.get("val"));
-  payload.append("width", data.get("width"));
-  payload.append("type", data.get("type"));
+        window.submitOperation = async function (op) {
+          const form = document.getElementById("modbusForm");
+          const data = new FormData(form);
+          const valueInput = document.getElementById("modbusVal");
 
-  try {
-    const response = await fetch("/postCommunicationModbus_p", {
-      method: "POST",
-      body: payload
-    });
+          const payload = new URLSearchParams();
+          payload.append("operation", op);
+          payload.append("reg", data.get("reg"));
+          payload.append("val", data.get("val"));
+          payload.append("width", data.get("width"));
+          payload.append("type", data.get("type"));
 
-    const trimmed = (await response.text()).trim();
-    console.log("RAW RESPONSE:", trimmed);
+          try {
+            const response = await fetch("/postCommunicationModbus_p", {
+              method: "POST",
+              body: payload
+            });
 
-    let extractedValue = trimmed;
-    const match = trimmed.match(/(\d+)/);
-    if (match) extractedValue = match[1];
+            const trimmed = (await response.text()).trim();
+            //console.log("RAW RESPONSE:", trimmed);
 
-    if (op === "R") {
-      valueInput.value = extractedValue;
-      return;
-    }
+            // Fehlererkennung
+            const isError = trimmed.toLowerCase().includes("failed");
 
-    if (op === "W") {
-      valueInput.value = trimmed;
-    }
+            // Extrahierter Wert (erste Zahl)
+            let extractedValue = trimmed;
+            const match = trimmed.match(/(\d+)/);
+            if (match) extractedValue = match[1];
 
-  } catch (e) {
-    console.error("Error:", e);
-  }
-};
+            // Einheitliche Ausgabe für R und W
+            valueInput.value = isError ? trimmed : extractedValue;
+
+          } catch (e) {
+            //console.error("Error: ", e);
+            valueInput.value = "JS Error: " + e.message;
+          }
+        };
 
         // SETTINGS LOGIC
         async function loadSettings() {
@@ -358,22 +366,28 @@ const char MAIN_page[] PROGMEM = R"=====(
           }
         }
 
-        window.saveSettings = async function() {
+        window.saveSettings = async function () {
           const form = document.getElementById("settingsForm");
-          const btn = document.querySelector('button[onclick="saveSettings()"]');
+          const btn = document.querySelector('#settings button[type="button"]');
 
           const payload = new URLSearchParams();
 
+          // Checkboxen: nur senden, wenn ON (Backend erwartet das so!)
           if (form.bat_standby.checked) payload.append("bat_standby", "on");
           if (form.accharge.checked) payload.append("accharge", "on");
 
+          // Zahlenfelder: nur senden, wenn nicht leer
           if (form.bat_slp_thr.value) payload.append("bat_slp_thr", form.bat_slp_thr.value);
           if (form.bat_wke_thr.value) payload.append("bat_wke_thr", form.bat_wke_thr.value);
           if (form.ac_max_pow.value) payload.append("ac_max_pow", form.ac_max_pow.value);
           if (form.ac_off_set.value) payload.append("ac_off_set", form.ac_off_set.value);
 
+          // Button-Feedback
           const oldText = btn.textContent;
           const oldClass = btn.className;
+
+          btn.textContent = "Saving…";
+          btn.classList.add("outline");
 
           try {
             const response = await fetch("/saveSettings", {
@@ -381,26 +395,58 @@ const char MAIN_page[] PROGMEM = R"=====(
               body: payload
             });
 
-            const result = await response.text();
-
-            btn.textContent = result;
-            btn.className = "contrast outline";
-
-            setTimeout(() => {
-              btn.textContent = oldText;
-              btn.className = oldClass;
-            }, 2000);
+            btn.textContent = (await response.text()).trim();
 
           } catch (e) {
-            btn.textContent = "Error: " + e.message;
-            btn.className = "contrast outline";
-
-            setTimeout(() => {
-              btn.textContent = oldText;
-              btn.className = oldClass;
-            }, 3000);
+            btn.textContent = "Error";
           }
-        }
+
+          setTimeout(() => {
+            btn.textContent = oldText;
+            btn.className = oldClass;
+          }, 2000);
+        };
+
+        loadSettings();
+
+        window.saveSettings = async function () {
+          const form = document.getElementById("settingsForm");
+          const btn = document.querySelector('#settings button[type="button"]');
+
+          const payload = new URLSearchParams();
+
+          // Checkboxen: explizit senden
+          payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
+          payload.append("accharge", form.accharge.checked ? "on" : "off");
+
+          // Zahlenfelder: explizit senden (auch wenn leer → dann wird "" gespeichert)
+          payload.append("bat_slp_thr", form.bat_slp_thr.value);
+          payload.append("bat_wke_thr", form.bat_wke_thr.value);
+          payload.append("ac_max_pow", form.ac_max_pow.value);
+          payload.append("ac_off_set", form.ac_off_set.value);
+
+          const oldText = btn.textContent;
+          const oldClass = btn.className;
+
+          btn.textContent = "Saving…";
+          btn.classList.add("outline");
+
+          try {
+            const response = await fetch("/saveSettings", {
+              method: "POST",
+              body: payload
+            });
+
+            btn.textContent = (await response.text()).trim();
+          } catch {
+            btn.textContent = "Error";
+          }
+
+          setTimeout(() => {
+            btn.textContent = oldText;
+            btn.className = oldClass;
+          }, 2000);
+        };
 
         loadSettings();
 

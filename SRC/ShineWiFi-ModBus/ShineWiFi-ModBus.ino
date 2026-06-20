@@ -81,7 +81,6 @@ ShineMqtt shineMqtt(espClient, Inverter);
 ModbusTCP modbusTCP(MODBUS_TCP_PORT);
 #endif
 
-
 #ifdef AP_BUTTON_PRESSED
 byte btnPressed = 0;
 #endif
@@ -146,13 +145,13 @@ struct {
   String syslog_ip;
 
 #if BATTERY_STANDBY == 1
-  bool   bat_standby;     // <-- NEU
+  bool bat_standby;  // <-- NEU
   String bat_slp_thr;
   String bat_wke_thr;
 #endif
 
 #if ACCHARGE_CONTROL == 1
-  bool   accharge;        // <-- NEU
+  bool accharge;  // <-- NEU
   String ac_max_pow;
   String ac_off_set;
 #endif
@@ -397,38 +396,13 @@ void startWdt() {
 void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
-
-  //
-  // Standard-Settings
-  //
-  Config.hostname       = prefs.getString("hostname", "Growatt");
-  Config.static_ip      = prefs.getString("static_ip", "");
-  Config.static_netmask = prefs.getString("static_netmask", "");
-  Config.static_gateway = prefs.getString("static_gateway", "");
-  Config.static_dns     = prefs.getString("static_dns", "");
-
-#if MQTT_SUPPORTED == 1
-  Config.mqtt.server = prefs.getString("mqtt_server", "");
-  Config.mqtt.port   = prefs.getString("mqtt_port", "1883");
-  Config.mqtt.topic  = prefs.getString("mqtt_topic", "growatt");
-  Config.mqtt.user   = prefs.getString("mqtt_user", "");
-  Config.mqtt.pwd    = prefs.getString("mqtt_pwd", "");
-#endif
-
-  //
-  // SETTINGS: Battery Standby
-  //
 #if BATTERY_STANDBY == 1
   Config.bat_standby = prefs.getBool("bat_standby", false);
   Config.bat_slp_thr = prefs.getString("bat_slp_thr", "50");
   Config.bat_wke_thr = prefs.getString("bat_wke_thr", "75");
 #endif
-
-  //
-  // SETTINGS: AC Charging
-  //
 #if ACCHARGE_CONTROL == 1
-  Config.accharge   = prefs.getBool("accharge", false);
+  Config.accharge = prefs.getBool("accharge", false);
   Config.ac_max_pow = prefs.getString("ac_max_pow", "2500");
   Config.ac_off_set = prefs.getString("ac_off_set", "1");
 #endif
@@ -436,7 +410,7 @@ void loadSettingsFromPrefs() {
   prefs.end();
 }
 
-//new
+// new
 #if MODBUS_TCP_SUPPORTED == 1
 bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
   return Inverter.ReadHoldingReg(address, value);
@@ -600,94 +574,32 @@ void setup() {
 
   Inverter.InitProtocol();
   InverterReconnect();
-
-  httpServer.on("/saveSettings", HTTP_POST, []() {
-    String hostname = httpServer.arg("hostname");
-    String static_ip = httpServer.arg("static_ip");
-    String static_netmask = httpServer.arg("static_netmask");
-    String static_gateway = httpServer.arg("static_gateway");
-    String static_dns = httpServer.arg("static_dns");
-
-    String mqtt_server = httpServer.arg("mqtt_server");
-    String mqtt_port = httpServer.arg("mqtt_port");
-    String mqtt_topic = httpServer.arg("mqtt_topic");
-    String mqtt_user = httpServer.arg("mqtt_user");
-    String mqtt_pwd = httpServer.arg("mqtt_pwd");
-
-    Preferences prefs;
-    prefs.begin("config", false);
-
-    prefs.putString("hostname", hostname);
-    prefs.putString("static_ip", static_ip);
-    prefs.putString("static_netmask", static_netmask);
-    prefs.putString("static_gateway", static_gateway);
-    prefs.putString("static_dns", static_dns);
-
-    prefs.putString("mqtt_server", mqtt_server);
-    prefs.putString("mqtt_port", mqtt_port);
-    prefs.putString("mqtt_topic", mqtt_topic);
-    prefs.putString("mqtt_user", mqtt_user);
-    prefs.putString("mqtt_pwd", mqtt_pwd);
-
-    prefs.end();
-
-    httpServer.send(200, "text/plain", "Settings saved");
-  });
-
   httpServer.on("/saveSettings", HTTP_POST, []() {
     Preferences prefs;
     prefs.begin("config", false);
 
-bool bat_standby = (httpServer.arg("bat_standby") == "on");
-prefs.putBool("bat_standby", bat_standby);
-Config.bat_standby = bat_standby;
-
-Log.print(F("Battery Standby: "));
-Log.println(bat_standby ? F("ON") : F("OFF"));
+    // BATTERY STANDBY
+    bool bat_standby = (httpServer.arg("bat_standby") == "on");
+    prefs.putBool("bat_standby", bat_standby);
+    Config.bat_standby = bat_standby;
 
 #if BATTERY_STANDBY == 1
-    String bat_slp_thr = httpServer.arg("bat_slp_thr");
-    String bat_wke_thr = httpServer.arg("bat_wke_thr");
-
-    if (!bat_slp_thr.isEmpty()) {
-      Config.bat_slp_thr = bat_slp_thr;
-      prefs.putString("bat_slp_thr", bat_slp_thr);
-      Log.print(F("Battery Sleep Threshold updated: "));
-      Log.println(bat_slp_thr);
-    }
-
-    if (!bat_wke_thr.isEmpty()) {
-      Config.bat_wke_thr = bat_wke_thr;
-      prefs.putString("bat_wke_thr", bat_wke_thr);
-      Log.print(F("Battery Wake Threshold updated: "));
-      Log.println(bat_wke_thr);
-    }
+    prefs.putString("bat_slp_thr", httpServer.arg("bat_slp_thr"));
+    prefs.putString("bat_wke_thr", httpServer.arg("bat_wke_thr"));
+    Config.bat_slp_thr = httpServer.arg("bat_slp_thr");
+    Config.bat_wke_thr = httpServer.arg("bat_wke_thr");
 #endif
 
-bool accharge = (httpServer.arg("accharge") == "on");
-prefs.putBool("accharge", accharge);
-Config.accharge = accharge;
-
-Log.print(F("AC Charging: "));
-Log.println(accharge ? F("ON") : F("OFF"));
+    // AC CHARGE
+    bool accharge = (httpServer.arg("accharge") == "on");
+    prefs.putBool("accharge", accharge);
+    Config.accharge = accharge;
 
 #if ACCHARGE_CONTROL == 1
-    String ac_max_pow = httpServer.arg("ac_max_pow");
-    String ac_off_set = httpServer.arg("ac_off_set");
-
-    if (!ac_max_pow.isEmpty()) {
-      Config.ac_max_pow = ac_max_pow;
-      prefs.putString("ac_max_pow", ac_max_pow);
-      Log.print(F("AC Max Power updated: "));
-      Log.println(ac_max_pow);
-    }
-
-    if (!ac_off_set.isEmpty()) {
-      Config.ac_off_set = ac_off_set;
-      prefs.putString("ac_off_set", ac_off_set);
-      Log.print(F("AC Offset updated: "));
-      Log.println(ac_off_set);
-    }
+    prefs.putString("ac_max_pow", httpServer.arg("ac_max_pow"));
+    prefs.putString("ac_off_set", httpServer.arg("ac_off_set"));
+    Config.ac_max_pow = httpServer.arg("ac_max_pow");
+    Config.ac_off_set = httpServer.arg("ac_off_set");
 #endif
 
     prefs.end();
@@ -725,16 +637,16 @@ Log.println(accharge ? F("ON") : F("OFF"));
     prefs.end();
 
     sendJson(doc);
-});
+  });
 
   httpServer.begin();
 
 // new
 #if MODBUS_TCP_SUPPORTED == 1
-modbusTCP.readHoldingRegister = modbusReadHoldingRegister;
-modbusTCP.readInputRegister = modbusReadInputRegister;
-modbusTCP.writeHoldingRegister = modbusWriteHoldingRegister;
-modbusTCP.begin();
+  modbusTCP.readHoldingRegister = modbusReadHoldingRegister;
+  modbusTCP.readInputRegister = modbusReadInputRegister;
+  modbusTCP.writeHoldingRegister = modbusWriteHoldingRegister;
+  modbusTCP.begin();
 #endif
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -1286,11 +1198,11 @@ void loop() {
 
 // new
 #if MODBUS_TCP_SUPPORTED == 1
-if (modbusTCP.isEnabled()) {
-  modbusTCP.loop();
-}
+  if (modbusTCP.isEnabled()) {
+    modbusTCP.loop();
+  }
 #endif
-// 
+  //
 
   // Toggle green LED with 1 Hz (alive)
   // ------------------------------------------------------------
@@ -1379,20 +1291,20 @@ if (modbusTCP.isEnabled()) {
 #endif
 
 #if BATTERY_STANDBY == 1
-if (Config.bat_standby) {
+  if (Config.bat_standby) {
     if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
-        batteryStandby();
-        BatteryStandbyTimer = now;
+      batteryStandby();
+      BatteryStandbyTimer = now;
     }
-}
+  }
 #endif
 
 #if ACCHARGE_CONTROL == 1
-if (Config.accharge) {
+  if (Config.accharge) {
     if ((now - ACChargeControlTimer) > ACCHARGE_CONTROL_TIMER) {
-        acchargeControl();
-        ACChargeControlTimer = now;
+      acchargeControl();
+      ACChargeControlTimer = now;
     }
-}
+  }
 #endif
 }
