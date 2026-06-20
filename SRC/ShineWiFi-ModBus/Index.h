@@ -52,6 +52,12 @@ const char MAIN_page[] PROGMEM = R"=====(
             Settings
           </button>
         </li>
+        <li>
+          <button class="secondary outline tab" data-tab="ota">
+            OTA
+          </button>
+        </li>
+
       </ul>
     </nav>
 
@@ -214,6 +220,23 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     </section>
 
+    <section id="ota" class="tab-content" hidden>
+      <form method="POST" action="/update" enctype="multipart/form-data">
+        <fieldset>
+          <p>Upload new Firmware</p>
+
+          <label>
+            Choose Firmware File (.bin)
+            <input type="file" name="firmware" accept=".bin" required>
+          </label>
+
+          <div class="grid">
+            <button type="submit" class="contrast">Start Update</button>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+
     <!-- JAVASCRIPT -->
 
     <script>
@@ -364,43 +387,43 @@ const char MAIN_page[] PROGMEM = R"=====(
         // -------------------------------
         // GLOBAL: saveSettings
         // -------------------------------
-window.saveSettings = async function () {
-  const form = document.getElementById("settingsForm");
-  const btn = document.querySelector('#settings button[type="button"]');
+        window.saveSettings = async function () {
+          const form = document.getElementById("settingsForm");
+          const btn = document.querySelector('#settings button[type="button"]');
 
-  const payload = new URLSearchParams();
+          const payload = new URLSearchParams();
 
-  payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
-  payload.append("accharge", form.accharge.checked ? "on" : "off");
+          payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
+          payload.append("accharge", form.accharge.checked ? "on" : "off");
 
-  payload.append("bat_slp_thr", form.bat_slp_thr.value);
-  payload.append("bat_wke_thr", form.bat_wke_thr.value);
-  payload.append("ac_max_pow", form.ac_max_pow.value);
-  payload.append("ac_off_set", form.ac_off_set.value);
+          payload.append("bat_slp_thr", form.bat_slp_thr.value);
+          payload.append("bat_wke_thr", form.bat_wke_thr.value);
+          payload.append("ac_max_pow", form.ac_max_pow.value);
+          payload.append("ac_off_set", form.ac_off_set.value);
 
-  const oldText = btn.textContent;
-  const oldClass = btn.className;
+          const oldText = btn.textContent;
+          const oldClass = btn.className;
 
-  // WICHTIG: Outline behalten!
-  btn.classList.add("outline");
+          // WICHTIG: Outline behalten!
+          btn.classList.add("outline");
 
-  try {
-    const response = await fetch("/saveSettings", {
-      method: "POST",
-      body: payload
-    });
+          try {
+            const response = await fetch("/saveSettings", {
+              method: "POST",
+              body: payload
+            });
 
-    btn.textContent = (await response.text()).trim();
+            btn.textContent = (await response.text()).trim();
 
-  } catch {
-    btn.textContent = "Error";
-  }
+          } catch {
+            btn.textContent = "Error";
+          }
 
-  setTimeout(() => {
-    btn.textContent = oldText;
-    btn.className = oldClass;
-  }, 2000);
-};
+          setTimeout(() => {
+            btn.textContent = oldText;
+            btn.className = oldClass;
+          }, 2000);
+        };
 
         // -------------------------------
         // INITIALIZATION
@@ -411,6 +434,7 @@ window.saveSettings = async function () {
         setInterval(loadData, 1000);
 
       });
+      
     </script>
 
   </main>

@@ -11,6 +11,7 @@
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 #include <LittleFS.h>
+#include <Updater.h>
 // added for Modbus TCP
 #if MODBUS_TCP_SUPPORTED == 1
 #include "ModbusTCP.h"
@@ -638,6 +639,44 @@ void setup() {
 
     sendJson(doc);
   });
+
+    // --- OTA Firmware Upload (Web) ---
+  httpServer.on(
+      "/update", HTTP_POST,
+      []() {
+        // Diese Funktion wird nach dem Upload aufgerufen
+        bool ok = !Update.hasError();
+        String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
+        httpServer.send(ok ? 200 : 500, "text/plain", msg);
+        delay(1000);
+        if (ok) {
+          ESP.restart();
+        }
+      },
+      []() {
+        // Diese Funktion verarbeitet die Upload-Daten
+        HTTPUpload &upload = httpServer.upload();
+        if (upload.status == UPLOAD_FILE_START) {
+          Serial.printf("Update: %s\n", upload.filename.c_str());
+#if defined(ESP32)
+          if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  // ESP32
+#else
+          if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {  // ESP8266
+#endif
+            Update.printError(Serial);
+          }
+        } else if (upload.status == UPLOAD_FILE_WRITE) {
+          if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+            Update.printError(Serial);
+          }
+        } else if (upload.status == UPLOAD_FILE_END) {
+          if (Update.end(true)) {
+            Serial.printf("Update Success: %u bytes\nRebooting...\n", upload.totalSize);
+          } else {
+            Update.printError(Serial);
+          }
+        }
+      });
 
   httpServer.begin();
 
