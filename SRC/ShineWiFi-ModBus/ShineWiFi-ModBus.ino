@@ -1,103 +1,115 @@
+// -------------------------------------------------------------
+// Projekt-Konfiguration
+// -------------------------------------------------------------
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
-#error Please rename Config.h.example to Config.h
+  #error Please rename Config.h.example to Config.h
 #endif
 
+// -------------------------------------------------------------
+// Projekt-Header
+// -------------------------------------------------------------
 #include "ShineWifi.h"
-#include <TLog.h>
 #include "Index.h"
 #include "Growatt.h"
+
+#if BATTERY_STANDBY == 1 || ACCHARGE_CONTROL == 1
+  #include "GrowattTLXH.h"
+#endif
+
+#if MQTT_SUPPORTED == 1
+  #include "ShineMqtt.h"
+#endif
+
+#if MODBUS_TCP_SUPPORTED == 1
+  #include "ModbusTCP.h"
+#endif
+
+// -------------------------------------------------------------
+// System / Framework
+// -------------------------------------------------------------
+#include <TLog.h>
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 #include <LittleFS.h>
-#include <Updater.h>
-// added for Modbus TCP
-#if MODBUS_TCP_SUPPORTED == 1
-#include "ModbusTCP.h"
+
+// -------------------------------------------------------------
+// Plattformabhängige Header
+// -------------------------------------------------------------
+#if defined ESP8266
+  #include <Updater.h>
+#elif defined ESP32
+  #include <Update.h>
+  #include <esp_task_wdt.h>
 #endif
 
-#ifdef ESP32
-#include <esp_task_wdt.h>
-#endif
-
-// #include <time.h>
-//  #d efine LOG_PRINTLN_TS(msg) { \
-//   time_t now = time(nullptr); \
-//   struct tm* t = localtime(&now); \
-//   char timestamp[20]; \
-//   strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t); \
-//   char buffer[256]; \
-//   snprintf(buffer, sizeof(buffer), "[%s] %s", timestamp, msg); \
-//   Log.println(buffer); \
-// }
-
-#if (BATTERY_STANDBY == 1 || ACCHARGE_CONTROL == 1)
-#include "GrowattTLXH.h"
-#endif
-
-#if defined(ESP32)
-#include <esp_task_wdt.h>
+// -------------------------------------------------------------
+// Optionale Features
+// -------------------------------------------------------------
+#if OTA_SUPPORTED == 1
+  #include <ArduinoOTA.h>
 #endif
 
 #if PINGER_SUPPORTED == 1
-#include <Pinger.h>
-#include <PingerResponse.h>
+  #include <Pinger.h>
+  #include <PingerResponse.h>
 #endif
 
 #if ENABLE_DOUBLE_RESET == 1
-#define ESP_DRD_USE_LITTLEFS true
-#define ESP_DRD_USE_EEPROM false
-#define DRD_TIMEOUT 10
-#define DRD_ADDRESS 0
-#include <ESP_DoubleResetDetector.h>
-DoubleResetDetector* drd;
-#endif
-
-#if OTA_SUPPORTED == 1
-#include <ArduinoOTA.h>
+  #define ESP_DRD_USE_LITTLEFS true
+  #define ESP_DRD_USE_EEPROM false
+  #define DRD_TIMEOUT 10
+  #define DRD_ADDRESS 0
+  #include <ESP_DoubleResetDetector.h>
+  DoubleResetDetector* drd;
 #endif
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-#include <time.h>
-extern "C" uint8_t sntp_getreachability(uint8_t);
+  #include <time.h>
+  extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
+// -------------------------------------------------------------
+// Globale Objekte
+// -------------------------------------------------------------
 Preferences prefs;
 Growatt Inverter;
 bool StartedConfigAfterBoot = false;
 
 #if MQTT_SUPPORTED == 1
-#include "ShineMqtt.h"
-#ifdef MQTTS_ENABLED
-WiFiClientSecure espClient;
-#else
-WiFiClient espClient;
-#endif
-ShineMqtt shineMqtt(espClient, Inverter);
+  #if defined MQTTS_ENABLED
+    WiFiClientSecure espClient;
+  #else
+    WiFiClient espClient;
+  #endif
+  ShineMqtt shineMqtt(espClient, Inverter);
 #endif
 
-// new
 #if MODBUS_TCP_SUPPORTED == 1
-ModbusTCP modbusTCP(MODBUS_TCP_PORT);
+  ModbusTCP modbusTCP(MODBUS_TCP_PORT);
 #endif
 
-#ifdef AP_BUTTON_PRESSED
-byte btnPressed = 0;
+#if defined AP_BUTTON_PRESSED
+  byte btnPressed = 0;
 #endif
 
 #define NUM_OF_RETRIES 5
 boolean readoutSucceeded = false;
 
 uint16_t u16PacketCnt = 0;
+
 #if PINGER_SUPPORTED == 1
-Pinger pinger;
+  Pinger pinger;
 #endif
 
-#if defined(ESP8266)
-ESP8266WebServer httpServer(80);
-#elif defined(ESP32)
-WebServer httpServer(80);
+// -------------------------------------------------------------
+// Webserver je nach Plattform
+// -------------------------------------------------------------
+#if defined ESP8266
+  ESP8266WebServer httpServer(80);
+#elif defined ESP32
+  WebServer httpServer(80);
 #endif
 
 struct {
