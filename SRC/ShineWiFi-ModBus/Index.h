@@ -223,7 +223,6 @@ const char MAIN_page[] PROGMEM = R"=====(
     <section id="ota" class="tab-content" hidden>
       <form method="POST" action="/update" enctype="multipart/form-data">
         <fieldset>
-          <p>Upload new Firmware</p>
 
           <label>
             Choose Firmware File (.bin)
@@ -434,7 +433,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         setInterval(loadData, 1000);
 
       });
-      
+
     </script>
 
   </main>
