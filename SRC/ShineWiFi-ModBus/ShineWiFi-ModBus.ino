@@ -388,15 +388,42 @@ void startWdt() {
 void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
+
 #if BATTERY_STANDBY == 1
   Config.bat_standby = prefs.getBool("bat_standby", false);
-  Config.bat_slp_thr = prefs.getString("bat_slp_thr", "50");
-  Config.bat_wke_thr = prefs.getString("bat_wke_thr", "75");
+
+  // Sleep Threshold (>0)
+  {
+    int v = prefs.getString("bat_slp_thr", "50").toInt();
+    if (v <= 0) v = 1;
+    Config.bat_slp_thr = String(v);
+  }
+
+  // Wake Threshold (>0)
+  {
+    int v = prefs.getString("bat_wke_thr", "75").toInt();
+    if (v <= 0) v = 1;
+    Config.bat_wke_thr = String(v);
+  }
 #endif
+
 #if ACCHARGE_CONTROL == 1
   Config.accharge = prefs.getBool("accharge", false);
-  Config.ac_max_pow = prefs.getString("ac_max_pow", "2500");
-  Config.ac_off_set = prefs.getString("ac_off_set", "1");
+
+  // AC Max Power (>0)
+  {
+    int v = prefs.getString("ac_max_pow", "3750").toInt();
+    if (v <= 0) v = 1;
+    Config.ac_max_pow = String(v);
+  }
+
+  // Offset (-100 bis +100)
+  {
+    int v = prefs.getString("ac_off_set", "1").toInt();
+    if (v < -100) v = -100;
+    if (v > 100) v = 100;
+    Config.ac_off_set = String(v);
+  }
 #endif
 
   prefs.end();
