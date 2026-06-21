@@ -1,14 +1,8 @@
-// -------------------------------------------------------------
-// Projekt-Konfiguration
-// -------------------------------------------------------------
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
   #error Please rename Config.h.example to Config.h
 #endif
 
-// -------------------------------------------------------------
-// Projekt-Header
-// -------------------------------------------------------------
 #include "ShineWifi.h"
 #include "Index.h"
 #include "Growatt.h"
@@ -25,18 +19,12 @@
   #include "ModbusTCP.h"
 #endif
 
-// -------------------------------------------------------------
-// System / Framework
-// -------------------------------------------------------------
 #include <TLog.h>
 #include <Preferences.h>
 #include <WiFiManager.h>
 #include <StreamUtils.h>
 #include <LittleFS.h>
 
-// -------------------------------------------------------------
-// Plattformabhängige Header
-// -------------------------------------------------------------
 #if defined ESP8266
   #include <Updater.h>
 #elif defined ESP32
@@ -44,9 +32,6 @@
   #include <esp_task_wdt.h>
 #endif
 
-// -------------------------------------------------------------
-// Optionale Features
-// -------------------------------------------------------------
 #if OTA_SUPPORTED == 1
   #include <ArduinoOTA.h>
 #endif
@@ -70,9 +55,6 @@
   extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
-// -------------------------------------------------------------
-// Globale Objekte
-// -------------------------------------------------------------
 Preferences prefs;
 Growatt Inverter;
 bool StartedConfigAfterBoot = false;
@@ -103,9 +85,6 @@ uint16_t u16PacketCnt = 0;
   Pinger pinger;
 #endif
 
-// -------------------------------------------------------------
-// Webserver je nach Plattform
-// -------------------------------------------------------------
 #if defined ESP8266
   ESP8266WebServer httpServer(80);
 #elif defined ESP32

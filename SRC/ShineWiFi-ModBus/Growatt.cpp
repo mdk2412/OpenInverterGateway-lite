@@ -1,29 +1,30 @@
-#include <ModbusMaster.h>
-#include <ArduinoJson.h>
-#include <TLog.h>
+#include "Config.h"
+#ifndef _SHINE_CONFIG_H_
+  #error Please rename Config.h.example to Config.h
+#endif
 
 #include "GrowattTypes.h"
 #include "Growatt.h"
-#include "Config.h"
-#ifndef _SHINE_CONFIG_H_
-#error Please rename Config.h.example to Config.h
-#endif
 
 #if GROWATT_MODBUS_VERSION == 120
-#include "Growatt120.h"
+  #include "Growatt120.h"
 #elif GROWATT_MODBUS_VERSION == 124
-#include "Growatt124.h"
+  #include "Growatt124.h"
 #elif GROWATT_MODBUS_VERSION == 305
-#include "Growatt305.h"
+  #include "Growatt305.h"
 #elif GROWATT_MODBUS_VERSION == 3000
-#include "GrowattTLXH.h"
+  #include "GrowattTLXH.h"
 #elif GROWATT_MODBUS_VERSION == 5000
-#include "GrowattSPF.h"
+  #include "GrowattSPF.h"
 #elif GROWATT_MODBUS_VERSION == 6000
-#include "GrowattBP.h"
+  #include "GrowattBP.h"
 #else
-#error "Unsupported Growatt Modbus Version"
+  #error "Unsupported Growatt Modbus Version"
 #endif
+
+#include <ModbusMaster.h>
+#include <ArduinoJson.h>
+#include <TLog.h>
 
 ModbusMaster Modbus;
 

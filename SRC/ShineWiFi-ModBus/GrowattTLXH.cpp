@@ -2,9 +2,27 @@
 
 #include "Config.h"
 #include "Growatt.h"
-#include "Growatt124.h"
+//#include "Growatt124.h"
 #include "GrowattTLXH.h"
 #include <TLog.h>
+
+// Forward-Declarations aus ehemals Growatt124.h
+
+std::tuple<bool, String> getDateTime(const JsonDocument& req,
+                                     JsonDocument& res,
+                                     Growatt& inverter);
+
+std::tuple<bool, String> updateDateTime(const JsonDocument& req,
+                                        JsonDocument& res,
+                                        Growatt& inverter);
+
+std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
+                                            JsonDocument& res,
+                                            Growatt& inverter);
+
+std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
+                                            JsonDocument& res,
+                                            Growatt& inverter);
 
 std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
                                                   JsonDocument& res,
