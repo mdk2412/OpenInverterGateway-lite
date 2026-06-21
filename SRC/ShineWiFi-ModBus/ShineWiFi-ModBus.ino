@@ -76,10 +76,7 @@ bool StartedConfigAfterBoot = false;
   byte btnPressed = 0;
 #endif
 
-#define NUM_OF_RETRIES 5
 boolean readoutSucceeded = false;
-
-uint16_t u16PacketCnt = 0;
 
 #if PINGER_SUPPORTED == 1
   Pinger pinger;
@@ -1309,8 +1306,9 @@ void loop() {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
-      readoutSucceeded =
-          Inverter.ReadData(NUM_OF_RETRIES);  // get new data from inverter
+      readoutSucceeded = false;
+      readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
+      updateRedLed();
 #endif
       if (readoutSucceeded) {
         // boolean mqttSuccess = false;

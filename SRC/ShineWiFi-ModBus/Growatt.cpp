@@ -172,6 +172,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
 #ifdef DEBUG_MODBUS_OUTPUT
       Log.println(F("failed"));
 #endif
+      Modbus.clearResponseBuffer(); 
       return false;
     }
   }
@@ -219,6 +220,7 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
         }
       }
     } else {
+      Modbus.clearResponseBuffer();
       return false;
     }
   }
@@ -226,46 +228,43 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
 }
 
 bool Growatt::ReadData(uint8_t maxRetries) {
-  /**
-   * @brief Reads the data from the inverter and updates the internal data
-   * structures
-   * @returns true if data was read successfully, false otherwise
-   */
   uint8_t inputFragOffs = 0;
   uint8_t holdingFragOffs = 0;
-  uint8_t retryCnt = 0;
-  // unsigned long readStart = millis();
   bool res;
+
+  // --- INPUT FRAGMENTS ---
+  uint8_t retryCnt = 0;
   while (inputFragOffs < _Protocol.InputFragmentCount &&
          retryCnt < maxRetries) {
-    _PacketCnt++;
+
     res = ReadInputRegisters(inputFragOffs);
-    if (!res) {
+    if (res) {
+      _PacketCnt++;          // nur bei Erfolg
+    } else {
       _PacketCntFailed++;
       retryCnt++;
+      Modbus.clearResponseBuffer();
     }
   }
+
+  // --- HOLDING FRAGMENTS ---
+  retryCnt = 0;
   while (holdingFragOffs < _Protocol.HoldingFragmentCount &&
          retryCnt < maxRetries) {
-    _PacketCnt++;
+
     res = ReadHoldingRegisters(holdingFragOffs);
-    if (!res) {
+    if (res) {
+      _PacketCnt++;          // nur bei Erfolg
+    } else {
       _PacketCntFailed++;
       retryCnt++;
+      Modbus.clearResponseBuffer();
     }
   }
-  _GotData = retryCnt < maxRetries;
 
-  if (retryCnt > 0) {
-    if (_GotData) {
-      // Log.print(F("Reading Modbus data successful after "));
-      // Log.print(retryCnt);
-      // Log.print(F(" retries in "));
-      // Log.print(millis() - readStart);
-      // Log.println(F("ms"));
-    } else {
-      Log.println(F("Reading Modbus Data not successful!"));
-    }
+  _GotData = (retryCnt < maxRetries);
+  if (!_GotData) {
+    Log.println(F("Reading Modbus Data not successful!"));
   }
 
   return _GotData;
@@ -278,7 +277,7 @@ sGrowattModbusReg_t Growatt::GetInputRegister(uint16_t reg) {
    * @returns the register value
    */
   if (_GotData == false) {
-    ReadData(1);
+    ReadData(NUM_OF_RETRIES);
   }
   return _Protocol.InputRegisters[reg];
 }
