@@ -593,7 +593,7 @@ void setup() {
 
   Inverter.InitProtocol();
   InverterReconnect();
-  httpServer.on("/saveSettings", HTTP_POST, []() {
+httpServer.on("/saveSettings", HTTP_POST, []() {
     Preferences prefs;
     prefs.begin("config", false);
 
@@ -603,10 +603,21 @@ void setup() {
     Config.bat_standby = bat_standby;
 
 #if BATTERY_STANDBY == 1
-    prefs.putString("bat_slp_thr", httpServer.arg("bat_slp_thr"));
-    prefs.putString("bat_wke_thr", httpServer.arg("bat_wke_thr"));
-    Config.bat_slp_thr = httpServer.arg("bat_slp_thr");
-    Config.bat_wke_thr = httpServer.arg("bat_wke_thr");
+    // Sleep Threshold (>0)
+    {
+      int v = httpServer.arg("bat_slp_thr").toInt();
+      if (v <= 0) v = 1;
+      prefs.putString("bat_slp_thr", String(v));
+      Config.bat_slp_thr = String(v);
+    }
+
+    // Wake Threshold (>0)
+    {
+      int v = httpServer.arg("bat_wke_thr").toInt();
+      if (v <= 0) v = 1;
+      prefs.putString("bat_wke_thr", String(v));
+      Config.bat_wke_thr = String(v);
+    }
 #endif
 
     // AC CHARGE
@@ -615,15 +626,27 @@ void setup() {
     Config.accharge = accharge;
 
 #if ACCHARGE_CONTROL == 1
-    prefs.putString("ac_max_pow", httpServer.arg("ac_max_pow"));
-    prefs.putString("ac_off_set", httpServer.arg("ac_off_set"));
-    Config.ac_max_pow = httpServer.arg("ac_max_pow");
-    Config.ac_off_set = httpServer.arg("ac_off_set");
+    // AC Max Power (>0)
+    {
+      int v = httpServer.arg("ac_max_pow").toInt();
+      if (v <= 0) v = 1;
+      prefs.putString("ac_max_pow", String(v));
+      Config.ac_max_pow = String(v);
+    }
+
+    // Offset (-100 bis +100)
+    {
+      int v = httpServer.arg("ac_off_set").toInt();
+      if (v < -100) v = -100;
+      if (v > 100) v = 100;
+      prefs.putString("ac_off_set", String(v));
+      Config.ac_off_set = String(v);
+    }
 #endif
 
     prefs.end();
     httpServer.send(200, "text/plain", "Settings saved");
-  });
+});
 
   httpServer.on("/getSettings", HTTP_GET, []() {
     Preferences prefs;
