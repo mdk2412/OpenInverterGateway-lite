@@ -1,25 +1,25 @@
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
-  #error Please rename Config.h.example to Config.h
+#error Please rename Config.h.example to Config.h
 #endif
 
 #include "GrowattTypes.h"
 #include "Growatt.h"
 
 #if GROWATT_MODBUS_VERSION == 120
-  #include "Growatt120.h"
+#include "Growatt120.h"
 #elif GROWATT_MODBUS_VERSION == 124
-  #include "Growatt124.h"
+#include "Growatt124.h"
 #elif GROWATT_MODBUS_VERSION == 305
-  #include "Growatt305.h"
+#include "Growatt305.h"
 #elif GROWATT_MODBUS_VERSION == 3000
-  #include "GrowattTLXH.h"
+#include "GrowattTLXH.h"
 #elif GROWATT_MODBUS_VERSION == 5000
-  #include "GrowattSPF.h"
+#include "GrowattSPF.h"
 #elif GROWATT_MODBUS_VERSION == 6000
-  #include "GrowattBP.h"
+#include "GrowattBP.h"
 #else
-  #error "Unsupported Growatt Modbus Version"
+#error "Unsupported Growatt Modbus Version"
 #endif
 
 #include <ModbusMaster.h>
@@ -98,15 +98,15 @@ void Growatt::begin(Stream& serial) {
   if (res == Modbus.ku8MBSuccess) {
     _eDevice = ShineWiFi_X;  // USB
   } else {
-    //delay(1000);
-    // Fallback to 9600 baud (ShineWiFi_S)
+    // delay(1000);
+    //  Fallback to 9600 baud (ShineWiFi_S)
     Serial.begin(9600);
     Modbus.begin(1, serial);
     res = Modbus.readInputRegisters(0, 1);
     if (res == Modbus.ku8MBSuccess) {
       _eDevice = ShineWiFi_S;  // Serial
     }
-    //delay(1000);
+    // delay(1000);
   }
 #endif
 }
@@ -172,7 +172,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
 #ifdef DEBUG_MODBUS_OUTPUT
       Log.println(F("failed"));
 #endif
-      Modbus.clearResponseBuffer(); 
+      Modbus.clearResponseBuffer();
       return false;
     }
   }
@@ -228,6 +228,11 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
 }
 
 bool Growatt::ReadData(uint8_t maxRetries) {
+  /**
+   * @brief Reads the data from the inverter and updates the internal data
+   * structures
+   * @returns true if data was read successfully, false otherwise
+   */
   uint8_t inputFragOffs = 0;
   uint8_t holdingFragOffs = 0;
   bool res;
@@ -236,10 +241,9 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   uint8_t retryCnt = 0;
   while (inputFragOffs < _Protocol.InputFragmentCount &&
          retryCnt < maxRetries) {
-
     res = ReadInputRegisters(inputFragOffs);
     if (res) {
-      _PacketCnt++;          // nur bei Erfolg
+      _PacketCnt++;  // nur bei Erfolg
     } else {
       _PacketCntFailed++;
       retryCnt++;
@@ -251,10 +255,9 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   retryCnt = 0;
   while (holdingFragOffs < _Protocol.HoldingFragmentCount &&
          retryCnt < maxRetries) {
-
     res = ReadHoldingRegisters(holdingFragOffs);
     if (res) {
-      _PacketCnt++;          // nur bei Erfolg
+      _PacketCnt++;  // nur bei Erfolg
     } else {
       _PacketCntFailed++;
       retryCnt++;
