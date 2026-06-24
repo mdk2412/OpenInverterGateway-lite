@@ -85,3 +85,5 @@ typedef struct {
   sGrowattReadFragment_t InputReadFragments[10];
   sGrowattReadFragment_t HoldingReadFragments[10];
 } sProtocolDefinition_t;
+typedef sProtocolDefinition_t sGrowattProtocol_t;
+

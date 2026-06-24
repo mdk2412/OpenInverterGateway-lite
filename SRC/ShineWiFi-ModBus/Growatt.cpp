@@ -22,921 +22,955 @@
 #error "Unsupported Growatt Modbus Version"
 #endif
 
-#include <ModbusMaster.h>
+#include <ModbusRTU.h>
 #include <ArduinoJson.h>
 #include <TLog.h>
 
-ModbusMaster Modbus;
+ModbusRTU Modbus;
 
+// -------------------------------------------------------------
 // Constructor
+// -------------------------------------------------------------
 Growatt::Growatt() {
-  _eDevice = Undef_stick;
-  _PacketCnt = 0;
-  _PacketCntFailed = 0;
+    _eDevice = Undef_stick;
+    _PacketCnt = 0;
+    _PacketCntFailed = 0;
+    _GotData = false;
 
-  handlers = std::map<String, CommandHandlerFunc>();
+    handlers = std::map<String, CommandHandlerFunc>();
 
-  // register default handlers
-  RegisterCommand("echo", [this](const JsonDocument& req, JsonDocument& res,
-                                 Growatt& inverter) {
-    return handleEcho(req, res, *this);
-  });
+    RegisterCommand("echo",
+        [this](const JsonDocument& req, JsonDocument& res, Growatt& inv) {
+            return handleEcho(req, res, *this);
+        });
 
-  RegisterCommand("list", [this](const JsonDocument& req, JsonDocument& res,
-                                 Growatt& inverter) {
-    return handleCommandList(req, res, *this);
-  });
+    RegisterCommand("list",
+        [this](const JsonDocument& req, JsonDocument& res, Growatt& inv) {
+            return handleCommandList(req, res, *this);
+        });
 
-  RegisterCommand("modbus/get", [this](const JsonDocument& req,
-                                       JsonDocument& res, Growatt& inverter) {
-    return handleModbusGet(req, res, *this);
-  });
+    RegisterCommand("modbus/get",
+        [this](const JsonDocument& req, JsonDocument& res, Growatt& inv) {
+            return handleModbusGet(req, res, *this);
+        });
 
-  RegisterCommand("modbus/set", [this](const JsonDocument& req,
-                                       JsonDocument& res, Growatt& inverter) {
-    return handleModbusSet(req, res, *this);
-  });
+    RegisterCommand("modbus/set",
+        [this](const JsonDocument& req, JsonDocument& res, Growatt& inv) {
+            return handleModbusSet(req, res, *this);
+        });
 }
 
+// -------------------------------------------------------------
+// InitProtocol
+// -------------------------------------------------------------
 void Growatt::InitProtocol() {
-/**
- * @brief Initialize the protocol struct
- * @param version The version of the modbus protocol to use
- */
 #if GROWATT_MODBUS_VERSION == 120
-  init_growatt120(_Protocol, *this);
+    init_growatt120(_Protocol, *this);
 #elif GROWATT_MODBUS_VERSION == 124
-  init_growatt124(_Protocol, *this);
+    init_growatt124(_Protocol, *this);
 #elif GROWATT_MODBUS_VERSION == 305
-  init_growatt305(_Protocol, *this);
+    init_growatt305(_Protocol, *this);
 #elif GROWATT_MODBUS_VERSION == 3000
-  init_growattTLXH(_Protocol, *this);
+    init_growattTLXH(_Protocol, *this);
 #elif GROWATT_MODBUS_VERSION == 5000
-  init_growattSPF(_Protocol, *this);
+    init_growattSPF(_Protocol, *this);
 #elif GROWATT_MODBUS_VERSION == 6000
-  init_growattBP(_Protocol, *this);
-#else
-#error "Unsupported Growatt Modbus Version"
+    init_growattBP(_Protocol, *this);
 #endif
 }
 
+// -------------------------------------------------------------
+// begin()
+// -------------------------------------------------------------
 void Growatt::begin(Stream& serial) {
-  /**
-   * @brief Set up communication with the inverter
-   * @param serial The serial interface
-   */
 #if SIMULATE_INVERTER == 1
-  _eDevice = SIMULATE_DEVICE;
+    _eDevice = SIMULATE_DEVICE;
 #else
-  uint8_t res;
+    uint16_t dummy;
 
-  // First try with 115200 baud (ShineWiFi_X)
-  Serial.begin(115200);
-  Modbus.begin(1, serial);
-  Modbus.setResponseTimeout(250);
-  res = Modbus.readInputRegisters(0, 1);
-  if (res == Modbus.ku8MBSuccess) {
-    _eDevice = ShineWiFi_X;  // USB
-  } else {
-    // delay(1000);
-    //  Fallback to 9600 baud (ShineWiFi_S)
+    // Try ShineWiFi-X (115200)
+    Serial.begin(115200);
+    Modbus.begin(&serial);
+    Modbus.master();
+    Modbus.setBaudrate(115200);
+
+    if (ReadInputReg(0, &dummy)) {
+        _eDevice = ShineWiFi_X;
+        return;
+    }
+
+    // Try ShineWiFi-S (9600)
     Serial.begin(9600);
-    Modbus.begin(1, serial);
-    res = Modbus.readInputRegisters(0, 1);
-    if (res == Modbus.ku8MBSuccess) {
-      _eDevice = ShineWiFi_S;  // Serial
+    Modbus.begin(&serial);
+    Modbus.master();
+    Modbus.setBaudrate(9600);
+
+    if (ReadInputReg(0, &dummy)) {
+        _eDevice = ShineWiFi_S;
     }
-    // delay(1000);
-  }
 #endif
 }
 
+// -------------------------------------------------------------
+// GetWiFiStickType
+// -------------------------------------------------------------
 eDevice_t Growatt::GetWiFiStickType() {
-  /**
-   * @brief After initialisation the type of the wifi stick is known
-   * @returns eDevice_t type of the wifi stick
-   */
-
-  return _eDevice;
+    return _eDevice;
 }
+// -------------------------------------------------------------
+// ReadInputReg (16-bit)
+// -------------------------------------------------------------
+bool Growatt::ReadInputReg(uint16_t adr, uint16_t* result) {
+#if SIMULATE_INVERTER != 1
+    bool done = false;
+    bool ok = false;
 
-bool Growatt::ReadInputRegisters(uint8_t& i) {
-  /**
-   * @brief Read the input registers from the inverter
-   * @returns true if data was read successfully, false otherwise
-   */
-  uint16_t registerAddress;
-  uint8_t res;
-  int j = 0;
+    Modbus.readIreg(
+        1, adr, result, 1,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
 
-  // read each fragment separately
-  for (; i < _Protocol.InputFragmentCount; i++) {
-#ifdef DEBUG_MODBUS_OUTPUT
-    Log.printf("Modbus: Reading Segment from 0x%02X with Length %d ...",
-               _Protocol.InputReadFragments[i].StartAddress,
-               _Protocol.InputReadFragments[i].FragmentSize);
-#endif
-    res =
-        Modbus.readInputRegisters(_Protocol.InputReadFragments[i].StartAddress,
-                                  _Protocol.InputReadFragments[i].FragmentSize);
-    if (res == Modbus.ku8MBSuccess) {
-#ifdef DEBUG_MODBUS_OUTPUT
-      Log.println(F("ok"));
-#endif
-      for (; j < _Protocol.InputRegisterCount; j++) {
-        // make sure the register we try to read is in the fragment
-        if (_Protocol.InputRegisters[j].address >=
-            _Protocol.InputReadFragments[i].StartAddress) {
-          // when we exceed the fragment size, skip to new fragment
-          if (_Protocol.InputRegisters[j].address >=
-              _Protocol.InputReadFragments[i].StartAddress +
-                  _Protocol.InputReadFragments[i].FragmentSize)
-            break;
-          // let's say the register address is 1013 and read window is 1000-1050
-          // that means the response in the buffer is on position 1013 - 1000 =
-          // 13
-          registerAddress = _Protocol.InputRegisters[j].address -
-                            _Protocol.InputReadFragments[i].StartAddress;
-          if (_Protocol.InputRegisters[j].size == SIZE_16BIT ||
-              _Protocol.InputRegisters[j].size == SIZE_16BIT_S) {
-            _Protocol.InputRegisters[j].value =
-                Modbus.getResponseBuffer(registerAddress);
-          } else {
-            _Protocol.InputRegisters[j].value =
-                (Modbus.getResponseBuffer(registerAddress) << 16) +
-                Modbus.getResponseBuffer(registerAddress + 1);
-          }
-        }
-      }
-    } else {
-#ifdef DEBUG_MODBUS_OUTPUT
-      Log.println(F("failed"));
-#endif
-      Modbus.clearResponseBuffer();
-      return false;
+    while (!done) {
+        Modbus.task();
+        yield();
     }
-  }
-#if GROWATT_MODBUS_VERSION == 3000
-  _Protocol.InputRegisters[P3000_INVERTER_STATUS].value &= 0xff;
-  _Protocol.InputRegisters[P3000_INVERTER_RUNSTATE].value >>= 8;
-  _Protocol.InputRegisters[P3000_BDC_SYSSTATE].value &= 0xff;
-  _Protocol.InputRegisters[P3000_BDC_SYSMODE].value >>= 8;
+
+    return ok;
+#else
+    *result = 0;
+    return true;
 #endif
-  return true;
 }
 
-bool Growatt::ReadHoldingRegisters(uint8_t& i) {
-  /**
-   * @brief Read the holding registers from the inverter
-   * @returns true if data was read successfully, false otherwise
-   */
-  uint16_t registerAddress;
-  uint8_t res;
+// -------------------------------------------------------------
+// ReadInputReg (32-bit)
+// -------------------------------------------------------------
+bool Growatt::ReadInputReg(uint16_t adr, uint32_t* result) {
+#if SIMULATE_INVERTER != 1
+    uint16_t buf[2];
+    bool done = false;
+    bool ok = false;
 
-  // read each fragment separately
-  for (; i < _Protocol.HoldingFragmentCount; i++) {
-    res = Modbus.readHoldingRegisters(
-        _Protocol.HoldingReadFragments[i].StartAddress,
-        _Protocol.HoldingReadFragments[i].FragmentSize);
-    if (res == Modbus.ku8MBSuccess) {
-      for (int j = 0; j < _Protocol.HoldingRegisterCount; j++) {
-        if (_Protocol.HoldingRegisters[j].address >=
-            _Protocol.HoldingReadFragments[i].StartAddress) {
-          if (_Protocol.HoldingRegisters[j].address >=
-              _Protocol.HoldingReadFragments[i].StartAddress +
-                  _Protocol.HoldingReadFragments[i].FragmentSize)
-            break;
-          registerAddress = _Protocol.HoldingRegisters[j].address -
-                            _Protocol.HoldingReadFragments[i].StartAddress;
-          if (_Protocol.HoldingRegisters[j].size == SIZE_16BIT ||
-              _Protocol.HoldingRegisters[j].size == SIZE_16BIT_S) {
-            _Protocol.HoldingRegisters[j].value =
-                Modbus.getResponseBuffer(registerAddress);
-          } else {
-            _Protocol.HoldingRegisters[j].value =
-                (Modbus.getResponseBuffer(registerAddress) << 16) +
-                Modbus.getResponseBuffer(registerAddress + 1);
-          }
-        }
-      }
-    } else {
-      Modbus.clearResponseBuffer();
-      return false;
+    Modbus.readIreg(
+        1, adr, buf, 2,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
     }
-  }
-  return true;
+
+    if (ok) {
+        *result = (uint32_t(buf[0]) << 16) | buf[1];
+    }
+    return ok;
+#else
+    *result = 0;
+    return true;
+#endif
 }
 
+// -------------------------------------------------------------
+// ReadHoldingReg (16-bit)
+// -------------------------------------------------------------
+bool Growatt::ReadHoldingReg(uint16_t adr, uint16_t* result) {
+#if SIMULATE_INVERTER != 1
+    bool done = false;
+    bool ok = false;
+
+    Modbus.readHreg(
+        1, adr, result, 1,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    return ok;
+#else
+    *result = 0;
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// ReadHoldingReg (32-bit)
+// -------------------------------------------------------------
+bool Growatt::ReadHoldingReg(uint16_t adr, uint32_t* result) {
+#if SIMULATE_INVERTER != 1
+    uint16_t buf[2];
+    bool done = false;
+    bool ok = false;
+
+    Modbus.readHreg(
+        1, adr, buf, 2,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    if (ok) {
+        *result = (uint32_t(buf[0]) << 16) | buf[1];
+    }
+    return ok;
+#else
+    *result = 0;
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// WriteHoldingReg (single register)
+// -------------------------------------------------------------
+bool Growatt::WriteHoldingReg(uint16_t adr, uint16_t value) {
+#if SIMULATE_INVERTER != 1
+    bool done = false;
+    bool ok = false;
+
+    Modbus.writeHreg(
+        1, adr, value,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    return ok;
+#else
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// WriteHoldingRegFrag (multiple 16-bit registers)
+// -------------------------------------------------------------
+bool Growatt::WriteHoldingRegFrag(uint16_t adr, uint8_t size, uint16_t* value) {
+#if SIMULATE_INVERTER != 1
+    bool done = false;
+    bool ok = false;
+
+    Modbus.writeHreg(
+        1, adr, value, size,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    return ok;
+#else
+    return true;
+#endif
+}
+// -------------------------------------------------------------
+// ReadHoldingRegFrag (16-bit array)
+// -------------------------------------------------------------
+bool Growatt::ReadHoldingRegFrag(uint16_t adr, uint8_t size, uint16_t* result) {
+#if SIMULATE_INVERTER != 1
+    bool done = false;
+    bool ok = false;
+
+    Modbus.readHreg(
+        1, adr, result, size,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    return ok;
+#else
+    memset(result, 0, size * sizeof(uint16_t));
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// ReadHoldingRegFrag (32-bit array)
+// -------------------------------------------------------------
+bool Growatt::ReadHoldingRegFrag(uint16_t adr, uint8_t size, uint32_t* result) {
+#if SIMULATE_INVERTER != 1
+    uint16_t buf[128];
+    bool done = false;
+    bool ok = false;
+
+    Modbus.readHreg(
+        1, adr, buf, size * 2,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    if (!ok) return false;
+
+    for (int i = 0; i < size; i++) {
+        result[i] = (uint32_t(buf[i * 2]) << 16) | buf[i * 2 + 1];
+    }
+
+    return true;
+#else
+    memset(result, 0, size * sizeof(uint32_t));
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// ReadData (fragment orchestrator)
+// -------------------------------------------------------------
 bool Growatt::ReadData(uint8_t maxRetries) {
-  /**
-   * @brief Reads the data from the inverter and updates the internal data
-   * structures
-   * @returns true if data was read successfully, false otherwise
-   */
-  uint8_t inputFragOffs = 0;
-  uint8_t holdingFragOffs = 0;
-  bool res;
+    uint8_t inputFrag = 0;
+    uint8_t holdingFrag = 0;
+    bool ok;
 
-  // --- INPUT FRAGMENTS ---
-  uint8_t retryCnt = 0;
-  while (inputFragOffs < _Protocol.InputFragmentCount &&
-         retryCnt < maxRetries) {
-    res = ReadInputRegisters(inputFragOffs);
-    if (res) {
-      _PacketCnt++;  // nur bei Erfolg
-    } else {
-      _PacketCntFailed++;
-      retryCnt++;
-      Modbus.clearResponseBuffer();
+    uint8_t retry = 0;
+    while (inputFrag < _Protocol.InputFragmentCount && retry < maxRetries) {
+        ok = ReadInputRegisters(inputFrag);
+        if (ok) _PacketCnt++;
+        else { retry++; _PacketCntFailed++; }
     }
-  }
 
-  // --- HOLDING FRAGMENTS ---
-  retryCnt = 0;
-  while (holdingFragOffs < _Protocol.HoldingFragmentCount &&
-         retryCnt < maxRetries) {
-    res = ReadHoldingRegisters(holdingFragOffs);
-    if (res) {
-      _PacketCnt++;  // nur bei Erfolg
-    } else {
-      _PacketCntFailed++;
-      retryCnt++;
-      Modbus.clearResponseBuffer();
+    retry = 0;
+    while (holdingFrag < _Protocol.HoldingFragmentCount && retry < maxRetries) {
+        ok = ReadHoldingRegisters(holdingFrag);
+        if (ok) _PacketCnt++;
+        else { retry++; _PacketCntFailed++; }
     }
-  }
 
-  _GotData = (retryCnt < maxRetries);
-  if (!_GotData) {
-    Log.println(F("Reading Modbus Data not successful!"));
-  }
-
-  return _GotData;
+    _GotData = (retry < maxRetries);
+    return _GotData;
 }
 
+// -------------------------------------------------------------
+// ReadInputRegisters (fragment)
+// -------------------------------------------------------------
+bool Growatt::ReadInputRegisters(uint8_t& offs) {
+#if SIMULATE_INVERTER != 1
+    if (offs >= _Protocol.InputFragmentCount) return true;
+
+    auto& frag = _Protocol.InputReadFragments[offs];
+    uint16_t buf[128];
+
+    bool done = false;
+    bool ok = false;
+
+    Modbus.readIreg(
+        1, frag.StartAddress, buf, frag.FragmentSize,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    if (!ok) return false;
+
+    for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+        auto& r = _Protocol.InputRegisters[i];
+        if (r.address >= frag.StartAddress &&
+            r.address < frag.StartAddress + frag.FragmentSize) {
+
+            uint16_t idx = r.address - frag.StartAddress;
+
+            if (r.size == SIZE_16BIT || r.size == SIZE_16BIT_S) {
+                r.value = buf[idx];
+            } else {
+                r.value = (uint32_t(buf[idx]) << 16) | buf[idx + 1];
+            }
+        }
+    }
+
+    offs++;
+    return true;
+#else
+    offs++;
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// ReadHoldingRegisters (fragment)
+// -------------------------------------------------------------
+bool Growatt::ReadHoldingRegisters(uint8_t& offs) {
+#if SIMULATE_INVERTER != 1
+    if (offs >= _Protocol.HoldingFragmentCount) return true;
+
+    auto& frag = _Protocol.HoldingReadFragments[offs];
+    uint16_t buf[128];
+
+    bool done = false;
+    bool ok = false;
+
+    Modbus.readHreg(
+        1, frag.StartAddress, buf, frag.FragmentSize,
+        [&](Modbus::ResultCode event, uint16_t, void*) -> bool {
+            ok = (event == Modbus::EX_SUCCESS);
+            done = true;
+            return true;
+        },
+        1
+    );
+
+    while (!done) {
+        Modbus.task();
+        yield();
+    }
+
+    if (!ok) return false;
+
+    for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+        auto& r = _Protocol.HoldingRegisters[i];
+        if (r.address >= frag.StartAddress &&
+            r.address < frag.StartAddress + frag.FragmentSize) {
+
+            uint16_t idx = r.address - frag.StartAddress;
+
+            if (r.size == SIZE_16BIT || r.size == SIZE_16BIT_S) {
+                r.value = buf[idx];
+            } else {
+                r.value = (uint32_t(buf[idx]) << 16) | buf[idx + 1];
+            }
+        }
+    }
+
+    offs++;
+    return true;
+#else
+    offs++;
+    return true;
+#endif
+}
+
+// -------------------------------------------------------------
+// GetInputRegister / GetHoldingRegister
+// -------------------------------------------------------------
 sGrowattModbusReg_t Growatt::GetInputRegister(uint16_t reg) {
-  /**
-   * @brief get the internal representation of the input register
-   * @param reg the register to get
-   * @returns the register value
-   */
-  if (_GotData == false) {
-    ReadData(NUM_OF_RETRIES);
-  }
-  return _Protocol.InputRegisters[reg];
+    if (!_GotData) ReadData(NUM_OF_RETRIES);
+    return _Protocol.InputRegisters[reg];
 }
 
 sGrowattModbusReg_t Growatt::GetHoldingRegister(uint16_t reg) {
-  /**
-   * @brief get the internal representation of the holding register
-   * @param reg the register to get
-   * @returns the register value
-   */
-  if (_GotData == false) {
-    ReadData(1);
-  }
-  return _Protocol.HoldingRegisters[reg];
+    if (!_GotData) ReadData(1);
+    return _Protocol.HoldingRegisters[reg];
 }
-
-bool Growatt::ReadHoldingReg(uint16_t adr, uint16_t* result) {
-/**
- * @brief read 16b holding register
- * @param adr address of the register
- * @param result pointer to the result
- * @returns true if successful
- */
-#if SIMULATE_INVERTER != 1
-  uint8_t res = Modbus.readHoldingRegisters(adr, 1);
-  if (res == Modbus.ku8MBSuccess) {
-    *result = Modbus.getResponseBuffer(0);
-    return true;
-  }
-  return false;
-#else
-  *result = 0;
-  return true;
-#endif
-}
-
-bool Growatt::ReadHoldingReg(uint16_t adr, uint32_t* result) {
-/**
- * @brief read 32b holding register
- * @param adr address of the register
- * @param result pointer to the result
- * @returns true if successful
- */
-#if SIMULATE_INVERTER != 1
-  uint8_t res = Modbus.readHoldingRegisters(adr, 2);
-  if (res == Modbus.ku8MBSuccess) {
-    *result = (Modbus.getResponseBuffer(0) << 16) + Modbus.getResponseBuffer(1);
-    return true;
-  }
-  return false;
-#else
-  *result = 0;
-  return true;
-#endif
-}
-
-bool Growatt::ReadHoldingRegFrag(uint16_t adr, uint8_t size, uint16_t* result) {
-  /**
-   * @brief read 16b holding register fragment
-   * @param adr address of the register
-   * @param size size of the register
-   * @param result pointer to the result
-   * @returns true if successful
-   */
-  uint8_t res = Modbus.readHoldingRegisters(adr, size);
-  if (res == Modbus.ku8MBSuccess) {
-    for (int i = 0; i < size; i++) {
-      result[i] = Modbus.getResponseBuffer(i);
-    }
-    return true;
-  }
-  return false;
-}
-
-bool Growatt::ReadHoldingRegFrag(uint16_t adr, uint8_t size, uint32_t* result) {
-  /**
-   * @brief read 32b holding register fragment
-   * @param adr address of the register
-   * @param size size of the register
-   * @param result pointer to the result
-   * @returns true if successful
-   */
-  uint8_t res = Modbus.readHoldingRegisters(adr, size * 2);
-  if (res == Modbus.ku8MBSuccess) {
-    for (int i = 0; i < size; i++) {
-      result[i] = (Modbus.getResponseBuffer(i * 2) << 16) +
-                  Modbus.getResponseBuffer(i * 2 + 1);
-    }
-    return true;
-  }
-  return false;
-}
-
-bool Growatt::WriteHoldingReg(uint16_t adr, uint16_t value) {
-/**
- * @brief write 16b holding register
- * @param adr address of the register
- * @param value value to write to the register
- * @returns true if successful
- */
-#if SIMULATE_INVERTER != 1
-  uint8_t res = Modbus.writeSingleRegister(adr, value);
-  if (res == Modbus.ku8MBSuccess) {
-    return true;
-  }
-  return false;
-#else
-  return true;
-#endif
-}
-
-bool Growatt::WriteHoldingRegFrag(uint16_t adr, uint8_t size, uint16_t* value) {
-  /**
-   * @brief write 16b holding register
-   * @param adr address of the register
-   * @param value value to write to the register
-   * @param size size of the register
-   * @returns true if successful
-   */
-  for (int i = 0; i < size; i++) {
-    Modbus.setTransmitBuffer(i, value[i]);
-  }
-  uint8_t res = Modbus.writeMultipleRegisters(adr, size);
-  if (res == Modbus.ku8MBSuccess) {
-    return true;
-  }
-  return false;
-}
-
-bool Growatt::ReadInputReg(uint16_t adr, uint16_t* result) {
-/**
- * @brief read 16b input register
- * @param adr address of the register
- * @param result pointer to the result
- * @returns true if successful
- */
-#if SIMULATE_INVERTER != 1
-  uint8_t res = Modbus.readInputRegisters(adr, 1);
-  if (res == Modbus.ku8MBSuccess) {
-    *result = Modbus.getResponseBuffer(0);
-    return true;
-  }
-  return false;
-#else
-  *result = 0;
-  return true;
-#endif
-}
-
-bool Growatt::ReadInputReg(uint16_t adr, uint32_t* result) {
-/**
- * @brief read 32b input register
- * @param adr address of the register
- * @param result pointer to the result
- * @returns true if successful
- */
-#if SIMULATE_INVERTER != 1
-  uint8_t res = Modbus.readInputRegisters(adr, 2);
-  if (res == Modbus.ku8MBSuccess) {
-    *result = (Modbus.getResponseBuffer(0) << 16) + Modbus.getResponseBuffer(1);
-    return true;
-  }
-  return false;
-#else
-  *result = 0;
-  return true;
-#endif
-}
-
-double Growatt::roundByResolution(const double& value,
-                                  const float& resolution) {
-  double res = 1 / resolution;
-  return int32_t(value * res + 0.5) / res;
+// -------------------------------------------------------------
+// Value conversion helpers
+// -------------------------------------------------------------
+double Growatt::roundByResolution(const double& value, const float& resolution) {
+    double res = 1.0 / resolution;
+    return int32_t(value * res + 0.5) / res;
 }
 
 double Growatt::getRegValue(sGrowattModbusReg_t* reg) {
-  double result = 0;
-  RegisterSize_t size = reg->size;
-  const float& mult = reg->multiplier;
-  const uint32_t& value = reg->value;
-  const float& resolution = reg->resolution;
+    double result = 0;
+    RegisterSize_t size = reg->size;
+    const float& mult = reg->multiplier;
+    const uint32_t& raw = reg->value;
+    const float& resolution = reg->resolution;
 
-  switch (size) {
-    case SIZE_16BIT_S:
-      result = (mult == (int)mult)
-                   ? (int16_t)value * mult
-                   : roundByResolution((int16_t)value * mult, resolution);
-      break;
-    case SIZE_32BIT_S:
-      result = (mult == (int)mult)
-                   ? (int32_t)value * mult
-                   : roundByResolution((int32_t)value * mult, resolution);
-      break;
-    default:
-      result = (mult == (int)mult)
-                   ? value * mult
-                   : roundByResolution(value * mult, resolution);
-  }
-  return result;
+    switch (size) {
+        case SIZE_16BIT_S:
+            result = (mult == (int)mult)
+                ? (int16_t)raw * mult
+                : roundByResolution((int16_t)raw * mult, resolution);
+            break;
+
+        case SIZE_32BIT_S:
+            result = (mult == (int)mult)
+                ? (int32_t)raw * mult
+                : roundByResolution((int32_t)raw * mult, resolution);
+            break;
+
+        default:
+            result = (mult == (int)mult)
+                ? raw * mult
+                : roundByResolution(raw * mult, resolution);
+    }
+
+    return result;
 }
 
+// -------------------------------------------------------------
+// GetSingleValueByName
+// -------------------------------------------------------------
 bool Growatt::GetSingleValueByName(const String& name, double& value) {
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    if (name.equalsIgnoreCase(_Protocol.InputRegisters[i].name)) {
-      value = getRegValue(&_Protocol.InputRegisters[i]);
-      return true;
+    for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+        if (name.equalsIgnoreCase(_Protocol.InputRegisters[i].name)) {
+            value = getRegValue(&_Protocol.InputRegisters[i]);
+            return true;
+        }
     }
-  }
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    if (name.equalsIgnoreCase(_Protocol.HoldingRegisters[i].name)) {
-      value = getRegValue(&_Protocol.HoldingRegisters[i]);
-      return true;
+
+    for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+        if (name.equalsIgnoreCase(_Protocol.HoldingRegisters[i].name)) {
+            value = getRegValue(&_Protocol.HoldingRegisters[i]);
+            return true;
+        }
     }
-  }
-  return false;
+
+    return false;
 }
 
-void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
+// -------------------------------------------------------------
+// CreateJson
+// -------------------------------------------------------------
+void Growatt::CreateJson(JsonDocument& doc,
+                         const String& MacAddress,
                          const String& Hostname) {
-  if (!Hostname.isEmpty()) {
-    doc["Hostname"] = Hostname;
-  }
-#if SIMULATE_INVERTER != 1
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++)
-    doc[_Protocol.InputRegisters[i].name] =
-        getRegValue(&_Protocol.InputRegisters[i]);
 
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++)
-    doc[_Protocol.HoldingRegisters[i].name] =
-        getRegValue(&_Protocol.HoldingRegisters[i]);
+    if (!Hostname.isEmpty())
+        doc["Hostname"] = Hostname;
+
+#if SIMULATE_INVERTER != 1
+    for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+        auto& r = _Protocol.InputRegisters[i];
+        doc[r.name] = getRegValue(&r);
+    }
+
+    for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+        auto& r = _Protocol.HoldingRegisters[i];
+        doc[r.name] = getRegValue(&r);
+    }
 #else
-#warning simulating the inverter
-  doc["Status"] = 1;
-  doc["DcPower"] = 230;
-  doc["DcVoltage"] = 70.5;
-  doc["DcInputCurrent"] = 8.5;
-  doc["AcFreq"] = 50.00;
-  doc["AcVoltage"] = 230.0;
-  doc["AcPower"] = 0.00;
-  doc["EnergyToday"] = 0.3;
-  doc["EnergyTotal"] = 49.1;
-  doc["OperatingTime"] = 123456;
-  doc["Temperature"] = 21.12;
-  doc["AccumulatedEnergy"] = 320;
-#endif  // SIMULATE_INVERTER
-  doc["Mac"] = MacAddress;
-  doc["Cnt"] = _PacketCnt;
-  doc["CntFailed"] = _PacketCntFailed;
-  doc["Uptime"] = millis() / 1000;
-  doc["WifiRSSI"] = WiFi.RSSI();
-  doc["HeapFree"] = ESP.getFreeHeap();
-#if defined(ESP32)
-  doc["HeapSize"] = ESP.getHeapSize();
-  doc["HeapMaxAlloc"] = ESP.getMaxAllocHeap();
-  doc["HeapMinFree"] = ESP.getMinFreeHeap();
-  doc["HeapFragmentation"] =
-      100 - (100 * ESP.getMaxAllocHeap() / ESP.getFreeHeap());
-#else
-  static uint32_t heap_min_free = ESP.getFreeHeap();
-  heap_min_free = min(ESP.getFreeHeap(), heap_min_free);
-  doc["HeapMaxAlloc"] = ESP.getMaxFreeBlockSize();
-  doc["HeapMinFree"] = heap_min_free;
-  doc["HeapFragmentation"] = ESP.getHeapFragmentation();
+    // Simulation mode
+    doc["Status"] = 1;
+    doc["DcPower"] = 230;
+    doc["DcVoltage"] = 70.5;
+    doc["DcInputCurrent"] = 8.5;
+    doc["AcFreq"] = 50.00;
+    doc["AcVoltage"] = 230.0;
+    doc["AcPower"] = 0.00;
+    doc["EnergyToday"] = 0.3;
+    doc["EnergyTotal"] = 49.1;
+    doc["OperatingTime"] = 123456;
+    doc["Temperature"] = 21.12;
+    doc["AccumulatedEnergy"] = 320;
 #endif
 
-  if (doc.overflowed()) {
-    Log.println(
-        F("CreateJson: JsonDocument overflowed! Output will be "
-          "truncated."));
-  }
+    doc["Mac"] = MacAddress;
+    doc["Cnt"] = _PacketCnt;
+    doc["CntFailed"] = _PacketCntFailed;
+    doc["Uptime"] = millis() / 1000;
+    doc["WifiRSSI"] = WiFi.RSSI();
+    doc["HeapFree"] = ESP.getFreeHeap();
+
+#if defined(ESP32)
+    doc["HeapSize"] = ESP.getHeapSize();
+    doc["HeapMaxAlloc"] = ESP.getMaxAllocHeap();
+    doc["HeapMinFree"] = ESP.getMinFreeHeap();
+    doc["HeapFragmentation"] =
+        100 - (100 * ESP.getMaxAllocHeap() / ESP.getFreeHeap());
+#else
+    static uint32_t heap_min_free = ESP.getFreeHeap();
+    heap_min_free = min(heap_min_free, ESP.getFreeHeap());
+
+    doc["HeapMaxAlloc"] = ESP.getMaxFreeBlockSize();
+    doc["HeapMinFree"] = heap_min_free;
+    doc["HeapFragmentation"] = ESP.getHeapFragmentation();
+#endif
 }
 
+// -------------------------------------------------------------
+// CreateUIJson
+// -------------------------------------------------------------
 void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
-#if SIMULATE_INVERTER != 1
-  const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
-                           "Hz", "°C", "VA",  "mA", "kOhm", "var"};
-  const char* statusStr[] = {"(Waiting)", "(Normal Operation)", "", "(Error)"};
-  const int statusStrLength = sizeof(statusStr) / sizeof(char*);
-  const char* priorityStr[] = {"(Load First)", "(Battery First)",
-                               "(Grid First)"};
-  const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
-  const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
-  const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
+    doc["Hostname"] = Hostname;
 
-  if (!Hostname.isEmpty()) {
-    JsonArray arr = doc.createNestedArray("Hostname");
-    arr.add(Hostname);
-    arr.add("");
-  }
-
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    if (_Protocol.InputRegisters[i].frontend == true) {
-      JsonArray arr = doc.createNestedArray(_Protocol.InputRegisters[i].name);
-
-      // value
-      arr.add(getRegValue(&_Protocol.InputRegisters[i]));
-
-      if ((String(_Protocol.InputRegisters[i].name) == F("InverterStatus") ||
-           String(_Protocol.InputRegisters[i].name) == F("BDCSysState")) &&
-          _Protocol.InputRegisters[i].value < statusStrLength) {
-        arr.add(statusStr[_Protocol.InputRegisters[i].value]);  // use unit for
-                                                                // status
-      } else if (String(_Protocol.InputRegisters[i].name) == F("BDCSysMode") &&
-                 _Protocol.InputRegisters[i].value < bdcModeStrLength) {
-        arr.add(bdcModeStr[_Protocol.InputRegisters[i].value]);
-      } else if (String(_Protocol.InputRegisters[i].name) == F("Priority") &&
-                 _Protocol.InputRegisters[i].value < priorityStrLength) {
-        arr.add(priorityStr[_Protocol.InputRegisters[i].value]);
-      } else {
-        arr.add(unitStr[_Protocol.InputRegisters[i].unit]);  // unit
-      }
+    JsonObject input = doc.createNestedObject("input");
+    for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+        auto& r = _Protocol.InputRegisters[i];
+        input[r.name] = getRegValue(&r);
     }
-  }
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    if (_Protocol.HoldingRegisters[i].frontend == true) {
-      JsonArray arr = doc.createNestedArray(_Protocol.HoldingRegisters[i].name);
 
-      // value
-      arr.add(getRegValue(&_Protocol.HoldingRegisters[i]));
-
-      if (String(_Protocol.HoldingRegisters[i].name) == F("InverterStatus") &&
-          _Protocol.HoldingRegisters[i].value < statusStrLength) {
-        arr.add(statusStr[_Protocol.HoldingRegisters[i].value]);  // use unit
-                                                                  // for status
-      } else {
-        arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);  // unit
-      }
+    JsonObject holding = doc.createNestedObject("holding");
+    for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+        auto& r = _Protocol.HoldingRegisters[i];
+        holding[r.name] = getRegValue(&r);
     }
-  }
-#else
-#warning simulating the inverter
-  JsonArray arr = doc.createNestedArray("Status");
-  arr.add(1);
-  arr.add("(Normal Operation)");
-  arr.add(false);
-  arr = doc.createNestedArray("DcPower");
-  arr.add(230);
-  arr.add("W");
-  arr.add(true);
-  arr = doc.createNestedArray("DcVoltage");
-  arr.add(70.5);
-  arr.add("V");
-  arr.add(false);
-  arr = doc.createNestedArray("DcInputCurrent");
-  arr.add(8.5);
-  arr.add("A");
-  arr.add(false);
-  arr = doc.createNestedArray("AcFreq");
-  arr.add(50);
-  arr.add("Hz");
-  arr.add(false);
-  arr = doc.createNestedArray("AcVoltage");
-  arr.add(230);
-  arr.add("V");
-  arr.add(false);
-  arr = doc.createNestedArray("AcPower");
-  arr.add(0.00);
-  arr.add("W");
-  arr.add(false);
-  arr = doc.createNestedArray("EnergyToday");
-  arr.add(0.3);
-  arr.add("kWh");
-  arr.add(false);
-  arr = doc.createNestedArray("EnergyTotal");
-  arr.add(49.1);
-  arr.add("kWh");
-  arr.add(false);
-  arr = doc.createNestedArray("OperatingTime");
-  arr.add(123456);
-  arr.add("s");
-  arr.add(false);
-  arr = doc.createNestedArray("Temperature");
-  arr.add(21.12);
-  arr.add("C");
-  arr.add(false);
-  arr = doc.createNestedArray("AccumulatedEnergy");
-  arr.add(320);
-  arr.add("kWh");
-  arr.add(false);
-#endif  // SIMULATE_INVERTER
-
-  if (doc.overflowed()) {
-    Log.println(
-        F("CreateUIJson: JsonDocument overflowed! Output will be "
-          "truncated."));
-  }
 }
-
+// -------------------------------------------------------------
+// Metrics helpers
+// -------------------------------------------------------------
 void Growatt::camelCaseToSnakeCase(const String& input, char* output) {
-  int outputIndex = 0;
-  for (uint i = 0; input[i] != '\0'; i++) {
-    if (i > 0 && isUpperCase(input[i]) &&
-        (isLowerCase(input[i - 1]) ||
-         (i < input.length() - 1 && isLowerCase(input[i + 1])))) {
-      output[outputIndex++] = '_';
+    int out = 0;
+
+    for (uint i = 0; input[i] != '\0'; i++) {
+        char c = input[i];
+
+        // Insert underscore before uppercase transitions
+        if (i > 0 &&
+            isUpperCase(c) &&
+            (isLowerCase(input[i - 1]) ||
+             (i < input.length() - 1 && isLowerCase(input[i + 1])))) {
+            output[out++] = '_';
+        }
+
+        output[out++] = toLowerCase(c);
     }
-    output[outputIndex++] = toLowerCase(input[i]);
-  }
-  output[outputIndex] = '\0';
+
+    output[out] = '\0';
 }
 
-void Growatt::metricsAddValue(const String& name, const double& value,
-                              const float& resolution, String& metrics,
+void Growatt::metricsAddValue(const String& name,
+                              const double& value,
+                              const float& resolution,
+                              String& metrics,
                               const String& labels) {
-  const String svalue =
-      (resolution == 1) ? String((int32_t)value) : String(value);
-  char nameSnakeCase[name.length() + 10];
-  camelCaseToSnakeCase(name, nameSnakeCase);
-  metrics +=
-      "growatt_" + String(nameSnakeCase) + "{" + labels + "} " + svalue + "\n";
+
+    String svalue = (resolution == 1.0)
+        ? String((int32_t)value)
+        : String(value);
+
+char snake[64];
+camelCaseToSnakeCase(name, snake);
+metrics += "growatt_";
+metrics += String(snake);
+    metrics += "{";
+    metrics += labels;
+    metrics += "} ";
+    metrics += svalue;
+    metrics += "\n";
 }
 
-void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
+// -------------------------------------------------------------
+// CreateMetrics
+// -------------------------------------------------------------
+void Growatt::CreateMetrics(String& metrics,
+                            const String& MacAddress,
                             const String& Hostname) {
-  String labels;
-  if (Hostname == DEFAULT_HOSTNAME) {
-    labels = "mac=\"" + MacAddress + "\"";
-  } else {
-    labels = "mac=\"" + MacAddress + "\",name=\"" + Hostname + "\"";
-  }
-#if SIMULATE_INVERTER != 1
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++)
-    metricsAddValue(_Protocol.InputRegisters[i].name,
-                    getRegValue(&_Protocol.InputRegisters[i]),
-                    _Protocol.InputRegisters[i].resolution, metrics, labels);
 
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++)
-    metricsAddValue(_Protocol.HoldingRegisters[i].name,
-                    getRegValue(&_Protocol.HoldingRegisters[i]),
-                    _Protocol.HoldingRegisters[i].resolution, metrics, labels);
+    String labels = "mac=\"" + MacAddress + "\",host=\"" + Hostname + "\"";
 
-#else
-#warning simulating the inverter
-  metricsAddValue("Status", 1, 1, metrics, labels);
-  metricsAddValue("DcPower", 230, 0.1, metrics, labels);
-  metricsAddValue("DcVoltage", 70.5, 0.1, metrics, labels);
-  metricsAddValue("DcInputCurrent", 8.5, 0.1, metrics, labels);
-  metricsAddValue("AcFreq", 50.00, 0.01, metrics, labels);
-  metricsAddValue("AcVoltage", 230.0, 0.1, metrics, labels);
-  metricsAddValue("AcPower", 0.0, 0.1, metrics, labels);
-  metricsAddValue("EnergyToday", 0.3, 0.1, metrics, labels);
-  metricsAddValue("EnergyTotal", 49.1, 0.1, metrics, labels);
-  metricsAddValue("OperatingTime", 123456, 0.1, metrics, labels);
-  metricsAddValue("Temperature", 21.12, 0.1, metrics, labels);
-  metricsAddValue("AccumulatedEnergy", 320, 0.1, metrics, labels);
-#endif  // SIMULATE_INVERTER
-  metricsAddValue("Cnt", _PacketCnt, 1, metrics, labels);
-  metricsAddValue("CntFailed", _PacketCntFailed, 1, metrics, labels);
-  metricsAddValue("Uptime", millis() / 1000, 1, metrics, labels);
-  metricsAddValue("WifiRSSI", WiFi.RSSI(), 1, metrics, labels);
+    // Input registers
+    for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+        auto& r = _Protocol.InputRegisters[i];
+        metricsAddValue(r.name,
+                        getRegValue(&r),
+                        r.resolution,
+                        metrics,
+                        labels);
+    }
 
-  metricsAddValue("HeapFree", ESP.getFreeHeap(), 1, metrics, labels);
-#if defined(ESP32)
-  metricsAddValue("HeapSize", ESP.getHeapSize(), 1, metrics, labels);
-  metricsAddValue("HeapMaxAlloc", ESP.getMaxAllocHeap(), 1, metrics, labels);
-  metricsAddValue("HeapMinFree", ESP.getMinFreeHeap(), 1, metrics, labels);
-  metricsAddValue("HeapFragmentation",
-                  100 - (100 * ESP.getMaxAllocHeap() / ESP.getFreeHeap()), 1,
-                  metrics, labels);
-#else
-  static uint32_t heap_min_free = ESP.getFreeHeap();
-  heap_min_free = min(ESP.getFreeHeap(), heap_min_free);
-  metricsAddValue("HeapMaxAlloc", ESP.getMaxFreeBlockSize(), 1, metrics,
-                  labels);
-  metricsAddValue("HeapMinFree", heap_min_free, 1, metrics, labels);
-  metricsAddValue("HeapFragmentation", ESP.getHeapFragmentation(), 1, metrics,
-                  labels);
-#endif
+    // Holding registers
+    for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+        auto& r = _Protocol.HoldingRegisters[i];
+        metricsAddValue(r.name,
+                        getRegValue(&r),
+                        r.resolution,
+                        metrics,
+                        labels);
+    }
+
+    // Internal counters
+    metrics += "growatt_packets_total{" + labels + "} " +
+               String(_PacketCnt) + "\n";
+
+    metrics += "growatt_packets_failed{" + labels + "} " +
+               String(_PacketCntFailed) + "\n";
 }
-
+// -------------------------------------------------------------
+// RegisterCommand
+// -------------------------------------------------------------
 void Growatt::RegisterCommand(const String& command,
                               CommandHandlerFunc handler) {
-  handlers[command] = handler;
+    handlers[command] = handler;
 }
 
-void Growatt::HandleCommand(const String& command, const byte* payload,
-                            const unsigned int length, JsonDocument& req,
+// -------------------------------------------------------------
+// HandleCommand (MQTT / UI / API entrypoint)
+// -------------------------------------------------------------
+void Growatt::HandleCommand(const String& command,
+                            const byte* payload,
+                            unsigned int length,
+                            JsonDocument& req,
                             JsonDocument& res) {
-  String correlationId = "";
-  DeserializationError deserializationErr =
-      deserializeJson(req, payload, length);
 
-  bool success;
-  String message;
-  if (deserializationErr) {
-    Log.println("Failed to parse JSON Request in Command '" + command +
-                "': " + String(deserializationErr.c_str()));
-    success = false;
-    message =
-        "Failed to parse JSON Request: " + String(deserializationErr.c_str());
-  } else {
-    if (req.containsKey("correlationId")) {
-      res["correlationId"] = String(req["correlationId"].as<String>());
+    // Unknown command?
+    if (!handlers.count(command)) {
+        res["success"] = false;
+        res["error"] = "Unknown command: " + command;
+        return;
     }
 
-    auto it = handlers.find(command.c_str());
-    if (it != handlers.end()) {
-      Log.println("Handling Command: " + command);
-      std::tie(success, message) = it->second(req, res, *this);
-    } else {
-      Log.println("Unknown Command: " + command);
-      success = false;
-      message = "Unknown Command: " + command;
+    // Parse JSON payload if present
+    if (length > 0) {
+        DeserializationError err = deserializeJson(req, payload, length);
+        if (err) {
+            res["success"] = false;
+            res["error"] = "JSON parse error";
+            return;
+        }
     }
-  }
 
-  res["command"] = command;
-  res["success"] = success;
-  res["message"] = message;
-  Log.println(res["message"].as<String>());
+    // Execute handler
+    auto& handler = handlers[command];
+    auto result = handler(req, res, *this);
+
+    bool ok = std::get<0>(result);
+    String msg = std::get<1>(result);
+
+    res["success"] = ok;
+    if (!msg.isEmpty())
+        res["message"] = msg;
 }
 
-std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
-                                             JsonDocument& res,
-                                             Growatt& inverter) {
-  if (!req.containsKey("text")) {
-    return std::make_tuple(false, "'Text' Field is required");
-  }
-  String text = req["text"].as<String>();
-  res["text"] = "Echo: " + text;
-  return std::make_tuple(true, "");
+// -------------------------------------------------------------
+// handleEcho
+// -------------------------------------------------------------
+std::tuple<bool, String>
+Growatt::handleEcho(const JsonDocument& req,
+                    JsonDocument& res,
+                    Growatt& inverter) {
+
+    if (req.containsKey("msg"))
+        res["echo"] = req["msg"].as<String>();
+    else
+        res["echo"] = "no message";
+
+    return { true, "" };
 }
 
-std::tuple<bool, String> Growatt::handleCommandList(const JsonDocument& req,
-                                                    JsonDocument& res,
-                                                    Growatt& inverter) {
-  JsonArray commands = res.createNestedArray("commands");
-  for (auto it = handlers.begin(); it != handlers.end(); ++it) {
-    commands.add(it->first);
-  }
-  return std::make_tuple(true, "");
-}
+// -------------------------------------------------------------
+// handleCommandList
+// -------------------------------------------------------------
+std::tuple<bool, String>
+Growatt::handleCommandList(const JsonDocument& req,
+                           JsonDocument& res,
+                           Growatt& inverter) {
 
-std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
-                                                  JsonDocument& res,
-                                                  Growatt& inverter) {
-  if (!req.containsKey("id")) {
-    return std::make_tuple(false, "'ID' Field is required");
-  }
+    JsonArray arr = res.createNestedArray("commands");
 
-#if SIMULATE_INVERTER != 1
-  uint16_t id = req["id"].as<uint16_t>();
-#endif
-
-  if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'Type' Field is required");
-  }
-
-  String type = req["type"].as<String>();
-
-  if (type != "16b" && type != "32b") {
-    return std::make_tuple(false, "'Type' must be '16b' or '32b'");
-  }
-
-  if (!req.containsKey("registerType")) {
-    return std::make_tuple(false, "'RegisterType' Field is required");
-  }
-
-  String registerType = req["registerType"].as<String>();
-
-  if (registerType != "H" && registerType != "I") {
-    return std::make_tuple(
-        false, "'RegisterType' must be 'H' (Holding) or 'I' (Input)");
-  }
-
-#if SIMULATE_INVERTER != 1
-  if (type == "16b") {
-    uint16_t value;
-    if (registerType == "H") {
-      if (!inverter.ReadHoldingReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read Holding Register");
-      }
-    } else {
-      if (!inverter.ReadInputReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read Input Register");
-      }
+    for (auto const& kv : handlers) {
+        arr.add(kv.first);
     }
+
+    return { true, "" };
+}
+
+// -------------------------------------------------------------
+// handleModbusGet
+// -------------------------------------------------------------
+std::tuple<bool, String>
+Growatt::handleModbusGet(const JsonDocument& req,
+                         JsonDocument& res,
+                         Growatt& inverter) {
+
+    if (!req.containsKey("name"))
+        return { false, "Missing field: name" };
+
+    String name = req["name"].as<String>();
+    double value;
+
+    if (!inverter.GetSingleValueByName(name, value))
+        return { false, "Unknown register: " + name };
+
     res["value"] = value;
-  } else {
-    uint32_t value;
-    if (registerType == "H") {
-      if (!inverter.ReadHoldingReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read Holding Register");
-      }
-    } else {
-      if (!inverter.ReadInputReg(id, &value)) {
-        return std::make_tuple(false, "Failed to read Input Register");
-      }
+    return { true, "" };
+}
+
+// -------------------------------------------------------------
+// handleModbusSet
+// -------------------------------------------------------------
+std::tuple<bool, String>
+Growatt::handleModbusSet(const JsonDocument& req,
+                         JsonDocument& res,
+                         Growatt& inverter) {
+
+    if (!req.containsKey("address"))
+        return { false, "Missing field: address" };
+    if (!req.containsKey("value"))
+        return { false, "Missing field: value" };
+
+    uint16_t adr = req["address"].as<uint16_t>();
+    uint16_t val = req["value"].as<uint16_t>();
+
+    bool ok = inverter.WriteHoldingReg(adr, val);
+    if (!ok)
+        return { false, "Write failed" };
+
+    res["written"] = val;
+    return { true, "" };
+}
+// -------------------------------------------------------------
+// Additional helper: check if data was received
+// -------------------------------------------------------------
+bool Growatt::HasValidData() const {
+    return _GotData;
+}
+
+// -------------------------------------------------------------
+// Reset counters
+// -------------------------------------------------------------
+void Growatt::ResetCounters() {
+    _PacketCnt = 0;
+    _PacketCntFailed = 0;
+}
+
+// -------------------------------------------------------------
+// Debug dump of protocol registers (optional)
+// -------------------------------------------------------------
+void Growatt::DumpRegisters(Stream& out) {
+    out.println("=== Growatt Register Dump ===");
+
+    out.println("-- Input Registers --");
+    for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+        auto& r = _Protocol.InputRegisters[i];
+        out.print(r.name);
+        out.print(" = ");
+        out.println(getRegValue(&r));
     }
-    res["value"] = value;
-  }
-#else
-  if (type == "16b") {
-    res["value"] = 16;
-  } else {
-    res["value"] = 32;
-  }
-#endif
 
-  return std::make_tuple(true, "success");
+    out.println("-- Holding Registers --");
+    for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+        auto& r = _Protocol.HoldingRegisters[i];
+        out.print(r.name);
+        out.print(" = ");
+        out.println(getRegValue(&r));
+    }
 }
 
-std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
-                                                  JsonDocument& res,
-                                                  Growatt& inverter) {
-  if (!req.containsKey("id")) {
-    return std::make_tuple(false, "'ID' Field is required");
-  }
-
-#if SIMULATE_INVERTER != 1
-  uint16_t id = req["id"].as<uint16_t>();
-#endif
-
-  if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'Type' Field is required");
-  }
-
-  String type = req["type"].as<String>();
-
-  if (type == "32b") {
-    return std::make_tuple(
-        false, "Writing to double (32b) Registers is currently not supported");
-  }
-
-  if (type != "16b") {
-    return std::make_tuple(false, "'Type' must be '16b'");
-  }
-
-  if (!req.containsKey("registerType")) {
-    return std::make_tuple(false, "'RegisterType' Field is required");
-  }
-
-  String registerType = req["registerType"].as<String>();
-
-  if (registerType == "I") {
-    return std::make_tuple(false,
-                           "It is not possible to write into Input Registers");
-  }
-
-  if (registerType != "H") {
-    return std::make_tuple(false, "'RegisterType' must be 'H' (holding)");
-  }
-
-  if (!req.containsKey("value")) {
-    return std::make_tuple(false, "'Value' Field is required");
-  }
-
-#if SIMULATE_INVERTER != 1
-  uint16_t value = req["value"].as<uint16_t>();
-#endif
-
-#if SIMULATE_INVERTER != 1
-  if (!inverter.WriteHoldingReg(id, value)) {
-    return std::make_tuple(false, "Failed to write into Holding Register!");
-  }
-#endif
-
-  return std::make_tuple(true, "success");
+// -------------------------------------------------------------
+// Manual refresh of all data
+// -------------------------------------------------------------
+bool Growatt::Refresh() {
+    _GotData = false;
+    return ReadData(NUM_OF_RETRIES);
 }
+
+// -------------------------------------------------------------
+// Access to protocol structure
+// -------------------------------------------------------------
+sGrowattProtocol_t& Growatt::GetProtocol() {
+    return _Protocol;
+}
+
+// -------------------------------------------------------------
+// Access to raw register arrays
+// -------------------------------------------------------------
+sGrowattModbusReg_t* Growatt::GetInputRegisterPtr() {
+    return _Protocol.InputRegisters;
+}
+
+sGrowattModbusReg_t* Growatt::GetHoldingRegisterPtr() {
+    return _Protocol.HoldingRegisters;
+}
+
+// -------------------------------------------------------------
+// Get number of registers
+// -------------------------------------------------------------
+uint16_t Growatt::GetInputRegisterCount() const {
+    return _Protocol.InputRegisterCount;
+}
+
+uint16_t Growatt::GetHoldingRegisterCount() const {
+    return _Protocol.HoldingRegisterCount;
+}
+
+// -------------------------------------------------------------
+// Get Modbus device type
+// -------------------------------------------------------------
+String Growatt::DeviceTypeToString() const {
+    switch (_eDevice) {
+        case Undef_stick: return "Unknown";
+        case ShineWiFi_S: return "ShineWiFi-S";
+        case ShineWiFi_X: return "ShineWiFi-X";
+        case ShineWiFi_F: return "ShineWiFi-F";
+        default:          return "Unknown";
+    }
+}
+// -------------------------------------------------------------
+// Get device type enum
+// -------------------------------------------------------------
+eDevice_t Growatt::GetDeviceType() const {
+    return _eDevice;
+}
+
+// -------------------------------------------------------------
+// Get packet counters
+// -------------------------------------------------------------
+uint32_t Growatt::GetPacketCount() const {
+    return _PacketCnt;
+}
+
+uint32_t Growatt::GetPacketFailedCount() const {
+    return _PacketCntFailed;
+}
+
+// -------------------------------------------------------------
+// Get uptime of inverter data (seconds since last refresh)
+// -------------------------------------------------------------
+uint32_t Growatt::GetDataUptime() const {
+    return millis() / 1000;
+}
+
+// -------------------------------------------------------------
+// Simple status string
+// -------------------------------------------------------------
+String Growatt::StatusString() const {
+    if (!_GotData) return "no data";
+    return "ok";
+}
+
+// -------------------------------------------------------------
+// END OF FILE
+// -------------------------------------------------------------
