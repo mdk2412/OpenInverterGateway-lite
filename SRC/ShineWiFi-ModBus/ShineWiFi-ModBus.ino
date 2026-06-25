@@ -461,18 +461,20 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
 // new end
 
 void setup() {
-  LittleFS.begin();
-  httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
-
-  WiFiManager wm;
-
-  Log.println(F("Setup()"));
   // >>> LittleFS mounten (MUSS als erstes passieren)
   if (!LittleFS.begin()) {
     Serial.println("LittleFS mount failed!");
   } else {
     Serial.println("LittleFS OK");
   }
+
+  // Jetzt ist LittleFS sicher gemountet → Static Files registrieren
+  httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
+
+  WiFiManager wm;
+
+  Log.println(F("Setup()"));
+
   setupGPIO();
 
 #if ENABLE_DOUBLE_RESET == 1
