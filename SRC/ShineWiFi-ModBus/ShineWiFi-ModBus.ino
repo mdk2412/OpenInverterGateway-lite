@@ -1225,18 +1225,13 @@ void acchargeControl() {
     // --- clamp auf 0–100 ---
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
-    // --- Logging nur bei Änderung ---
-    static int32_t lastRate = -1;
-    if (targetpowerrate != lastRate) {
-      Log.print(F("Set BDCChargePowerRate: "));
-      Log.print(targetpowerrate);
-      Log.println(F(" %"));
-      lastRate = targetpowerrate;
-    }
-
-    // --- Nur schreiben, wenn nötig ---
+    // Nur schreiben, wenn nötig
     if (current_rate != targetpowerrate) {
-      if (!writeWithRetry(3047, targetpowerrate)) {
+      if (writeWithRetry(3047, targetpowerrate)) {
+        Log.print(F("Set BDCChargePowerRate: "));
+        Log.print(targetpowerrate);
+        Log.println(F(" %"));
+      } else {
         Log.println(F("Failed to set BDCChargePowerRate!"));
       }
     }
