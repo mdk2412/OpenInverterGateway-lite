@@ -392,6 +392,12 @@ void startWdt() {
 // }
 // #endif
 
+// --- Zentrale Defaults
+constexpr int DEFAULT_SLEEP_THR = 50;
+constexpr int DEFAULT_WAKE_THR  = 75;
+constexpr int DEFAULT_AC_MAX    = 3750;
+constexpr int DEFAULT_OFFSET    = -1;
+
 void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
@@ -402,14 +408,14 @@ void loadSettingsFromPrefs() {
 
   // Sleep Threshold (>0)
   {
-    int v = prefs.getString("bat_slp_thr", "50").toInt();
+    int v = prefs.getString("bat_slp_thr", String(DEFAULT_SLEEP_THR)).toInt();
     if (v <= 0) v = 1;
     User.bat_slp_thr = String(v);
   }
 
   // Wake Threshold (>0)
   {
-    int v = prefs.getString("bat_wke_thr", "75").toInt();
+    int v = prefs.getString("bat_wke_thr", String(DEFAULT_WAKE_THR)).toInt();
     if (v <= 0) v = 1;
     User.bat_wke_thr = String(v);
   }
@@ -421,14 +427,14 @@ void loadSettingsFromPrefs() {
 
   // AC Max Power (>0)
   {
-    int v = prefs.getString("ac_max_pow", "3750").toInt();
+    int v = prefs.getString("ac_max_pow", String(DEFAULT_AC_MAX)).toInt();
     if (v <= 0) v = 1;
     User.ac_max_pow = String(v);
   }
 
   // Offset (-100 bis +100)
   {
-    int v = prefs.getString("ac_off_set", "1").toInt();
+    int v = prefs.getString("ac_off_set", String(DEFAULT_OFFSET)).toInt();
     if (v < -100) v = -100;
     if (v > 100) v = 100;
     User.ac_off_set = String(v);
