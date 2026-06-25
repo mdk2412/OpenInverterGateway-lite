@@ -122,15 +122,8 @@ void WebSerialStream::begin() {
   });
   _server->begin();
 
-  static bool ipLogged = false;
+  Log.println(F("Opened Serial Web Server"));
 
-  if (!ipLogged && WiFi.status() == WL_CONNECTED) {
-    ipLogged = true;
-    Log.print(F("Opened Serial Web Server: http://"));
-    Log.print(WiFi.localIP());
-    Log.print(F(":"));
-    Log.println(_webPort);
-  }
   MDNS.addService("http", "tcp", _webPort);
 };
 
