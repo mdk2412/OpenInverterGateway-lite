@@ -39,7 +39,7 @@ class Growatt {
 
  private:
   eDevice_t _eDevice;
-  bool _GotData;
+  bool _GotData = false;
   uint32_t _PacketCnt;
   uint32_t _PacketCntFailed;
   std::map<String, CommandHandlerFunc> handlers;
