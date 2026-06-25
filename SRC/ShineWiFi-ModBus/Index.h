@@ -421,7 +421,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           setTimeout(() => {
             btn.textContent = oldText;
             btn.className = oldClass;
-          }, 2000);
+          }, 1000);
         };
 
         // -------------------------------
