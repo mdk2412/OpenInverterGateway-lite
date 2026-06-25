@@ -394,9 +394,9 @@ void startWdt() {
 
 // --- Zentrale Defaults
 constexpr int DEFAULT_SLEEP_THR = 50;
-constexpr int DEFAULT_WAKE_THR  = 75;
-constexpr int DEFAULT_AC_MAX    = 3750;
-constexpr int DEFAULT_OFFSET    = -1;
+constexpr int DEFAULT_WAKE_THR = 75;
+constexpr int DEFAULT_AC_MAX = 3750;
+constexpr int DEFAULT_OFFSET = -1;
 
 void loadSettingsFromPrefs() {
   Preferences prefs;
@@ -435,8 +435,8 @@ void loadSettingsFromPrefs() {
   // Offset (-100 bis +100)
   {
     int v = prefs.getString("ac_off_set", String(DEFAULT_OFFSET)).toInt();
-    if (v < -100) v = -100;
-    if (v > 100) v = 100;
+    if (v < -99) v = -99;
+    if (v > 99) v = 99;
     User.ac_off_set = String(v);
   }
 #endif
@@ -1183,43 +1183,53 @@ void batteryStandby() {
 
 #if ACCHARGE_CONTROL == 1
 void acchargeControl() {
+  // --- User-Parameter laden und validieren ---
   uint32_t max_power = User.ac_max_pow.toInt();
-  int32_t off_set = User.ac_off_set.toInt();
+  if (max_power == 0) max_power = DEFAULT_AC_MAX;
 
-  if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
-      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
-          1) {
-    if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value == 100) {
+  int32_t off_set = User.ac_off_set.toInt();
+  if (off_set < -99) off_set = -99;
+  if (off_set >  99) off_set =  99;
+
+  // --- Register EINMAL auslesen ---
+  int32_t priority     = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
+  int32_t ac_enabled   = Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
+  int32_t soc          = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+
+  int32_t p_chr        = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
+  int32_t p_togrid     = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
+  int32_t p_touser     = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
+
+  // --- Bedingungen prüfen ---
+  if (priority == 1 && ac_enabled == 1) {
+
+    // Wenn Akku voll → auf LoadFirst umschalten
+    if (soc == 100) {
       loadFirst();
       return;
     }
 
-    int64_t delta =
-        static_cast<int64_t>(
-            Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value) +
-        static_cast<int64_t>(
-            Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value) -
-        static_cast<int64_t>(
-            Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value);
+    // --- Delta berechnen (Integer, 64-bit für Sicherheit) ---
+    int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
 
-    double rawRate = (delta * 10.0) / max_power;
-    int32_t roundedRate = static_cast<int32_t>(std::round(rawRate) + off_set);
+    // --- Integer-Mathematik ---
+    int32_t rawRate     = (delta * 10) / max_power;
+    int32_t roundedRate = rawRate + off_set;
 
-    uint16_t targetpowerrate;
+    // --- clamp auf 0–100 ---
+    uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
-#if defined(ESP32)
-    if (roundedRate < 0)
-      targetpowerrate = 0;
-    else if (roundedRate > 100)
-      targetpowerrate = 100;
-    else
-      targetpowerrate = static_cast<uint16_t>(roundedRate);
-#else
-    targetpowerrate = std::clamp<int16_t>(roundedRate, 0, 100);
-#endif
+    // --- Logging nur bei Änderung ---
+    static int32_t lastRate = -1;
+    if (targetpowerrate != lastRate) {
+      Log.print(F("AC Charge Power Rate: "));
+      Log.print(targetpowerrate);
+      Log.println(F(" %"));
+      lastRate = targetpowerrate;
+    }
 
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
-        targetpowerrate) {
+    // --- Nur schreiben, wenn nötig ---
+    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value != targetpowerrate) {
       if (!writeWithRetry(3047, targetpowerrate)) {
         Log.println(F("Failed to set BDCChargePowerRate!"));
       }
@@ -1255,6 +1265,7 @@ void loop() {
 #endif
 
   Log.loop();
+  wl_status_t wifiState = WiFi.status();
   unsigned long now = millis();
 
 #ifdef AP_BUTTON_PRESSED
@@ -1282,11 +1293,15 @@ void loop() {
     ESP.restart();
   }
 
-  WiFi_Reconnect();
+  if (wifiState != WL_CONNECTED) {
+    WiFi_Reconnect();
+  }
 
 #if MQTT_SUPPORTED == 1
-  if (shineMqtt.mqttReconnect()) {
-    shineMqtt.loop();
+  if (wifiState == WL_CONNECTED) {
+    if (shineMqtt.mqttReconnect()) {
+      shineMqtt.loop();
+    }
   }
 #endif
 
@@ -1303,7 +1318,7 @@ void loop() {
   // Toggle green LED with 1 Hz (alive)
   // ------------------------------------------------------------
   if ((now - LEDTimer) > LED_TIMER) {
-    if (WiFi.status() == WL_CONNECTED)
+    if (wifiState == WL_CONNECTED)
       digitalWrite(LED_GN, !digitalRead(LED_GN));
     else
       digitalWrite(LED_GN, 0);
@@ -1321,7 +1336,7 @@ void loop() {
   // Read Inverter every REFRESH_TIMER ms [defined in config.h]
   // ------------------------------------------------------------
   if ((now - RefreshTimer) > REFRESH_TIMER) {
-    if ((WiFi.status() == WL_CONNECTED) && (Inverter.GetWiFiStickType())) {
+    if ((wifiState == WL_CONNECTED) && (Inverter.GetWiFiStickType())) {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
