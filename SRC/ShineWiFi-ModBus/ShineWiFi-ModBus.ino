@@ -1,12 +1,17 @@
+// -----------------------------------------------------------------------------
+//  Projekt-Konfiguration
+// -----------------------------------------------------------------------------
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
 #error Please rename Config.h.example to Config.h
 #endif
 
+// -----------------------------------------------------------------------------
+//  Projekt-Header
+// -----------------------------------------------------------------------------
 #include "ShineWifi.h"
 #include "Index.h"
 #include "Growatt.h"
-
 #include "GrowattTLXH.h"
 
 #if MQTT_SUPPORTED == 1
@@ -17,28 +22,43 @@
 #include "ModbusTCP.h"
 #endif
 
-#include <TLog.h>
-#include <Preferences.h>
-#include <WiFiManager.h>
-#include <StreamUtils.h>
+// -----------------------------------------------------------------------------
+//  Externe Bibliotheken
+// -----------------------------------------------------------------------------
 #include <LittleFS.h>
+#include <Preferences.h>
+#include <StreamUtils.h>
+#include <TLog.h>
+#include <WiFiManager.h>
 
-#if defined ESP8266
+// -----------------------------------------------------------------------------
+//  Plattformabhängige Includes
+// -----------------------------------------------------------------------------
+#if defined(ESP8266)
 #include <Updater.h>
-#elif defined ESP32
+#elif defined(ESP32)
 #include <Update.h>
 #include <esp_task_wdt.h>
 #endif
 
+// -----------------------------------------------------------------------------
+//  Optional: OTA
+// -----------------------------------------------------------------------------
 #if OTA_SUPPORTED == 1
 #include <ArduinoOTA.h>
 #endif
 
+// -----------------------------------------------------------------------------
+//  Optional: Pinger
+// -----------------------------------------------------------------------------
 #if PINGER_SUPPORTED == 1
 #include <Pinger.h>
 #include <PingerResponse.h>
 #endif
 
+// -----------------------------------------------------------------------------
+//  Optional: Double Reset Detector
+// -----------------------------------------------------------------------------
 #if ENABLE_DOUBLE_RESET == 1
 #define ESP_DRD_USE_LITTLEFS true
 #define ESP_DRD_USE_EEPROM false
@@ -48,17 +68,23 @@
 DoubleResetDetector* drd;
 #endif
 
+// -----------------------------------------------------------------------------
+//  Optional: NTP
+// -----------------------------------------------------------------------------
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 #include <time.h>
 extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
+// -----------------------------------------------------------------------------
+//  Globale Objekte
+// -----------------------------------------------------------------------------
 Preferences prefs;
 Growatt Inverter;
 bool StartedConfigAfterBoot = false;
 
 #if MQTT_SUPPORTED == 1
-#if defined MQTTS_ENABLED
+#if defined(MQTTS_ENABLED)
 WiFiClientSecure espClient;
 #else
 WiFiClient espClient;
@@ -70,7 +96,7 @@ ShineMqtt shineMqtt(espClient, Inverter);
 ModbusTCP modbusTCP(MODBUS_TCP_PORT);
 #endif
 
-#if defined AP_BUTTON_PRESSED
+#if defined(AP_BUTTON_PRESSED)
 byte btnPressed = 0;
 #endif
 
@@ -80,9 +106,9 @@ boolean readoutSucceeded = false;
 Pinger pinger;
 #endif
 
-#if defined ESP8266
+#if defined(ESP8266)
 ESP8266WebServer httpServer(80);
-#elif defined ESP32
+#elif defined(ESP32)
 WebServer httpServer(80);
 #endif
 
