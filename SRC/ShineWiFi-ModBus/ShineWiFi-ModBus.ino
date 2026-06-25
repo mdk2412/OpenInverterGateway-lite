@@ -1224,7 +1224,7 @@ void acchargeControl() {
     // --- Logging nur bei Änderung ---
     static int32_t lastRate = -1;
     if (targetpowerrate != lastRate) {
-      Log.print(F("AC Charge Power Rate: "));
+      Log.print(F("Set BDCChargePowerRate: "));
       Log.print(targetpowerrate);
       Log.println(F(" %"));
       lastRate = targetpowerrate;
