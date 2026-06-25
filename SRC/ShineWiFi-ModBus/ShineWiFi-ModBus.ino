@@ -7,9 +7,7 @@
 #include "Index.h"
 #include "Growatt.h"
 
-#if BATTERY_STANDBY == 1 || ACCHARGE_CONTROL == 1
 #include "GrowattTLXH.h"
-#endif
 
 #if MQTT_SUPPORTED == 1
 #include "ShineMqtt.h"
@@ -138,17 +136,13 @@ struct WifiConfig {
 };
 
 struct UserConfig {
-#if BATTERY_STANDBY == 1
   bool bat_standby;
   String bat_slp_thr;
   String bat_wke_thr;
-#endif
 
-#if ACCHARGE_CONTROL == 1
   bool accharge;
   String ac_max_pow;
   String ac_off_set;
-#endif
 };
 
 WifiConfig Wifi;
@@ -402,7 +396,6 @@ void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
 
-#if BATTERY_STANDBY == 1
   // Battery Standby (bool)
   User.bat_standby = prefs.getBool("bat_standby", false);
 
@@ -419,9 +412,7 @@ void loadSettingsFromPrefs() {
     if (v <= 0) v = 1;
     User.bat_wke_thr = String(v);
   }
-#endif
 
-#if ACCHARGE_CONTROL == 1
   // AC Charging enabled?
   User.accharge = prefs.getBool("accharge", false);
 
@@ -439,7 +430,6 @@ void loadSettingsFromPrefs() {
     if (v > 99) v = 99;
     User.ac_off_set = String(v);
   }
-#endif
 
   prefs.end();
 }
@@ -616,7 +606,6 @@ void setup() {
     //
     // BATTERY STANDBY
     //
-#if BATTERY_STANDBY == 1
     User.bat_standby = (httpServer.arg("bat_standby") == "on");
     prefs.putBool("bat_standby", User.bat_standby);
 
@@ -635,12 +624,10 @@ void setup() {
       User.bat_wke_thr = String(v);
       prefs.putString("bat_wke_thr", User.bat_wke_thr);
     }
-#endif
 
     //
     // AC CHARGE CONTROL
     //
-#if ACCHARGE_CONTROL == 1
     User.accharge = (httpServer.arg("accharge") == "on");
     prefs.putBool("accharge", User.accharge);
 
@@ -660,7 +647,6 @@ void setup() {
       User.ac_off_set = String(v);
       prefs.putString("ac_off_set", User.ac_off_set);
     }
-#endif
 
     prefs.end();
     httpServer.send(200, "text/plain", "Settings saved");
@@ -675,24 +661,18 @@ void setup() {
     //
     // Battery Standby
     //
-#if BATTERY_STANDBY == 1
     doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
     doc["bat_slp_thr"] = prefs.getString("bat_slp_thr", User.bat_slp_thr);
     doc["bat_wke_thr"] = prefs.getString("bat_wke_thr", User.bat_wke_thr);
-#else
     doc["bat_standby"] = false;
-#endif
 
     //
     // AC Charging
     //
-#if ACCHARGE_CONTROL == 1
     doc["accharge"] = prefs.getBool("accharge", User.accharge);
     doc["ac_max_pow"] = prefs.getString("ac_max_pow", User.ac_max_pow);
     doc["ac_off_set"] = prefs.getString("ac_off_set", User.ac_off_set);
-#else
     doc["accharge"] = false;
-#endif
 
     prefs.end();
 
@@ -759,15 +739,6 @@ void setup() {
 #endif
 #endif
 
-// #if ACCHARGE_CONTROL == 1
-//   Log.print(F("AC Charge Power Rate active, "));
-//   Log.print(F("Inverter Maximum Power: "));
-//   Log.print(ACCHARGE_CONTROL_MAXPOWER);
-//   Log.print(F(" W, "));
-//   Log.print(F("Offset: "));
-//   Log.print(ACCHARGE_CONTROL_OFFSET);
-//   Log.println(F(" %"));
-// #endif
 #if defined(ESP32)
   startWdt();
 #endif
@@ -1117,22 +1088,28 @@ bool writeWithRetry(uint16_t reg, uint16_t value) {
   return false;
 }
 
-#if BATTERY_STANDBY == 1
 void batteryStandby() {
   // --- User-Parameter (bereits als *10 skaliert) ---
-  uint32_t wake_threshold  = User.bat_wke_thr.toInt() * 10;
+  uint32_t wake_threshold = User.bat_wke_thr.toInt() * 10;
   uint32_t sleep_threshold = User.bat_slp_thr.toInt() * 10;
 
   // --- Register EINMAL auslesen ---
-  int32_t soc              = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
-  int32_t discharge_stop   = Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
-  int32_t discharge_stop_w = Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5].value;
-  int32_t discharge_rate   = Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value;
+  int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t discharge_stop =
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
+  int32_t discharge_stop_w =
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5]
+          .value;
+  int32_t discharge_rate =
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value;
 
-  int32_t sysstate         = Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value;
-  int32_t ptogrid          = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
-  int32_t inverter_status  = Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
-  int32_t ppv              = Inverter._Protocol.InputRegisters[P3000_PPV].value;
+  int32_t sysstate =
+      Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value;
+  int32_t ptogrid =
+      Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
+  int32_t inverter_status =
+      Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
+  int32_t ppv = Inverter._Protocol.InputRegisters[P3000_PPV].value;
 
   // --- Disable discharging ---
   if (soc >= 10 && soc <= discharge_stop) {
@@ -1170,9 +1147,7 @@ void batteryStandby() {
   // --- Battery ON → sleep ---
   else if (sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
-        ppv     <= (int32_t)sleep_threshold &&
-        soc >= 10 &&
-        soc <= discharge_stop) {
+        ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
       if (writeWithRetry(0, 2)) {
         Log.println(F("Battery deactivated"));
       } else {
@@ -1181,9 +1156,7 @@ void batteryStandby() {
     }
   }
 }
-#endif
 
-#if ACCHARGE_CONTROL == 1
 void acchargeControl() {
   // --- User-Parameter laden und validieren ---
   uint32_t max_power = User.ac_max_pow.toInt();
@@ -1191,22 +1164,25 @@ void acchargeControl() {
 
   int32_t off_set = User.ac_off_set.toInt();
   if (off_set < -99) off_set = -99;
-  if (off_set >  99) off_set =  99;
+  if (off_set > 99) off_set = 99;
 
   // --- Register EINMAL auslesen ---
-  int32_t priority       = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
-  int32_t ac_enabled     = Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
-  int32_t soc            = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
+  int32_t ac_enabled =
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
+  int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
 
-  int32_t p_chr          = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
-  int32_t p_togrid       = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
-  int32_t p_touser       = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
+  int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
+  int32_t p_togrid =
+      Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
+  int32_t p_touser =
+      Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
 
-  uint16_t current_rate  = Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
+  uint16_t current_rate =
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
   // --- Bedingungen prüfen ---
   if (priority == 1 && ac_enabled == 1) {
-
     // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
       loadFirst();
@@ -1217,7 +1193,7 @@ void acchargeControl() {
     int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
 
     // --- Integer-Mathematik ---
-    int32_t rawRate     = (delta * 10) / max_power;
+    int32_t rawRate = (delta * 10) / max_power;
     int32_t roundedRate = rawRate + off_set;
 
     // --- clamp auf 0–100 ---
@@ -1240,7 +1216,6 @@ void acchargeControl() {
     }
   }
 }
-#endif
 
 // -------------------------------------------------------
 // Main loop
@@ -1251,12 +1226,8 @@ unsigned long ButtonTimer = 0;
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long WifiRetryTimer = 0;
-#if BATTERY_STANDBY == 1
 unsigned long BatteryStandbyTimer = 0;
-#endif
-#if ACCHARGE_CONTROL == 1
 unsigned long ACChargeControlTimer = 0;
-#endif
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 unsigned long NTPTimer = 0;
 unsigned long lastSync = 0;
