@@ -17,7 +17,7 @@ void ModbusTCP::begin() {
   server->begin();
   enabled = true;
 
-  Log.print(F("Modbus TCP server started on port "));
+  Log.print(F("Modbus TCP Server started on Port "));
   Log.println(port);
 }
 
