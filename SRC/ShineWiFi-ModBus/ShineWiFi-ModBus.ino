@@ -1182,7 +1182,7 @@ void acchargeControl() {
             Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value);
 
     double rawRate = (delta * 10.0) / max_power;
-    int32_t roundedRate = static_cast<int32_t>(std::round(rawRate) - off_set);
+    int32_t roundedRate = static_cast<int32_t>(std::round(rawRate) + off_set);
 
     uint16_t targetpowerrate;
 
