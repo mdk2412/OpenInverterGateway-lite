@@ -1117,16 +1117,24 @@ bool writeWithRetry(uint16_t reg, uint16_t value) {
 
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
-  uint32_t wake_threshold = User.bat_wke_thr.toInt() * 10;
+  // --- User-Parameter (bereits als *10 skaliert) ---
+  uint32_t wake_threshold  = User.bat_wke_thr.toInt() * 10;
   uint32_t sleep_threshold = User.bat_slp_thr.toInt() * 10;
 
-  // Disable discharging
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
-      Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-          Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-              .value) {
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value !=
-        0) {
+  // --- Register EINMAL auslesen ---
+  int32_t soc              = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t discharge_stop   = Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
+  int32_t discharge_stop_w = Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5].value;
+  int32_t discharge_rate   = Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value;
+
+  int32_t sysstate         = Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value;
+  int32_t ptogrid          = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
+  int32_t inverter_status  = Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
+  int32_t ppv              = Inverter._Protocol.InputRegisters[P3000_PPV].value;
+
+  // --- Disable discharging ---
+  if (soc >= 10 && soc <= discharge_stop) {
+    if (discharge_rate != 0) {
       if (writeWithRetry(3036, 0)) {
         Log.println(F("Battery discharging deactivated"));
       } else {
@@ -1135,12 +1143,9 @@ void batteryStandby() {
     }
   }
 
-  // Enable discharging
-  else if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >=
-           Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5]
-               .value) {
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value !=
-        100) {
+  // --- Enable discharging ---
+  else if (soc >= discharge_stop_w) {
+    if (discharge_rate != 100) {
       if (writeWithRetry(3036, 100)) {
         Log.println(F("Battery discharging activated"));
       } else {
@@ -1149,11 +1154,9 @@ void batteryStandby() {
     }
   }
 
-  // Battery OFF → wake
-  if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 0) {
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value >=
-            wake_threshold &&
-        Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value == 1) {
+  // --- Battery OFF → wake ---
+  if (sysstate == 0) {
+    if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
       if (writeWithRetry(0, 3)) {
         Log.println(F("Battery activated"));
       } else {
@@ -1162,15 +1165,12 @@ void batteryStandby() {
     }
   }
 
-  // Battery ON → sleep
-  else if (Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value == 1) {
-    if (Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value <=
-            sleep_threshold &&
-        Inverter._Protocol.InputRegisters[P3000_PPV].value <= sleep_threshold &&
-        Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
-        Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value <=
-            Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC]
-                .value) {
+  // --- Battery ON → sleep ---
+  else if (sysstate == 1) {
+    if (ptogrid <= (int32_t)sleep_threshold &&
+        ppv     <= (int32_t)sleep_threshold &&
+        soc >= 10 &&
+        soc <= discharge_stop) {
       if (writeWithRetry(0, 2)) {
         Log.println(F("Battery deactivated"));
       } else {
