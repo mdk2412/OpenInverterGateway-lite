@@ -1,6 +1,6 @@
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
-  #error Please rename Config.h.example to Config.h
+#error Please rename Config.h.example to Config.h
 #endif
 
 #include "ShineWifi.h"
@@ -8,15 +8,15 @@
 #include "Growatt.h"
 
 #if BATTERY_STANDBY == 1 || ACCHARGE_CONTROL == 1
-  #include "GrowattTLXH.h"
+#include "GrowattTLXH.h"
 #endif
 
 #if MQTT_SUPPORTED == 1
-  #include "ShineMqtt.h"
+#include "ShineMqtt.h"
 #endif
 
 #if MODBUS_TCP_SUPPORTED == 1
-  #include "ModbusTCP.h"
+#include "ModbusTCP.h"
 #endif
 
 #include <TLog.h>
@@ -26,33 +26,33 @@
 #include <LittleFS.h>
 
 #if defined ESP8266
-  #include <Updater.h>
+#include <Updater.h>
 #elif defined ESP32
-  #include <Update.h>
-  #include <esp_task_wdt.h>
+#include <Update.h>
+#include <esp_task_wdt.h>
 #endif
 
 #if OTA_SUPPORTED == 1
-  #include <ArduinoOTA.h>
+#include <ArduinoOTA.h>
 #endif
 
 #if PINGER_SUPPORTED == 1
-  #include <Pinger.h>
-  #include <PingerResponse.h>
+#include <Pinger.h>
+#include <PingerResponse.h>
 #endif
 
 #if ENABLE_DOUBLE_RESET == 1
-  #define ESP_DRD_USE_LITTLEFS true
-  #define ESP_DRD_USE_EEPROM false
-  #define DRD_TIMEOUT 10
-  #define DRD_ADDRESS 0
-  #include <ESP_DoubleResetDetector.h>
-  DoubleResetDetector* drd;
+#define ESP_DRD_USE_LITTLEFS true
+#define ESP_DRD_USE_EEPROM false
+#define DRD_TIMEOUT 10
+#define DRD_ADDRESS 0
+#include <ESP_DoubleResetDetector.h>
+DoubleResetDetector* drd;
 #endif
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-  #include <time.h>
-  extern "C" uint8_t sntp_getreachability(uint8_t);
+#include <time.h>
+extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
 Preferences prefs;
@@ -60,32 +60,32 @@ Growatt Inverter;
 bool StartedConfigAfterBoot = false;
 
 #if MQTT_SUPPORTED == 1
-  #if defined MQTTS_ENABLED
-    WiFiClientSecure espClient;
-  #else
-    WiFiClient espClient;
-  #endif
-  ShineMqtt shineMqtt(espClient, Inverter);
+#if defined MQTTS_ENABLED
+WiFiClientSecure espClient;
+#else
+WiFiClient espClient;
+#endif
+ShineMqtt shineMqtt(espClient, Inverter);
 #endif
 
 #if MODBUS_TCP_SUPPORTED == 1
-  ModbusTCP modbusTCP(MODBUS_TCP_PORT);
+ModbusTCP modbusTCP(MODBUS_TCP_PORT);
 #endif
 
 #if defined AP_BUTTON_PRESSED
-  byte btnPressed = 0;
+byte btnPressed = 0;
 #endif
 
 boolean readoutSucceeded = false;
 
 #if PINGER_SUPPORTED == 1
-  Pinger pinger;
+Pinger pinger;
 #endif
 
 #if defined ESP8266
-  ESP8266WebServer httpServer(80);
+ESP8266WebServer httpServer(80);
 #elif defined ESP32
-  WebServer httpServer(80);
+WebServer httpServer(80);
 #endif
 
 struct {
@@ -122,31 +122,37 @@ static const struct {
   const char* force_ap = "/forceap";
 } ConfigFiles;
 
-struct {
+struct WifiConfig {
   String hostname;
   String static_ip;
   String static_netmask;
   String static_gateway;
   String static_dns;
+
 #if MQTT_SUPPORTED == 1
   MqttConfig mqtt;
 #endif
-  String syslog_ip;
 
+  String syslog_ip;
+  bool force_ap;
+};
+
+struct UserConfig {
 #if BATTERY_STANDBY == 1
-  bool bat_standby;  // <-- NEU
+  bool bat_standby;
   String bat_slp_thr;
   String bat_wke_thr;
 #endif
 
 #if ACCHARGE_CONTROL == 1
-  bool accharge;  // <-- NEU
+  bool accharge;
   String ac_max_pow;
   String ac_off_set;
 #endif
+};
 
-  bool force_ap;
-} Config;
+WifiConfig Wifi;
+UserConfig User;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
@@ -188,7 +194,7 @@ void WiFi_Reconnect() {
     Log.print(F("Local IP: "));
     Log.println(WiFi.localIP());
     Log.print(F("Hostname: "));
-    Log.println(Config.hostname);
+    Log.println(Wifi.hostname);
 
     Log.println(F("WiFi reconnected"));
 
@@ -221,57 +227,61 @@ void saveParamCallback();
 void setupWifiManagerConfigMenu(WiFiManager& wm);
 
 void loadConfig() {
-  Config.hostname = prefs.getString(ConfigFiles.hostname, DEFAULT_HOSTNAME);
-  Config.static_ip = prefs.getString(ConfigFiles.static_ip, "");
-  Config.static_netmask = prefs.getString(ConfigFiles.static_netmask, "");
-  Config.static_gateway = prefs.getString(ConfigFiles.static_gateway, "");
-  Config.static_dns = prefs.getString(ConfigFiles.static_dns, "");
+  Wifi.hostname = prefs.getString(ConfigFiles.hostname, DEFAULT_HOSTNAME);
+  Wifi.static_ip = prefs.getString(ConfigFiles.static_ip, "");
+  Wifi.static_netmask = prefs.getString(ConfigFiles.static_netmask, "");
+  Wifi.static_gateway = prefs.getString(ConfigFiles.static_gateway, "");
+  Wifi.static_dns = prefs.getString(ConfigFiles.static_dns, "");
+
 #if MQTT_SUPPORTED == 1
-  Config.mqtt.server = prefs.getString(ConfigFiles.mqtt_server, "");
-  Config.mqtt.port = prefs.getString(ConfigFiles.mqtt_port, "1883");
-  Config.mqtt.topic = prefs.getString(ConfigFiles.mqtt_topic, "");
-  Config.mqtt.user = prefs.getString(ConfigFiles.mqtt_user, "");
-  Config.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
+  Wifi.mqtt.server = prefs.getString(ConfigFiles.mqtt_server, "");
+  Wifi.mqtt.port = prefs.getString(ConfigFiles.mqtt_port, "1883");
+  Wifi.mqtt.topic = prefs.getString(ConfigFiles.mqtt_topic, "");
+  Wifi.mqtt.user = prefs.getString(ConfigFiles.mqtt_user, "");
+  Wifi.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
 #endif
-  Config.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
-  Config.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
+
+  Wifi.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
+  Wifi.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
 }
 
 void saveConfig() {
-  prefs.putString(ConfigFiles.hostname, Config.hostname);
-  prefs.putString(ConfigFiles.static_ip, Config.static_ip);
-  prefs.putString(ConfigFiles.static_netmask, Config.static_netmask);
-  prefs.putString(ConfigFiles.static_gateway, Config.static_gateway);
-  prefs.putString(ConfigFiles.static_dns, Config.static_dns);
+  prefs.putString(ConfigFiles.hostname, Wifi.hostname);
+  prefs.putString(ConfigFiles.static_ip, Wifi.static_ip);
+  prefs.putString(ConfigFiles.static_netmask, Wifi.static_netmask);
+  prefs.putString(ConfigFiles.static_gateway, Wifi.static_gateway);
+  prefs.putString(ConfigFiles.static_dns, Wifi.static_dns);
+
 #if MQTT_SUPPORTED == 1
-  prefs.putString(ConfigFiles.mqtt_server, Config.mqtt.server);
-  prefs.putString(ConfigFiles.mqtt_port, Config.mqtt.port);
-  prefs.putString(ConfigFiles.mqtt_topic, Config.mqtt.topic);
-  prefs.putString(ConfigFiles.mqtt_user, Config.mqtt.user);
-  prefs.putString(ConfigFiles.mqtt_pwd, Config.mqtt.pwd);
+  prefs.putString(ConfigFiles.mqtt_server, Wifi.mqtt.server);
+  prefs.putString(ConfigFiles.mqtt_port, Wifi.mqtt.port);
+  prefs.putString(ConfigFiles.mqtt_topic, Wifi.mqtt.topic);
+  prefs.putString(ConfigFiles.mqtt_user, Wifi.mqtt.user);
+  prefs.putString(ConfigFiles.mqtt_pwd, Wifi.mqtt.pwd);
 #endif
-  prefs.putString(ConfigFiles.syslog_ip, Config.syslog_ip);
+
+  prefs.putString(ConfigFiles.syslog_ip, Wifi.syslog_ip);
+  prefs.putBool(ConfigFiles.force_ap, Wifi.force_ap);
 }
 
 void saveParamCallback() {
   Log.println(F("[CALLBACK] saveParamCallback fired"));
 
-  Config.hostname = customWMParams.hostname->getValue();
-  if (Config.hostname.isEmpty()) {
-    Config.hostname = DEFAULT_HOSTNAME;
-  }
-  Config.static_ip = customWMParams.static_ip->getValue();
-  Config.static_netmask = customWMParams.static_netmask->getValue();
-  Config.static_gateway = customWMParams.static_gateway->getValue();
-  Config.static_dns = customWMParams.static_dns->getValue();
+  Wifi.hostname = customWMParams.hostname->getValue();
+  Wifi.static_ip = customWMParams.static_ip->getValue();
+  Wifi.static_netmask = customWMParams.static_netmask->getValue();
+  Wifi.static_gateway = customWMParams.static_gateway->getValue();
+  Wifi.static_dns = customWMParams.static_dns->getValue();
+
 #if MQTT_SUPPORTED == 1
-  Config.mqtt.server = customWMParams.mqtt_server->getValue();
-  Config.mqtt.port = customWMParams.mqtt_port->getValue();
-  Config.mqtt.topic = customWMParams.mqtt_topic->getValue();
-  Config.mqtt.user = customWMParams.mqtt_user->getValue();
-  Config.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
+  Wifi.mqtt.server = customWMParams.mqtt_server->getValue();
+  Wifi.mqtt.port = customWMParams.mqtt_port->getValue();
+  Wifi.mqtt.topic = customWMParams.mqtt_topic->getValue();
+  Wifi.mqtt.user = customWMParams.mqtt_user->getValue();
+  Wifi.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
 #endif
-  Config.syslog_ip = customWMParams.syslog_ip->getValue();
+
+  Wifi.syslog_ip = customWMParams.syslog_ip->getValue();
 
   saveConfig();
 
@@ -304,14 +314,14 @@ void configureLogging() {
 #ifdef ENABLE_WEB_DEBUG
   Log.addPrintStream(std::make_shared<WebSerialStream>(webSerialStream));
 #endif
-  if (!Config.syslog_ip.isEmpty()) {
-    syslogStream.setDestination(Config.syslog_ip.c_str());
+  if (!Wifi.syslog_ip.isEmpty()) {
+    syslogStream.setDestination(Wifi.syslog_ip.c_str());
     // syslogStream.setRaw(true);
     const std::shared_ptr<LOGBase> syslogStreamPtr =
         std::make_shared<SyslogStream>(syslogStream);
     Log.addPrintStream(syslogStreamPtr);
     Log.print(F("Syslog Server IP: "));
-    Log.println(Config.syslog_ip);
+    Log.println(Wifi.syslog_ip);
   }
 }
 
@@ -324,18 +334,18 @@ void setupGPIO() {
 void setupWifiHost() {
 #ifdef ESP32
   // ESP32 needs this here (before WiFi.mode) for core 2.0.0
-  WiFi.hostname(Config.hostname);
+  WiFi.hostname(Wifi.hostname);
 #endif
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
 #ifdef ESP8266
   // ESP8266 needs this here (after WiFi.mode)
-  WiFi.hostname(Config.hostname);
+  WiFi.hostname(Wifi.hostname);
 #endif
 #if OTA_SUPPORTED == 0
-  MDNS.begin(Config.hostname);
+  MDNS.begin(Wifi.hostname);
 #endif
   Log.print(F("setupWifiHost: hostname "));
-  Log.println(Config.hostname);
+  Log.println(Wifi.hostname);
 }
 
 #if defined(ESP32)
@@ -387,31 +397,33 @@ void loadSettingsFromPrefs() {
   prefs.begin("config", true);
 
 #if BATTERY_STANDBY == 1
-  Config.bat_standby = prefs.getBool("bat_standby", false);
+  // Battery Standby (bool)
+  User.bat_standby = prefs.getBool("bat_standby", false);
 
   // Sleep Threshold (>0)
   {
     int v = prefs.getString("bat_slp_thr", "50").toInt();
     if (v <= 0) v = 1;
-    Config.bat_slp_thr = String(v);
+    User.bat_slp_thr = String(v);
   }
 
   // Wake Threshold (>0)
   {
     int v = prefs.getString("bat_wke_thr", "75").toInt();
     if (v <= 0) v = 1;
-    Config.bat_wke_thr = String(v);
+    User.bat_wke_thr = String(v);
   }
 #endif
 
 #if ACCHARGE_CONTROL == 1
-  Config.accharge = prefs.getBool("accharge", false);
+  // AC Charging enabled?
+  User.accharge = prefs.getBool("accharge", false);
 
   // AC Max Power (>0)
   {
     int v = prefs.getString("ac_max_pow", "3750").toInt();
     if (v <= 0) v = 1;
-    Config.ac_max_pow = String(v);
+    User.ac_max_pow = String(v);
   }
 
   // Offset (-100 bis +100)
@@ -419,7 +431,7 @@ void loadSettingsFromPrefs() {
     int v = prefs.getString("ac_off_set", "1").toInt();
     if (v < -100) v = -100;
     if (v > 100) v = 100;
-    Config.ac_off_set = String(v);
+    User.ac_off_set = String(v);
   }
 #endif
 
@@ -462,9 +474,8 @@ void setup() {
 #endif
 
   prefs.begin("ShineWiFi");
-  loadSettingsFromPrefs();
-
   loadConfig();
+  loadSettingsFromPrefs();
   configureLogging();
   setupWifiHost();
 
@@ -473,7 +484,7 @@ void setup() {
 #error "Please define an OTA_PASSWORD in Config.h"
 #endif
   ArduinoOTA.setPassword(OTA_PASSWORD);
-  ArduinoOTA.setHostname(Config.hostname.c_str());
+  ArduinoOTA.setHostname(Wifi.hostname.c_str());
   ArduinoOTA.begin();
 #endif
 
@@ -491,21 +502,21 @@ void setup() {
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
   Log.print(F("force_ap: "));
-  Log.println(Config.force_ap);
+  Log.println(Wifi.force_ap);
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {
     Log.println(F("AP Button pressed during power up"));
-    Config.force_ap = true;
+    Wifi.force_ap = true;
   }
 #endif
 #if ENABLE_DOUBLE_RESET == 1
   if (drd->detectDoubleReset()) {
     Log.println(F("Double reset detected"));
-    Config.force_ap = true;
+    Wifi.force_ap = true;
   }
 #endif
-  if (Config.force_ap) {
+  if (Wifi.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
 #if defined(ESP32)
     esp_task_wdt_delete(NULL);
@@ -521,21 +532,21 @@ void setup() {
   }
 
   // Set static ip
-  if (!Config.static_ip.isEmpty() && !Config.static_netmask.isEmpty()) {
+  if (!Wifi.static_ip.isEmpty() && !Wifi.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
-    ip.fromString(Config.static_ip);
-    netmask.fromString(Config.static_netmask);
-    gateway.fromString(Config.static_gateway);
-    dns.fromString(Config.static_dns);
+    ip.fromString(Wifi.static_ip);
+    netmask.fromString(Wifi.static_netmask);
+    gateway.fromString(Wifi.static_gateway);
+    dns.fromString(Wifi.static_dns);
     Log.print(F("static ip: "));
-    Log.println(Config.static_ip);
+    Log.println(Wifi.static_ip);
     Log.print(F("static netmask: "));
-    Log.println(Config.static_netmask);
+    Log.println(Wifi.static_netmask);
     Log.print(F("static gateway: "));
-    Log.println(Config.static_gateway);
+    Log.println(Wifi.static_gateway);
     Log.print(F("static dns: "));
-    Log.println(Config.static_dns);
-    if (!Config.static_dns.isEmpty()) {
+    Log.println(Wifi.static_dns);
+    if (!Wifi.static_dns.isEmpty()) {
       wm.setSTAStaticIPConfig(ip, gateway, netmask, dns);
     } else {
       wm.setSTAStaticIPConfig(ip, gateway, netmask);
@@ -567,7 +578,7 @@ void setup() {
 #ifdef MQTTS_ENABLED
   espClient.setCACert(MQTTS_BROKER_CA_CERT);
 #endif
-  shineMqtt.mqttSetup(Config.mqtt);
+  shineMqtt.mqttSetup(Wifi.mqtt);
 #endif
 
   httpServer.on("/status", sendJsonSite);
@@ -590,45 +601,47 @@ void setup() {
 
   Inverter.InitProtocol();
   InverterReconnect();
-httpServer.on("/saveSettings", HTTP_POST, []() {
+  httpServer.on("/saveSettings", HTTP_POST, []() {
     Preferences prefs;
     prefs.begin("config", false);
 
+    //
     // BATTERY STANDBY
-    bool bat_standby = (httpServer.arg("bat_standby") == "on");
-    prefs.putBool("bat_standby", bat_standby);
-    Config.bat_standby = bat_standby;
-
+    //
 #if BATTERY_STANDBY == 1
+    User.bat_standby = (httpServer.arg("bat_standby") == "on");
+    prefs.putBool("bat_standby", User.bat_standby);
+
     // Sleep Threshold (>0)
     {
       int v = httpServer.arg("bat_slp_thr").toInt();
       if (v <= 0) v = 1;
-      prefs.putString("bat_slp_thr", String(v));
-      Config.bat_slp_thr = String(v);
+      User.bat_slp_thr = String(v);
+      prefs.putString("bat_slp_thr", User.bat_slp_thr);
     }
 
     // Wake Threshold (>0)
     {
       int v = httpServer.arg("bat_wke_thr").toInt();
       if (v <= 0) v = 1;
-      prefs.putString("bat_wke_thr", String(v));
-      Config.bat_wke_thr = String(v);
+      User.bat_wke_thr = String(v);
+      prefs.putString("bat_wke_thr", User.bat_wke_thr);
     }
 #endif
 
-    // AC CHARGE
-    bool accharge = (httpServer.arg("accharge") == "on");
-    prefs.putBool("accharge", accharge);
-    Config.accharge = accharge;
-
+    //
+    // AC CHARGE CONTROL
+    //
 #if ACCHARGE_CONTROL == 1
+    User.accharge = (httpServer.arg("accharge") == "on");
+    prefs.putBool("accharge", User.accharge);
+
     // AC Max Power (>0)
     {
       int v = httpServer.arg("ac_max_pow").toInt();
       if (v <= 0) v = 1;
-      prefs.putString("ac_max_pow", String(v));
-      Config.ac_max_pow = String(v);
+      User.ac_max_pow = String(v);
+      prefs.putString("ac_max_pow", User.ac_max_pow);
     }
 
     // Offset (-100 bis +100)
@@ -636,14 +649,14 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
       int v = httpServer.arg("ac_off_set").toInt();
       if (v < -100) v = -100;
       if (v > 100) v = 100;
-      prefs.putString("ac_off_set", String(v));
-      Config.ac_off_set = String(v);
+      User.ac_off_set = String(v);
+      prefs.putString("ac_off_set", User.ac_off_set);
     }
 #endif
 
     prefs.end();
     httpServer.send(200, "text/plain", "Settings saved");
-});
+  });
 
   httpServer.on("/getSettings", HTTP_GET, []() {
     Preferences prefs;
@@ -652,25 +665,25 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
     DynamicJsonDocument doc(512);
 
     //
-    // Battery Standby (bool)
+    // Battery Standby
     //
-    bool bat_standby = prefs.getBool("bat_standby", Config.bat_standby);
-    doc["bat_standby"] = bat_standby;
-
 #if BATTERY_STANDBY == 1
-    doc["bat_slp_thr"] = prefs.getString("bat_slp_thr", Config.bat_slp_thr);
-    doc["bat_wke_thr"] = prefs.getString("bat_wke_thr", Config.bat_wke_thr);
+    doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
+    doc["bat_slp_thr"] = prefs.getString("bat_slp_thr", User.bat_slp_thr);
+    doc["bat_wke_thr"] = prefs.getString("bat_wke_thr", User.bat_wke_thr);
+#else
+    doc["bat_standby"] = false;
 #endif
 
     //
-    // AC Charging (bool)
+    // AC Charging
     //
-    bool accharge = prefs.getBool("accharge", Config.accharge);
-    doc["accharge"] = accharge;
-
 #if ACCHARGE_CONTROL == 1
-    doc["ac_max_pow"] = prefs.getString("ac_max_pow", Config.ac_max_pow);
-    doc["ac_off_set"] = prefs.getString("ac_off_set", Config.ac_off_set);
+    doc["accharge"] = prefs.getBool("accharge", User.accharge);
+    doc["ac_max_pow"] = prefs.getString("ac_max_pow", User.ac_max_pow);
+    doc["ac_off_set"] = prefs.getString("ac_off_set", User.ac_off_set);
+#else
+    doc["accharge"] = false;
 #endif
 
     prefs.end();
@@ -678,7 +691,7 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
     sendJson(doc);
   });
 
-    // --- OTA Firmware Upload (Web) ---
+  // --- OTA Firmware Upload (Web) ---
   httpServer.on(
       "/update", HTTP_POST,
       []() {
@@ -693,23 +706,26 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
       },
       []() {
         // Diese Funktion verarbeitet die Upload-Daten
-        HTTPUpload &upload = httpServer.upload();
+        HTTPUpload& upload = httpServer.upload();
         if (upload.status == UPLOAD_FILE_START) {
           Serial.printf("Update: %s\n", upload.filename.c_str());
 #if defined(ESP32)
           if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  // ESP32
 #else
-          if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {  // ESP8266
+          if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) &
+                            0xFFFFF000)) {  // ESP8266
 #endif
             Update.printError(Serial);
           }
         } else if (upload.status == UPLOAD_FILE_WRITE) {
-          if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+          if (Update.write(upload.buf, upload.currentSize) !=
+              upload.currentSize) {
             Update.printError(Serial);
           }
         } else if (upload.status == UPLOAD_FILE_END) {
           if (Update.end(true)) {
-            Serial.printf("Update Success: %u bytes\nRebooting...\n", upload.totalSize);
+            Serial.printf("Update Success: %u bytes\nRebooting...\n",
+                          upload.totalSize);
           } else {
             Update.printError(Serial);
           }
@@ -752,30 +768,30 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
 void setupWifiManagerConfigMenu(WiFiManager& wm) {
   customWMParams.hostname = new WiFiManagerParameter(
       "hostname", "Hostname (no spaces or special characters)",
-      Config.hostname.c_str(), 30);
+      Wifi.hostname.c_str(), 30);
   customWMParams.static_ip =
-      new WiFiManagerParameter("staticip", "IP", Config.static_ip.c_str(), 15);
+      new WiFiManagerParameter("staticip", "IP", Wifi.static_ip.c_str(), 15);
   customWMParams.static_netmask = new WiFiManagerParameter(
-      "staticnetmask", "Netmask", Config.static_netmask.c_str(), 15);
+      "staticnetmask", "Netmask", Wifi.static_netmask.c_str(), 15);
   customWMParams.static_gateway = new WiFiManagerParameter(
-      "staticgateway", "Gateway", Config.static_gateway.c_str(), 15);
-  customWMParams.static_dns = new WiFiManagerParameter(
-      "staticdns", "DNS", Config.static_dns.c_str(), 15);
+      "staticgateway", "Gateway", Wifi.static_gateway.c_str(), 15);
+  customWMParams.static_dns =
+      new WiFiManagerParameter("staticdns", "DNS", Wifi.static_dns.c_str(), 15);
 #if MQTT_SUPPORTED == 1
   customWMParams.mqtt_server = new WiFiManagerParameter(
-      "mqttserver", "Server", Config.mqtt.server.c_str(), 40);
+      "mqttserver", "Server", Wifi.mqtt.server.c_str(), 40);
   customWMParams.mqtt_port =
-      new WiFiManagerParameter("mqttport", "Port", Config.mqtt.port.c_str(), 6);
+      new WiFiManagerParameter("mqttport", "Port", Wifi.mqtt.port.c_str(), 6);
   customWMParams.mqtt_topic = new WiFiManagerParameter(
-      "mqtttopic", "Topic", Config.mqtt.topic.c_str(), 64);
+      "mqtttopic", "Topic", Wifi.mqtt.topic.c_str(), 64);
   customWMParams.mqtt_user = new WiFiManagerParameter(
-      "mqttusername", "Username", Config.mqtt.user.c_str(), 40);
-  customWMParams.mqtt_pwd = new WiFiManagerParameter(
-      "mqttpassword", "Password", Config.mqtt.pwd.c_str(), 64);
+      "mqttusername", "Username", Wifi.mqtt.user.c_str(), 40);
+  customWMParams.mqtt_pwd = new WiFiManagerParameter("mqttpassword", "Password",
+                                                     Wifi.mqtt.pwd.c_str(), 64);
 #endif
   customWMParams.syslog_ip = new WiFiManagerParameter(
       "syslogip", "Syslog Server IP (leave blank for none)",
-      Config.syslog_ip.c_str(), 15);
+      Wifi.syslog_ip.c_str(), 15);
   wm.addParameter(customWMParams.hostname);
 #if MQTT_SUPPORTED == 1
   wm.addParameter(new WiFiManagerParameter(
@@ -832,14 +848,14 @@ void sendJsonSite(void) {
   }
 
   DynamicJsonDocument doc(JSON_DOCUMENT_SIZE);
-  Inverter.CreateJson(doc, WiFi.macAddress(), Config.hostname);
+  Inverter.CreateJson(doc, WiFi.macAddress(), Wifi.hostname);
 
   sendJson(doc);
 }
 
 void sendUiJsonSite(void) {
   DynamicJsonDocument doc(JSON_DOCUMENT_SIZE);
-  Inverter.CreateUIJson(doc, Config.hostname);
+  Inverter.CreateUIJson(doc, Wifi.hostname);
 
   sendJson(doc);
 }
@@ -855,7 +871,7 @@ void sendMetrics(void) {
     metrics.reserve(maxMetricsSize);
   }
 
-  Inverter.CreateMetrics(metrics, WiFi.macAddress(), Config.hostname);
+  Inverter.CreateMetrics(metrics, WiFi.macAddress(), Wifi.hostname);
 
   httpServer.setContentLength(metrics.length());
   httpServer.send(200, "text/plain", "");
@@ -1095,8 +1111,8 @@ bool writeWithRetry(uint16_t reg, uint16_t value) {
 
 #if BATTERY_STANDBY == 1
 void batteryStandby() {
-  uint32_t wake_threshold = Config.bat_wke_thr.toInt() * 10;
-  uint32_t sleep_threshold = Config.bat_slp_thr.toInt() * 10;
+  uint32_t wake_threshold = User.bat_wke_thr.toInt() * 10;
+  uint32_t sleep_threshold = User.bat_slp_thr.toInt() * 10;
 
   // Disable discharging
   if (Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value >= 10 &&
@@ -1159,11 +1175,10 @@ void batteryStandby() {
 }
 #endif
 
-// ac charge power rate
 #if ACCHARGE_CONTROL == 1
 void acchargeControl() {
-  uint32_t max_power = Config.ac_max_pow.toInt();
-  uint32_t off_set = Config.ac_off_set.toInt();
+  uint32_t max_power = User.ac_max_pow.toInt();
+  int32_t off_set = User.ac_off_set.toInt();
 
   if (Inverter._Protocol.InputRegisters[P3000_PRIORITY].value == 1 &&
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value ==
@@ -1197,10 +1212,8 @@ void acchargeControl() {
     targetpowerrate = std::clamp<int16_t>(roundedRate, 0, 100);
 #endif
 
-    // Nur schreiben, wenn sich der Wert geändert hat
     if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value !=
         targetpowerrate) {
-      // Hier wird jetzt die Retry-Funktion genutzt
       if (!writeWithRetry(3047, targetpowerrate)) {
         Log.println(F("Failed to set BDCChargePowerRate!"));
       }
@@ -1368,21 +1381,17 @@ void loop() {
 #endif
 #endif
 
-#if BATTERY_STANDBY == 1
-  if (Config.bat_standby) {
+  if (User.bat_standby) {
     if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
       batteryStandby();
       BatteryStandbyTimer = now;
     }
   }
-#endif
 
-#if ACCHARGE_CONTROL == 1
-  if (Config.accharge) {
+  if (User.accharge) {
     if ((now - ACChargeControlTimer) > ACCHARGE_CONTROL_TIMER) {
       acchargeControl();
       ACChargeControlTimer = now;
     }
   }
-#endif
 }
