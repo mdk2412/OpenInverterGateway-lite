@@ -1192,24 +1192,26 @@ void acchargeControl() {
   if (off_set >  99) off_set =  99;
 
   // --- Register EINMAL auslesen ---
-  int32_t priority     = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
-  int32_t ac_enabled   = Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
-  int32_t soc          = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t priority       = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
+  int32_t ac_enabled     = Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
+  int32_t soc            = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
 
-  int32_t p_chr        = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
-  int32_t p_togrid     = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
-  int32_t p_touser     = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
+  int32_t p_chr          = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
+  int32_t p_togrid       = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
+  int32_t p_touser       = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
+
+  uint16_t current_rate  = Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
   // --- Bedingungen prüfen ---
   if (priority == 1 && ac_enabled == 1) {
 
-    // Wenn Akku voll → auf LoadFirst umschalten
+    // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
       loadFirst();
       return;
     }
 
-    // --- Delta berechnen (Integer, 64-bit für Sicherheit) ---
+    // --- Delta berechnen (64-bit für Sicherheit) ---
     int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
 
     // --- Integer-Mathematik ---
@@ -1229,7 +1231,7 @@ void acchargeControl() {
     }
 
     // --- Nur schreiben, wenn nötig ---
-    if (Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value != targetpowerrate) {
+    if (current_rate != targetpowerrate) {
       if (!writeWithRetry(3047, targetpowerrate)) {
         Log.println(F("Failed to set BDCChargePowerRate!"));
       }
