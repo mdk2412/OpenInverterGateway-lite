@@ -1,25 +1,25 @@
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
-  #error Please rename Config.h.example to Config.h
+#error Please rename Config.h.example to Config.h
 #endif
 
 #include "GrowattTypes.h"
 #include "Growatt.h"
 
 #if GROWATT_MODBUS_VERSION == 120
-  #include "Growatt120.h"
+#include "Growatt120.h"
 #elif GROWATT_MODBUS_VERSION == 124
-  #include "Growatt124.h"
+#include "Growatt124.h"
 #elif GROWATT_MODBUS_VERSION == 305
-  #include "Growatt305.h"
+#include "Growatt305.h"
 #elif GROWATT_MODBUS_VERSION == 3000
-  #include "GrowattTLXH.h"
+#include "GrowattTLXH.h"
 #elif GROWATT_MODBUS_VERSION == 5000
-  #include "GrowattSPF.h"
+#include "GrowattSPF.h"
 #elif GROWATT_MODBUS_VERSION == 6000
-  #include "GrowattBP.h"
+#include "GrowattBP.h"
 #else
-  #error "Unsupported Growatt Modbus Version"
+#error "Unsupported Growatt Modbus Version"
 #endif
 
 #include <ModbusMaster.h>
@@ -81,34 +81,28 @@ void Growatt::InitProtocol() {
 }
 
 void Growatt::begin(Stream& serial) {
-  /**
-   * @brief Set up communication with the inverter
-   * @param serial The serial interface
-   */
-#if SIMULATE_INVERTER == 1
-  _eDevice = SIMULATE_DEVICE;
-#else
-  uint8_t res;
-
-  // First try with 115200 baud (ShineWiFi_X)
+  // ShineWiFi-X arbeitet immer mit 115200 Baud
   Serial.begin(115200);
+
+  // Warten, bis der Stick vollständig gebootet hat
+  delay(1000);
+
+  // UART-Buffer leeren (sehr wichtig!)
+  Serial.flush();
+  while (Serial.available()) Serial.read();
+
+  // Modbus initialisieren
   Modbus.begin(1, serial);
-  Modbus.setResponseTimeout(250);
-  res = Modbus.readInputRegisters(0, 1);
+  Modbus.setResponseTimeout(300);
+
+  // Einziger Versuch
+  uint8_t res = Modbus.readInputRegisters(0, 1);
+
   if (res == Modbus.ku8MBSuccess) {
-    _eDevice = ShineWiFi_X;  // USB
+    _eDevice = ShineWiFi_X;
   } else {
-    //delay(1000);
-    // Fallback to 9600 baud (ShineWiFi_S)
-    Serial.begin(9600);
-    Modbus.begin(1, serial);
-    res = Modbus.readInputRegisters(0, 1);
-    if (res == Modbus.ku8MBSuccess) {
-      _eDevice = ShineWiFi_S;  // Serial
-    }
-    //delay(1000);
+    _eDevice = Undef_stick;
   }
-#endif
 }
 
 eDevice_t Growatt::GetWiFiStickType() {
@@ -253,7 +247,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
          retryCnt < maxRetries) {
     res = ReadHoldingRegisters(holdingFragOffs);
     if (res) {
-      _PacketCnt++;          // nur bei Erfolg
+      _PacketCnt++;  // nur bei Erfolg
     } else {
       _PacketCntFailed++;
       retryCnt++;
