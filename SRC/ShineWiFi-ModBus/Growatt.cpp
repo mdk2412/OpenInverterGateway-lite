@@ -93,10 +93,10 @@ void Growatt::begin(Stream& serial) {
 
   // Modbus initialisieren
   Modbus.begin(1, serial);
-  Modbus.setResponseTimeout(300);
+  Modbus.setResponseTimeout(200);
 
   // Einziger Versuch
-  uint8_t res = Modbus.readInputRegisters(0, 1);
+  uint8_t res = Modbus.readInputRegisters(14, 1);
 
   if (res == Modbus.ku8MBSuccess) {
     _eDevice = ShineWiFi_X;
