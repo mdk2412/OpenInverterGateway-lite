@@ -1,17 +1,15 @@
-// new
 #include "ModbusTCP.h"
 #include <TLog.h>
 
-ModbusTCP::ModbusTCP(uint16_t serverPort) : port(serverPort), enabled(false) {
-  server = nullptr;
-}
+ModbusTCP::ModbusTCP(uint16_t serverPort)
+    : port(serverPort), server(nullptr), client(), enabled(false) {}
 
 ModbusTCP::~ModbusTCP() { stop(); }
 
 void ModbusTCP::begin() {
   if (server == nullptr) {
     server = new WiFiServer(port);
-    server->setNoDelay(true);   // Sofortiges Senden aktivieren (Modbus‑TCP optimiert)
+    server->setNoDelay(true);
   }
 
   server->begin();
@@ -36,32 +34,23 @@ void ModbusTCP::stop() {
 void ModbusTCP::loop() {
   if (!enabled || server == nullptr) return;
 
-  // Check for new client
+  // Accept new client if needed
   if (!client || !client.connected()) {
     client = server->accept();
     if (!client) return;
   }
 
-  // Check if data available
-  if (client.available() >= 12) {  // Minimum Modbus TCP request size
-    uint16_t bytesRead = 0;
+  // MBAP header = 7 bytes
+  if (client.available() < 7) return;
 
-    // Read MBAP header (7 bytes) + PDU
-    while (client.available() && bytesRead < sizeof(requestBuffer)) {
-      requestBuffer[bytesRead++] = client.read();
-    }
+  // Read MBAP header
+  uint8_t mbap[7];
+  if (client.read(mbap, 7) != 7) return;
 
-    if (bytesRead >= 12) {
-      processRequest();
-    }
-  }
-}
-
-void ModbusTCP::processRequest() {
-  // Parse MBAP header
-  uint16_t protocolId = (requestBuffer[2] << 8) | requestBuffer[3];
-  uint8_t unitId = requestBuffer[6];
-  uint8_t functionCode = requestBuffer[7];
+  uint16_t transactionId = (mbap[0] << 8) | mbap[1];
+  uint16_t protocolId = (mbap[2] << 8) | mbap[3];
+  uint16_t lengthField = (mbap[4] << 8) | mbap[5];
+  uint8_t unitId = mbap[6];
 
   // Validate protocol ID
   if (protocolId != 0) {
@@ -69,24 +58,59 @@ void ModbusTCP::processRequest() {
     return;
   }
 
-  // Build response header
-  responseBuffer[0] = requestBuffer[0];  // Transaction ID high
-  responseBuffer[1] = requestBuffer[1];  // Transaction ID low
-  responseBuffer[2] = 0;                 // Protocol ID high
-  responseBuffer[3] = 0;                 // Protocol ID low
-  responseBuffer[6] = unitId;            // Unit ID
-  responseBuffer[7] = functionCode;      // Function code
+  // LengthField includes UnitID + PDU
+  if (lengthField < 2 || lengthField > 253) {
+    client.stop();
+    return;
+  }
 
-  uint16_t responseLength = 0;
+  // Wait for full PDU
+  if (client.available() < (lengthField - 1)) return;
+
+  // Read PDU
+  uint16_t pduLength = lengthField - 1;
+  if (pduLength > sizeof(requestBuffer)) {
+    client.stop();
+    return;
+  }
+
+  if (client.read(requestBuffer, pduLength) != pduLength) return;
+
+  // Extract function code
+  uint8_t functionCode = requestBuffer[0];
+
+  // Process request
+  processRequest(transactionId, unitId, functionCode, pduLength);
+}
+
+void ModbusTCP::processRequest(uint16_t transactionId, uint8_t unitId,
+                               uint8_t functionCode, uint16_t pduLength) {
+  // Build MBAP header
+  responseBuffer[0] = transactionId >> 8;
+  responseBuffer[1] = transactionId & 0xFF;
+  responseBuffer[2] = 0;
+  responseBuffer[3] = 0;
+
+  responseBuffer[6] = unitId;
+  responseBuffer[7] = functionCode;
+
+  uint16_t totalLength = 0;
 
   switch (functionCode) {
     case FC_READ_HOLDING_REGISTERS:
     case FC_READ_INPUT_REGISTERS: {
-      uint16_t startAddress = (requestBuffer[8] << 8) | requestBuffer[9];
-      uint16_t quantity = (requestBuffer[10] << 8) | requestBuffer[11];
+      if (pduLength < 5) {
+        sendException(transactionId, unitId, functionCode,
+                      EX_ILLEGAL_DATA_VALUE);
+        return;
+      }
+
+      uint16_t startAddress = (requestBuffer[1] << 8) | requestBuffer[2];
+      uint16_t quantity = (requestBuffer[3] << 8) | requestBuffer[4];
 
       if (quantity < 1 || quantity > 125) {
-        sendException(functionCode, EX_ILLEGAL_DATA_VALUE);
+        sendException(transactionId, unitId, functionCode,
+                      EX_ILLEGAL_DATA_VALUE);
         return;
       }
 
@@ -95,161 +119,92 @@ void ModbusTCP::processRequest() {
 
       for (uint16_t i = 0; i < quantity; i++) {
         uint16_t value = 0;
-        bool result = false;
+        bool ok = false;
 
-        if (functionCode == FC_READ_HOLDING_REGISTERS && readHoldingRegister) {
-          result = readHoldingRegister(startAddress + i, &value);
-        } else if (functionCode == FC_READ_INPUT_REGISTERS &&
-                   readInputRegister) {
-          result = readInputRegister(startAddress + i, &value);
-        }
+        if (functionCode == FC_READ_HOLDING_REGISTERS && readHoldingRegister)
+          ok = readHoldingRegister(startAddress + i, &value);
+        else if (functionCode == FC_READ_INPUT_REGISTERS && readInputRegister)
+          ok = readInputRegister(startAddress + i, &value);
 
-        if (!result) {
-          sendException(functionCode, EX_ILLEGAL_DATA_ADDRESS);
+        if (!ok) {
+          sendException(transactionId, unitId, functionCode,
+                        EX_ILLEGAL_DATA_ADDRESS);
           return;
         }
 
-        responseBuffer[9 + (i * 2)] = value >> 8;
-        responseBuffer[10 + (i * 2)] = value & 0xFF;
+        responseBuffer[9 + i * 2] = value >> 8;
+        responseBuffer[10 + i * 2] = value & 0xFF;
       }
 
-      responseLength = 9 + byteCount;
-      break;
+      uint16_t pduLen = 2 + 1 + byteCount;  // FC + ByteCount + Data
+      uint16_t mbapLen = 1 + pduLen;        // UnitID + PDU
+      totalLength = 6 + mbapLen;
+
+      responseBuffer[4] = mbapLen >> 8;
+      responseBuffer[5] = mbapLen & 0xFF;
+
+      client.write(responseBuffer, totalLength);
+      client.flush();
+      return;
     }
 
     case FC_WRITE_SINGLE_REGISTER: {
-      uint16_t address = (requestBuffer[8] << 8) | requestBuffer[9];
-      uint16_t value = (requestBuffer[10] << 8) | requestBuffer[11];
-
-      if (writeHoldingRegister && writeHoldingRegister(address, value)) {
-        // Echo back the request for write single register
-        responseBuffer[8] = requestBuffer[8];
-        responseBuffer[9] = requestBuffer[9];
-        responseBuffer[10] = requestBuffer[10];
-        responseBuffer[11] = requestBuffer[11];
-        responseLength = 12;
-      } else {
-        sendException(functionCode, EX_ILLEGAL_DATA_ADDRESS);
+      if (pduLength < 5) {
+        sendException(transactionId, unitId, functionCode,
+                      EX_ILLEGAL_DATA_VALUE);
         return;
       }
-      break;
+
+      uint16_t address = (requestBuffer[1] << 8) | requestBuffer[2];
+      uint16_t value = (requestBuffer[3] << 8) | requestBuffer[4];
+
+      if (!writeHoldingRegister || !writeHoldingRegister(address, value)) {
+        sendException(transactionId, unitId, functionCode,
+                      EX_ILLEGAL_DATA_ADDRESS);
+        return;
+      }
+
+      // Echo request
+      responseBuffer[8] = requestBuffer[1];
+      responseBuffer[9] = requestBuffer[2];
+      responseBuffer[10] = requestBuffer[3];
+      responseBuffer[11] = requestBuffer[4];
+
+      uint16_t pduLen = 5;  // FC + Address(2) + Value(2)
+      uint16_t mbapLen = 1 + pduLen;
+      totalLength = 6 + mbapLen;
+
+      responseBuffer[4] = mbapLen >> 8;
+      responseBuffer[5] = mbapLen & 0xFF;
+
+      client.write(responseBuffer, totalLength);
+      client.flush();
+      return;
     }
 
     default:
-      sendException(functionCode, EX_ILLEGAL_FUNCTION);
+      sendException(transactionId, unitId, functionCode, EX_ILLEGAL_FUNCTION);
       return;
   }
-
-  // Set length field (Unit ID + PDU length)
-  uint16_t mbapLength = responseLength - 6;
-  responseBuffer[4] = mbapLength >> 8;
-  responseBuffer[5] = mbapLength & 0xFF;
-
-  // Send response
-  client.write(responseBuffer, responseLength);
-  client.flush();
 }
 
-void ModbusTCP::sendException(uint8_t functionCode, uint8_t exceptionCode) {
-  responseBuffer[7] = functionCode | 0x80;  // Set exception bit
+void ModbusTCP::sendException(uint16_t transactionId, uint8_t unitId,
+                              uint8_t functionCode, uint8_t exceptionCode) {
+  responseBuffer[0] = transactionId >> 8;
+  responseBuffer[1] = transactionId & 0xFF;
+  responseBuffer[2] = 0;
+  responseBuffer[3] = 0;
+
+  responseBuffer[6] = unitId;
+  responseBuffer[7] = functionCode | 0x80;
   responseBuffer[8] = exceptionCode;
 
-  // Set length (3 bytes: Unit ID + Function code + Exception code)
+  uint16_t mbapLen = 3;  // UnitID + FC + Exception
+  uint16_t totalLength = 6 + mbapLen;
+
   responseBuffer[4] = 0;
   responseBuffer[5] = 3;
 
-  client.write(responseBuffer, 9);
+  client.write(responseBuffer, totalLength);
   client.flush();
 }
-
-// ============================================================================
-// MODIFICATIONS TO MAIN FILE (ShineWiFi-ModBus.txt)
-// ============================================================================
-
-// 1. Add near the top with other includes:
-/*
-#if MODBUS_TCP_SUPPORTED == 1
-#include "ModbusTCP.h"
-#endif
-*/
-
-// 2. Add to Config.h:
-/*
-#define MODBUS_TCP_SUPPORTED 1
-#define MODBUS_TCP_PORT 502
-*/
-
-// 3. Add global instance after other globals (around line 60):
-/*
-#if MODBUS_TCP_SUPPORTED == 1
-ModbusTCP modbusTCP(MODBUS_TCP_PORT);
-#endif
-*/
-
-// 4. Add callback functions before setup():
-/*
-#if MODBUS_TCP_SUPPORTED == 1
-bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
-  return Inverter.ReadHoldingReg(address, value);
-}
-
-bool modbusReadInputRegister(uint16_t address, uint16_t* value) {
-  return Inverter.ReadInputReg(address, value);
-}
-
-bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
-  return Inverter.WriteHoldingReg(address, value);
-}
-#endif
-*/
-
-// 5. Add to setup() function, after httpServer.begin():
-/*
-#if MODBUS_TCP_SUPPORTED == 1
-modbusTCP.readHoldingRegister = modbusReadHoldingRegister;
-modbusTCP.readInputRegister = modbusReadInputRegister;
-modbusTCP.writeHoldingRegister = modbusWriteHoldingRegister;
-modbusTCP.begin();
-#endif
-*/
-
-// 6. Add to loop() function, after httpServer.handleClient():
-/*
-#if MODBUS_TCP_SUPPORTED == 1
-if (modbusTCP.isEnabled()) {
-  modbusTCP.loop();
-}
-#endif
-*/
-
-// ============================================================================
-// USAGE EXAMPLE
-// ============================================================================
-/*
-Once implemented, you can connect to the ESP using any Modbus TCP client:
-
-Example using pymodbus (Python):
-```python
-from pymodbus.client import ModbusTcpClient
-
-client = ModbusTcpClient('192.168.1.100', port=502)
-client.connect()
-
-# Read 10 input registers starting at address 0
-result = client.read_input_registers(0, 10, unit=1)
-if not result.isError():
-  print(result.registers)
-
-# Read holding registers
-result = client.read_holding_registers(0, 10, unit=1)
-if not result.isError():
-  print(result.registers)
-
-# Write single holding register
-client.write_register(0, 100, unit=1)
-
-client.close()
-```
-
-Register mapping will match your Growatt inverter's Modbus map.
-*/
