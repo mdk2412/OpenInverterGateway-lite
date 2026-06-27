@@ -121,10 +121,6 @@ void WebSerialStream::begin() {
     _server->send(200, "application/json", out);
   });
   _server->begin();
-
-  Log.println(F("Opened Serial Web Server"));
-
-  MDNS.addService("http", "tcp", _webPort);
 };
 
 void WebSerialStream::stop() {
@@ -136,5 +132,21 @@ void WebSerialStream::stop() {
 
 void WebSerialStream::loop() {
   if (_server) _server->handleClient();
+
+  static bool ipLogged = false;
+
+  // Erst loggen, wenn IP wirklich gesetzt ist
+  if (!ipLogged && WiFi.status() == WL_CONNECTED && WiFi.localIP().isSet()) {
+    ipLogged = true;
+
+    Log.print(F("Opened Serial Web Server: http://"));
+    Log.print(WiFi.localIP());
+    Log.print(F(":"));
+    Log.println(_webPort);
+
+    // MDNS erst starten wenn IP existiert
+    MDNS.addService("http", "tcp", _webPort);
+  }
 }
+
 #endif

@@ -42,13 +42,13 @@
 // battery threshold (configure in WiFiManager) battery is put to sleep if
 // TotalReversePower >= wake battery threshold (configure in WiFiManager)
 // battery is woken up
-#define BATTERY_STANDBY 1
+//#define BATTERY_STANDBY 1
 #define BATTERY_STANDBY_TIMER 60000  // 60s default
 
 // AC charge control
 // If there are other inverters in the system only load the surplus via AC
 // charging
-#define ACCHARGE_CONTROL 1
+//#define ACCHARGE_CONTROL 1
 #define ACCHARGE_CONTROL_TIMER 5000     // 1s default
 // #define ACCHARGE_CONTROL_MAXPOWER 2500  // maximum output power of inverter in W
 // #define ACCHARGE_CONTROL_OFFSET \
