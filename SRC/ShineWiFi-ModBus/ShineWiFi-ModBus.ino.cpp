@@ -1,14 +1,17 @@
-// -----------------------------------------------------------------------------
-//  Projekt-Konfiguration
-// -----------------------------------------------------------------------------
+# 1 "/tmp/tmp5s12cb9g"
+#include <Arduino.h>
+# 1 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
+
+
+
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
 #error Please rename Config.h.example to Config.h
 #endif
 
-// -----------------------------------------------------------------------------
-//  Projekt-Header
-// -----------------------------------------------------------------------------
+
+
+
 #include "ShineWifi.h"
 #include "Index.h"
 #include "Growatt.h"
@@ -22,18 +25,18 @@
 #include "ModbusTCP.h"
 #endif
 
-// -----------------------------------------------------------------------------
-//  Externe Bibliotheken
-// -----------------------------------------------------------------------------
+
+
+
 #include <LittleFS.h>
 #include <Preferences.h>
 #include <StreamUtils.h>
 #include <TLog.h>
 #include <WiFiManager.h>
 
-// -----------------------------------------------------------------------------
-//  Plattformabhängige Includes
-// -----------------------------------------------------------------------------
+
+
+
 #if defined(ESP8266)
 #include <Updater.h>
 #elif defined(ESP32)
@@ -41,24 +44,24 @@
 #include <esp_task_wdt.h>
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: OTA
-// -----------------------------------------------------------------------------
+
+
+
 #if OTA_SUPPORTED == 1
 #include <ArduinoOTA.h>
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: Pinger
-// -----------------------------------------------------------------------------
+
+
+
 #if PINGER_SUPPORTED == 1
 #include <Pinger.h>
 #include <PingerResponse.h>
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: Double Reset Detector
-// -----------------------------------------------------------------------------
+
+
+
 #if ENABLE_DOUBLE_RESET == 1
 #define ESP_DRD_USE_LITTLEFS true
 #define ESP_DRD_USE_EEPROM false
@@ -68,17 +71,17 @@
 DoubleResetDetector* drd;
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: NTP
-// -----------------------------------------------------------------------------
+
+
+
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 #include <time.h>
 extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
-// -----------------------------------------------------------------------------
-//  Globale Objekte
-// -----------------------------------------------------------------------------
+
+
+
 Preferences prefs;
 Growatt Inverter;
 bool StartedConfigAfterBoot = false;
@@ -163,22 +166,52 @@ struct WifiConfig {
 
 struct UserConfig {
   bool bat_standby;
-  int  bat_slp_thr;
-  int  bat_wke_thr;
+  int bat_slp_thr;
+  int bat_wke_thr;
 
   bool accharge;
-  int  ac_max_pow;
-  int  ac_off_set;
+  int ac_max_pow;
+  int ac_off_set;
 };
 
 WifiConfig Wifi;
 UserConfig User;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
-
-// -------------------------------------------------------
-// Set the red led in case of error
-// -------------------------------------------------------
+void updateRedLed();
+void WiFi_Reconnect();
+void InverterReconnect(void);
+void configureLogging();
+void setupGPIO();
+void setupWifiHost();
+void startWdt();
+void loadSettingsFromPrefs();
+bool modbusReadHoldingRegister(uint16_t address, uint16_t* value);
+bool modbusReadInputRegister(uint16_t address, uint16_t* value);
+bool modbusWriteHoldingRegister(uint16_t address, uint16_t value);
+void setup();
+void setupMenu(WiFiManager& wm, bool enableCustomParams);
+void sendJson(JsonDocument& doc);
+void sendJsonSite(void);
+void sendUiJsonSite(void);
+void sendMetrics(void);
+boolean sendMqttJson(void);
+void startConfigAccessPoint(void);
+void rebootESP(void);
+void loadFirst(void);
+void batteryFirst(void);
+void gridFirst(void);
+void sendDebug(void);
+void sendMainPage(void);
+void handlePostData();
+bool sendSingleValue(void);
+void handleNotFound();
+void handleNTPSync();
+bool writeWithRetry(uint16_t reg, uint16_t value);
+void batteryStandby();
+void acchargeControl();
+void loop();
+#line 182 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void updateRedLed() {
   uint8_t state = 0;
   if (!readoutSucceeded) {
@@ -195,9 +228,9 @@ void updateRedLed() {
   digitalWrite(LED_RT, state);
 }
 
-// -------------------------------------------------------
-// Check the WiFi status and reconnect if necessary
-// -------------------------------------------------------
+
+
+
 void WiFi_Reconnect() {
   if (WiFi.status() != WL_CONNECTED) {
     digitalWrite(LED_GN, 0);
@@ -206,10 +239,10 @@ void WiFi_Reconnect() {
       delay(200);
       Log.print(F("."));
       digitalWrite(LED_RT,
-                   !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
+                   !digitalRead(LED_RT));
     }
 
-    // todo: use Log
+
     WiFi.printDiag(Serial);
     Log.print(F("Local IP: "));
     Log.println(WiFi.localIP());
@@ -221,16 +254,9 @@ void WiFi_Reconnect() {
     updateRedLed();
   }
 }
-
-// Connection can fail after sunrise. The stick powers up before the inverter.
-// So the detection of the inverter will fail. If no inverter is detected, we
-// have to retry later (s. loop() ) The detection without running inverter will
-// take several seconds, because the ModBus-Lib has a timeout of 2s for each
-// read access (and we do several of them). The WiFi can crash during this
-// function. Perhaps we can fix this by using the callback function of the
-// ModBus-Lib
+# 232 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void InverterReconnect(void) {
-  // Baudrate will be set here, depending on the version of the stick
+
   Inverter.begin(Serial);
 
   if (Inverter.GetWiFiStickType() == ShineWiFi_X)
@@ -336,7 +362,7 @@ void configureLogging() {
 #endif
   if (!Wifi.syslog_ip.isEmpty()) {
     syslogStream.setDestination(Wifi.syslog_ip.c_str());
-    // syslogStream.setRaw(true);
+
     const std::shared_ptr<LOGBase> syslogStreamPtr =
         std::make_shared<SyslogStream>(syslogStream);
     Log.addPrintStream(syslogStreamPtr);
@@ -353,12 +379,12 @@ void setupGPIO() {
 
 void setupWifiHost() {
 #ifdef ESP32
-  // ESP32 needs this here (before WiFi.mode) for core 2.0.0
+
   WiFi.hostname(Wifi.hostname);
 #endif
-  WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
+  WiFi.mode(WIFI_STA);
 #ifdef ESP8266
-  // ESP8266 needs this here (after WiFi.mode)
+
   WiFi.hostname(Wifi.hostname);
 #endif
 #if OTA_SUPPORTED == 0
@@ -369,17 +395,7 @@ void setupWifiHost() {
 }
 
 #if defined(ESP32)
-// void startWdt() {
-//   Log.println(F("Configuring WDT"));
-//   esp_task_wdt_deinit();
-//   esp_task_wdt_config_t twdt_config = {
-//       .timeout_ms = REFRESH_TIMER * 5,
-//       .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
-//       .trigger_panic = true};
-//   esp_task_wdt_deinit();
-//   esp_task_wdt_init(&twdt_config);
-//   esp_task_wdt_add(NULL);
-// }
+# 383 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 void startWdt() {
   Log.print(F("Configuring WDT with Timeout of "));
   Log.print(WDT_TIMEOUT);
@@ -388,31 +404,7 @@ void startWdt() {
   esp_task_wdt_add(NULL);
 }
 #endif
-
-// #if defined(ESP32)
-// void handleWdtReset(boolean mqttSuccess) {
-// #if MQTT_SUPPORTED == 1
-//   if (mqttSuccess) {
-//     resetWdt();
-//   } else {
-//     if (!shineMqtt.mqttEnabled()) {
-//       resetWdt();
-//     }
-//   }
-// #else
-//   resetWdt();
-// #endif
-// }
-// #endif
-
-// #if defined(ESP32)
-// void resetWdt() {
-//   // Log.println(F("WDT reset..."));
-//   esp_task_wdt_reset();
-// }
-// #endif
-
-// --- Zentrale Defaults
+# 416 "/home/dirkm/Dokumente/GitHub/OpenInverterGateway-lite/SRC/ShineWiFi-ModBus/ShineWiFi-ModBus.ino"
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
 constexpr int DEFAULT_AC_MAX = 3750;
@@ -422,34 +414,34 @@ void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
 
-  // Battery Standby (bool)
+
   User.bat_standby = prefs.getBool("bat_standby", false);
 
-  // Sleep Threshold (>0)
+
   {
     int v = prefs.getString("bat_slp_thr", String(DEFAULT_SLEEP_THR)).toInt();
     if (v <= 0) v = 1;
     User.bat_slp_thr = v;
   }
 
-  // Wake Threshold (>0)
+
   {
     int v = prefs.getString("bat_wke_thr", String(DEFAULT_WAKE_THR)).toInt();
     if (v <= 0) v = 1;
     User.bat_wke_thr = v;
   }
 
-  // AC Charging enabled?
+
   User.accharge = prefs.getBool("accharge", false);
 
-  // AC Max Power (>0)
+
   {
     int v = prefs.getString("ac_max_pow", String(DEFAULT_AC_MAX)).toInt();
     if (v <= 0) v = 1;
     User.ac_max_pow = v;
   }
 
-  // Offset (-100 bis +100)
+
   {
     int v = prefs.getString("ac_off_set", String(DEFAULT_OFFSET)).toInt();
     if (v < -99) v = -99;
@@ -460,7 +452,7 @@ void loadSettingsFromPrefs() {
   prefs.end();
 }
 
-// new
+
 #if MODBUS_TCP_SUPPORTED == 1
 bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
   return Inverter.ReadHoldingReg(address, value);
@@ -474,17 +466,17 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
   return Inverter.WriteHoldingReg(address, value);
 }
 #endif
-// new end
+
 
 void setup() {
-  // >>> LittleFS mounten (MUSS als erstes passieren)
+
   if (!LittleFS.begin()) {
     Serial.println("LittleFS mount failed!");
   } else {
     Serial.println("LittleFS OK");
   }
 
-  // Jetzt ist LittleFS sicher gemountet → Static Files registrieren
+
   httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
 
   WiFiManager wm;
@@ -520,8 +512,8 @@ void setup() {
   digitalWrite(LED_RT, 0);
   digitalWrite(LED_GN, 0);
 
-  // Set a timeout so the ESP doesn't hang waiting to be configured, for
-  // instance after a power failure
+
+
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
@@ -555,7 +547,7 @@ void setup() {
     ESP.restart();
   }
 
-  // Set static ip
+
   if (!Wifi.static_ip.isEmpty() && !Wifi.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
     ip.fromString(Wifi.static_ip);
@@ -577,20 +569,20 @@ void setup() {
     }
   }
 
-  // Automatically connect using saved credentials,
-  // if connection fails, it starts an access point with the specified name
-  // ("GrowattConfig")
+
+
+
   int connect_timeout_seconds = 15;
   wm.setConnectTimeout(connect_timeout_seconds);
   bool res = wm.autoConnect("GrowattConfig",
-                            APPassword);  // password protected wificonfig ap
+                            APPassword);
 
   if (!res) {
     Log.println(F("Failed to connect WiFi!"));
     ESP.restart();
   } else {
     digitalWrite(LED_BL, 0);
-    // if you get here you have connected to the WiFi
+
     Log.println(F("WiFi connected"));
   }
 
@@ -613,10 +605,10 @@ void setup() {
   httpServer.on("/loadfirst", loadFirst);
   httpServer.on("/batteryfirst", batteryFirst);
   httpServer.on("/gridfirst", gridFirst);
-  //  #if ENABLE_MODBUS_COMMUNICATION == 1
-  //    httpServer.on("/postCommunicationModbus", sendPostSite);
+
+
   httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
-  //  #endif
+
   httpServer.on("/", sendMainPage);
 #ifdef ENABLE_WEB_DEBUG
   httpServer.on("/debug", sendDebug);
@@ -629,13 +621,13 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
     Preferences prefs;
     prefs.begin("config", false);
 
-    //
-    // BATTERY STANDBY (bool)
-    //
+
+
+
     User.bat_standby = httpServer.hasArg("bat_standby");
     prefs.putBool("bat_standby", User.bat_standby);
 
-    // Sleep Threshold (>0)
+
     {
       int v = httpServer.arg("bat_slp_thr").toInt();
       if (v <= 0) v = 1;
@@ -643,7 +635,7 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
       prefs.putInt("bat_slp_thr", v);
     }
 
-    // Wake Threshold (>0)
+
     {
       int v = httpServer.arg("bat_wke_thr").toInt();
       if (v <= 0) v = 1;
@@ -651,13 +643,13 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
       prefs.putInt("bat_wke_thr", v);
     }
 
-    //
-    // AC CHARGE CONTROL (bool)
-    //
+
+
+
     User.accharge = httpServer.hasArg("accharge");
     prefs.putBool("accharge", User.accharge);
 
-    // AC Max Power (>0)
+
     {
       int v = httpServer.arg("ac_max_pow").toInt();
       if (v <= 0) v = 1;
@@ -665,7 +657,7 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
       prefs.putInt("ac_max_pow", v);
     }
 
-    // Offset (-99 bis +99)
+
     {
       int v = httpServer.arg("ac_off_set").toInt();
       if (v < -99) v = -99;
@@ -684,30 +676,30 @@ httpServer.on("/getSettings", HTTP_GET, []() {
 
     DynamicJsonDocument doc(512);
 
-    //
-    // Battery Standby
-    //
+
+
+
     doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
     doc["bat_slp_thr"] = prefs.getInt("bat_slp_thr", User.bat_slp_thr);
     doc["bat_wke_thr"] = prefs.getInt("bat_wke_thr", User.bat_wke_thr);
 
-    //
-    // AC Charging
-    //
-    doc["accharge"]    = prefs.getBool("accharge", User.accharge);
-    doc["ac_max_pow"]  = prefs.getInt("ac_max_pow", User.ac_max_pow);
-    doc["ac_off_set"]  = prefs.getInt("ac_off_set", User.ac_off_set);
+
+
+
+    doc["accharge"] = prefs.getBool("accharge", User.accharge);
+    doc["ac_max_pow"] = prefs.getInt("ac_max_pow", User.ac_max_pow);
+    doc["ac_off_set"] = prefs.getInt("ac_off_set", User.ac_off_set);
 
     prefs.end();
 
     sendJson(doc);
 });
 
-  // --- OTA Firmware Upload (Web) ---
+
   httpServer.on(
       "/update", HTTP_POST,
       []() {
-        // Diese Funktion wird nach dem Upload aufgerufen
+
         bool ok = !Update.hasError();
         String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
         httpServer.send(ok ? 200 : 500, "text/plain", msg);
@@ -717,15 +709,15 @@ httpServer.on("/getSettings", HTTP_GET, []() {
         }
       },
       []() {
-        // Diese Funktion verarbeitet die Upload-Daten
+
         HTTPUpload& upload = httpServer.upload();
         if (upload.status == UPLOAD_FILE_START) {
           Serial.printf("Update: %s\n", upload.filename.c_str());
 #if defined(ESP32)
-          if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  // ESP32
+          if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
 #else
           if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) &
-                            0xFFFFF000)) {  // ESP8266
+                            0xFFFFF000)) {
 #endif
             Update.printError(Serial);
           }
@@ -746,7 +738,7 @@ httpServer.on("/getSettings", HTTP_GET, []() {
 
   httpServer.begin();
 
-// new
+
 #if MODBUS_TCP_SUPPORTED == 1
   modbusTCP.readHoldingRegister = modbusReadHoldingRegister;
   modbusTCP.readInputRegister = modbusReadInputRegister;
@@ -818,11 +810,11 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   setupMenu(wm, true);
 }
 
-/**
- * @brief create custom wifimanager menu entries
- *
- * @param enableCustomParams enable custom params aka. mqtt settings
- */
+
+
+
+
+
 void setupMenu(WiFiManager& wm, bool enableCustomParams) {
   Log.println(F("Setting up WiFiManager menu"));
   std::vector<const char*> menu = {"wifi", "wifinoscan", "update"};
@@ -833,7 +825,7 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
   menu.push_back("erase");
   menu.push_back("restart");
 
-  wm.setMenu(menu);  // custom menu, pass vector
+  wm.setMenu(menu);
 }
 
 void sendJson(JsonDocument& doc) {
@@ -841,10 +833,10 @@ void sendJson(JsonDocument& doc) {
     httpServer.send(200, "application/json", "");
 
 #if defined(ESP8266)
-    // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
+
     serializeJson(doc, httpServer.client());
 #else
-    // ESP32: serializeJson benötigt lvalue → Client zuerst speichern
+
     WiFiClient client = httpServer.client();
     serializeJson(doc, client);
 #endif
@@ -958,16 +950,16 @@ void sendDebug(void) {
 
 void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
 
-// #if ENABLE_MODBUS_COMMUNICATION == 1
-// void sendPostSite(void) {
-//   httpServer.send(200, F("text/html"), SendPostSite_page);
-// }
-// #endif
+
+
+
+
+
 
 void handlePostData() {
   char msg[256];
 
-  // --- Parameter einlesen ---
+
   const String opStr = httpServer.arg(F("operation"));
   const String regStr = httpServer.arg(F("reg"));
   const String valStr = httpServer.arg(F("val"));
@@ -980,7 +972,7 @@ void handlePostData() {
   const bool isInput = (typeStr == "I");
   const bool isHolding = (typeStr == "H");
 
-  // --- Pflichtparameter prüfen ---
+
   if (!httpServer.hasArg(F("reg")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
@@ -989,7 +981,7 @@ void handlePostData() {
 
   const uint16_t reg = regStr.toInt();
 
-  // --- READ ---
+
   if (isRead) {
     if (!isInput && !isHolding) {
       httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
@@ -1026,7 +1018,7 @@ void handlePostData() {
     return;
   }
 
-  // --- WRITE ---
+
   if (isWrite) {
     if (!isHolding) {
       snprintf_P(msg, sizeof(msg),
@@ -1054,7 +1046,7 @@ void handlePostData() {
     return;
   }
 
-  // --- Unbekannte Operation ---
+
   httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
 }
 
@@ -1104,7 +1096,7 @@ void handleNTPSync() {
 }
 #endif
 
-// Retry helper function
+
 bool writeWithRetry(uint16_t reg, uint16_t value) {
   const int maxRetries = 4;
   const int retryInterval = 200;
@@ -1119,11 +1111,11 @@ bool writeWithRetry(uint16_t reg, uint16_t value) {
 }
 
 void batteryStandby() {
-  // --- User-Parameter (bereits als *10 skaliert) ---
+
   uint32_t wake_threshold = User.bat_wke_thr * 10;
   uint32_t sleep_threshold = User.bat_slp_thr * 10;
 
-  // --- Register EINMAL auslesen ---
+
   int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t discharge_stop =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
@@ -1141,7 +1133,7 @@ void batteryStandby() {
       Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
   int32_t ppv = Inverter._Protocol.InputRegisters[P3000_PPV].value;
 
-  // --- Disable discharging ---
+
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
       if (writeWithRetry(3036, 0)) {
@@ -1152,7 +1144,7 @@ void batteryStandby() {
     }
   }
 
-  // --- Enable discharging ---
+
   else if (soc >= discharge_stop_w) {
     if (discharge_rate != 100) {
       if (writeWithRetry(3036, 100)) {
@@ -1163,7 +1155,7 @@ void batteryStandby() {
     }
   }
 
-  // --- Battery OFF → wake ---
+
   if (sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
       if (writeWithRetry(0, 3)) {
@@ -1174,7 +1166,7 @@ void batteryStandby() {
     }
   }
 
-  // --- Battery ON → sleep ---
+
   else if (sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
@@ -1188,7 +1180,7 @@ void batteryStandby() {
 }
 
 void acchargeControl() {
-  // --- User-Parameter laden und validieren ---
+
   uint32_t max_power = User.ac_max_pow;
   if (max_power == 0) max_power = DEFAULT_AC_MAX;
 
@@ -1196,7 +1188,7 @@ void acchargeControl() {
   if (off_set < -99) off_set = -99;
   if (off_set > 99) off_set = 99;
 
-  // --- Register EINMAL auslesen ---
+
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
   int32_t ac_enabled =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
@@ -1211,22 +1203,22 @@ void acchargeControl() {
   uint16_t current_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
-  // --- Bedingungen prüfen ---
+
   if (priority == 1 && ac_enabled == 1) {
-    // Akku voll → auf LoadFirst umschalten
+
     if (soc == 100) {
       loadFirst();
       return;
     }
 
-    // --- Delta berechnen (64-bit für Sicherheit) ---
+
     int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
 
-    // --- Integer-Mathematik ---
+
     int32_t rawRate = (delta * 10) / max_power;
     int32_t roundedRate = rawRate + off_set;
 
-    // --- clamp auf 0–100 ---
+
     uint16_t targetpowerrate =
 #if defined(ESP8266)
         std::clamp<int32_t>(roundedRate, 0, 100);
@@ -1234,7 +1226,7 @@ void acchargeControl() {
         (roundedRate < 0) ? 0 : (roundedRate > 100 ? 100 : roundedRate);
 #endif
 
-    // Nur schreiben, wenn nötig
+
     if (current_rate != targetpowerrate) {
       if (writeWithRetry(3047, targetpowerrate)) {
         Log.print(F("Set BDCChargePowerRate: "));
@@ -1247,9 +1239,9 @@ void acchargeControl() {
   }
 }
 
-// -------------------------------------------------------
-// Main loop
-// -------------------------------------------------------
+
+
+
 #if ENABLE_AP_BUTTON == 1
 unsigned long ButtonTimer = 0;
 #endif
@@ -1313,16 +1305,16 @@ void loop() {
 
   httpServer.handleClient();
 
-// new
+
 #if MODBUS_TCP_SUPPORTED == 1
   if (modbusTCP.isEnabled()) {
     modbusTCP.loop();
   }
 #endif
-  //
 
-  // Toggle green LED with 1 Hz (alive)
-  // ------------------------------------------------------------
+
+
+
   if ((now - LEDTimer) > LED_TIMER) {
     if (wifiState == WL_CONNECTED)
       digitalWrite(LED_GN, !digitalRead(LED_GN));
@@ -1332,15 +1324,15 @@ void loop() {
     LEDTimer = now;
   }
 
-  // InverterReconnect() takes a long time --> wifi will crash
-  // Do it only every two minutes
+
+
   if ((now - WifiRetryTimer) > WIFI_RETRY_TIMER) {
     if (stick == Undef_stick) InverterReconnect();
     WifiRetryTimer = now;
   }
 
-  // Read Inverter every REFRESH_TIMER ms [defined in config.h]
-  // ------------------------------------------------------------
+
+
   if ((now - RefreshTimer) > REFRESH_TIMER) {
     if (stick != Undef_stick) {
 #if SIMULATE_INVERTER == 1
@@ -1351,7 +1343,7 @@ void loop() {
       updateRedLed();
 #endif
       if (readoutSucceeded) {
-        // boolean mqttSuccess = false;
+
 
 #if MQTT_SUPPORTED == 1
         if (shineMqtt.mqttEnabled()) {
@@ -1370,7 +1362,7 @@ void loop() {
     updateRedLed();
 
 #if PINGER_SUPPORTED == 1
-    // frequently check if gateway is reachable
+
     if (pinger.Ping(GATEWAY_IP) == false) {
       digitalWrite(LED_RT, 1);
       delay(3000);
@@ -1385,7 +1377,7 @@ void loop() {
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-  // set inverter datetime, initially after 60 seconds and then after 1 hour
+
   if (!initialSyncDone && now > 60000) {
     handleNTPSync();
     lastSync = now;
@@ -1399,11 +1391,11 @@ void loop() {
 #endif
 
 #if OTA_SUPPORTED == 1
-  // check for OTA updates
+
   ArduinoOTA.handle();
 #else
 #ifndef ESP32
-  // Handle MDNS requests on ESP8266
+
   MDNS.update();
 #endif
 #endif
