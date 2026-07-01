@@ -632,8 +632,8 @@ void setup() {
     //
     // BATTERY STANDBY
     //
-User.bat_standby = httpServer.hasArg("bat_standby");
-prefs.putBool("bat_standby", User.bat_standby);
+    User.bat_standby = httpServer.hasArg("bat_standby");
+    prefs.putBool("bat_standby", User.bat_standby);
 
     // Sleep Threshold (>0)
     {
@@ -654,8 +654,8 @@ prefs.putBool("bat_standby", User.bat_standby);
     //
     // AC CHARGE CONTROL
     //
-User.accharge = httpServer.hasArg("accharge");
-prefs.putBool("accharge", User.accharge);
+    User.accharge = httpServer.hasArg("accharge");
+    prefs.putBool("accharge", User.accharge);
 
     // AC Max Power (>0)
     {
@@ -665,20 +665,20 @@ prefs.putBool("accharge", User.accharge);
       prefs.putString("ac_max_pow", User.ac_max_pow);
     }
 
-    // Offset (-100 bis +100)
+    // Offset (-99 bis +99)
     {
       int v = httpServer.arg("ac_off_set").toInt();
-      if (v < -100) v = -100;
-      if (v > 100) v = 100;
+      if (v < -99) v = -99;
+      if (v > 99) v = 99;
       User.ac_off_set = String(v);
       prefs.putString("ac_off_set", User.ac_off_set);
     }
 
     prefs.end();
     httpServer.send(200, "text/plain", "Settings saved");
-  });
+});
 
-  httpServer.on("/getSettings", HTTP_GET, []() {
+httpServer.on("/getSettings", HTTP_GET, []() {
     Preferences prefs;
     prefs.begin("config", true);
 
@@ -690,20 +690,18 @@ prefs.putBool("accharge", User.accharge);
     doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
     doc["bat_slp_thr"] = prefs.getString("bat_slp_thr", User.bat_slp_thr);
     doc["bat_wke_thr"] = prefs.getString("bat_wke_thr", User.bat_wke_thr);
-    doc["bat_standby"] = false;
 
     //
     // AC Charging
     //
-    doc["accharge"] = prefs.getBool("accharge", User.accharge);
-    doc["ac_max_pow"] = prefs.getString("ac_max_pow", User.ac_max_pow);
-    doc["ac_off_set"] = prefs.getString("ac_off_set", User.ac_off_set);
-    doc["accharge"] = false;
+    doc["accharge"]    = prefs.getBool("accharge", User.accharge);
+    doc["ac_max_pow"]  = prefs.getString("ac_max_pow", User.ac_max_pow);
+    doc["ac_off_set"]  = prefs.getString("ac_off_set", User.ac_off_set);
 
     prefs.end();
 
     sendJson(doc);
-  });
+});
 
   // --- OTA Firmware Upload (Web) ---
   httpServer.on(
