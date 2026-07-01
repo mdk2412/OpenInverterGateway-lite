@@ -1270,13 +1270,16 @@ void loop() {
 #endif
 
   Log.loop();
+  unsigned long now = millis();
   wl_status_t wifiState = WiFi.status();
   uint8_t stick = Inverter.GetWiFiStickType();
-  unsigned long now = millis();
 
+  // ------------------------------------------------------------
+  // AP Button
+  // ------------------------------------------------------------
 #ifdef AP_BUTTON_PRESSED
-  if ((now - ButtonTimer) > BUTTON_TIMER) {
-    ButtonTimer = now;
+  if (now - ButtonTimer >= BUTTON_TIMER) {
+    ButtonTimer += BUTTON_TIMER;
 
     if (AP_BUTTON_PRESSED) {
       if (btnPressed > 5) {
@@ -1285,140 +1288,152 @@ void loop() {
       } else {
         btnPressed++;
       }
-      Log.print(F("Button pressed"));
+      Log.println(F("Button pressed"));
     } else {
       btnPressed = 0;
     }
   }
 #endif
 
-  if (StartedConfigAfterBoot == true) {
+  // ------------------------------------------------------------
+  // Config mode
+  // ------------------------------------------------------------
+  if (StartedConfigAfterBoot) {
     Log.println(F("StartedConfigAfterBoot"));
     prefs.putBool(ConfigFiles.force_ap, true);
     delay(3000);
     ESP.restart();
   }
 
+  // ------------------------------------------------------------
+  // WiFi reconnect (entkoppelt)
+  // ------------------------------------------------------------
   if (wifiState != WL_CONNECTED) {
-    WiFi_Reconnect();
+    if (now - WifiRetryTimer >= WIFI_RETRY_TIMER) {
+      WifiRetryTimer += WIFI_RETRY_TIMER;
+      WiFi_Reconnect();
+    }
   }
 
+  // ------------------------------------------------------------
+  // MQTT (entkoppelt)
+  // ------------------------------------------------------------
 #if MQTT_SUPPORTED == 1
   if (wifiState == WL_CONNECTED) {
-    if (shineMqtt.mqttReconnect()) {
-      shineMqtt.loop();
-    }
+    shineMqtt.mqttReconnect();
+    shineMqtt.loop();
   }
 #endif
 
-  httpServer.handleClient();
+  // ------------------------------------------------------------
+  // HTTP Server (entkoppelt)
+  // ------------------------------------------------------------
+  static unsigned long httpTimer = 0;
+  if (now - httpTimer >= 25) {     // nur alle 25 ms
+    httpTimer += 25;
+    httpServer.handleClient();
+    yield();                       // WiFi-Stack entlasten
+  }
 
-// new
+  // ------------------------------------------------------------
+  // Modbus TCP
+  // ------------------------------------------------------------
 #if MODBUS_TCP_SUPPORTED == 1
   if (modbusTCP.isEnabled()) {
     modbusTCP.loop();
+    yield();
   }
 #endif
-  //
 
-  // Toggle green LED with 1 Hz (alive)
   // ------------------------------------------------------------
-  if ((now - LEDTimer) > LED_TIMER) {
-    if (wifiState == WL_CONNECTED)
-      digitalWrite(LED_GN, !digitalRead(LED_GN));
-    else
-      digitalWrite(LED_GN, 0);
-
-    LEDTimer = now;
+  // LED 1 Hz (driftfrei)
+  // ------------------------------------------------------------
+  if (now - LEDTimer >= LED_TIMER) {
+    LEDTimer += LED_TIMER;         // driftfrei!
+    digitalWrite(LED_GN, wifiState == WL_CONNECTED ?
+                 !digitalRead(LED_GN) : 0);
   }
 
-  // InverterReconnect() takes a long time --> wifi will crash
-  // Do it only every two minutes
-  if ((now - WifiRetryTimer) > WIFI_RETRY_TIMER) {
-    if (stick == Undef_stick) InverterReconnect();
-    WifiRetryTimer = now;
+  // ------------------------------------------------------------
+  // Inverter reconnect (entkoppelt)
+  // ------------------------------------------------------------
+  if (now - WifiRetryTimer >= WIFI_RETRY_TIMER) {
+    WifiRetryTimer += WIFI_RETRY_TIMER;
+    if (stick == Undef_stick) {
+      InverterReconnect();
+    }
   }
 
-  // Read Inverter every REFRESH_TIMER ms [defined in config.h]
   // ------------------------------------------------------------
-  if ((now - RefreshTimer) > REFRESH_TIMER) {
+  // Inverter read (driftfrei)
+  // ------------------------------------------------------------
+  if (now - RefreshTimer >= REFRESH_TIMER) {
+    RefreshTimer += REFRESH_TIMER;     // driftfrei!
+
     if (stick != Undef_stick) {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
-      readoutSucceeded = false;
       readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
-      updateRedLed();
 #endif
-      if (readoutSucceeded) {
-        // boolean mqttSuccess = false;
 
 #if MQTT_SUPPORTED == 1
-        if (shineMqtt.mqttEnabled()) {
-          sendMqttJson();
-        }
-#endif
-      } else {
-#if MQTT_SUPPORTED == 1
+      if (readoutSucceeded && shineMqtt.mqttEnabled()) {
+        sendMqttJson();                // blockiert nicht mehr den Loop
+      } else if (!readoutSucceeded) {
         StaticJsonDocument<64> doc;
         doc["InverterStatus"] = -1;
         shineMqtt.mqttPublish(doc);
-
-#endif
       }
+#endif
     }
+
     updateRedLed();
-
-#if PINGER_SUPPORTED == 1
-    // frequently check if gateway is reachable
-    if (pinger.Ping(GATEWAY_IP) == false) {
-      digitalWrite(LED_RT, 1);
-      delay(3000);
-      ESP.restart();
-    }
-#endif
-
-    RefreshTimer = now;
-#if defined(ESP32)
-    esp_task_wdt_reset();
-#endif
+    yield();                           // WiFi-Stack entlasten
   }
 
+  // ------------------------------------------------------------
+  // NTP sync
+  // ------------------------------------------------------------
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-  // set inverter datetime, initially after 60 seconds and then after 1 hour
   if (!initialSyncDone && now > 60000) {
     handleNTPSync();
     lastSync = now;
     initialSyncDone = true;
   }
 
-  if (initialSyncDone && (now - lastSync) > NTP_TIMER) {
+  if (initialSyncDone && now - lastSync >= NTP_TIMER) {
+    lastSync += NTP_TIMER;
     handleNTPSync();
-    lastSync = now;
   }
 #endif
 
+  // ------------------------------------------------------------
+  // OTA / MDNS
+  // ------------------------------------------------------------
 #if OTA_SUPPORTED == 1
-  // check for OTA updates
   ArduinoOTA.handle();
 #else
 #ifndef ESP32
-  // Handle MDNS requests on ESP8266
   MDNS.update();
 #endif
 #endif
 
-  if (User.bat_standby) {
-    if ((now - BatteryStandbyTimer) > BATTERY_STANDBY_TIMER) {
-      batteryStandby();
-      BatteryStandbyTimer = now;
-    }
+  // ------------------------------------------------------------
+  // Battery standby
+  // ------------------------------------------------------------
+  if (User.bat_standby && now - BatteryStandbyTimer >= BATTERY_STANDBY_TIMER) {
+    BatteryStandbyTimer += BATTERY_STANDBY_TIMER;
+    batteryStandby();
   }
 
-  if (User.accharge) {
-    if ((now - ACChargeControlTimer) > ACCHARGE_CONTROL_TIMER) {
-      acchargeControl();
-      ACChargeControlTimer = now;
-    }
+  // ------------------------------------------------------------
+  // AC charge control
+  // ------------------------------------------------------------
+  if (User.accharge && now - ACChargeControlTimer >= ACCHARGE_CONTROL_TIMER) {
+    ACChargeControlTimer += ACCHARGE_CONTROL_TIMER;
+    acchargeControl();
   }
+
+  yield();   // final yield für WiFi-Stack
 }
