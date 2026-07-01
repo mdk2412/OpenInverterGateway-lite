@@ -1273,6 +1273,7 @@ void loop() {
 
   Log.loop();
   wl_status_t wifiState = WiFi.status();
+  uint8_t stick = Inverter.GetWiFiStickType();
   unsigned long now = millis();
 
 #ifdef AP_BUTTON_PRESSED
@@ -1336,14 +1337,14 @@ void loop() {
   // InverterReconnect() takes a long time --> wifi will crash
   // Do it only every two minutes
   if ((now - WifiRetryTimer) > WIFI_RETRY_TIMER) {
-    if (Inverter.GetWiFiStickType() == Undef_stick) InverterReconnect();
+    if (stick == Undef_stick) InverterReconnect();
     WifiRetryTimer = now;
   }
 
   // Read Inverter every REFRESH_TIMER ms [defined in config.h]
   // ------------------------------------------------------------
   if ((now - RefreshTimer) > REFRESH_TIMER) {
-    if (Inverter.GetWiFiStickType()) {
+    if (stick == Undef_stick) {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
