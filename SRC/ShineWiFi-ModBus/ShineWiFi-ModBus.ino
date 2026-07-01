@@ -632,8 +632,8 @@ void setup() {
     //
     // BATTERY STANDBY
     //
-    User.bat_standby = (httpServer.arg("bat_standby") == "on");
-    prefs.putBool("bat_standby", User.bat_standby);
+User.bat_standby = httpServer.hasArg("bat_standby");
+prefs.putBool("bat_standby", User.bat_standby);
 
     // Sleep Threshold (>0)
     {
@@ -654,8 +654,8 @@ void setup() {
     //
     // AC CHARGE CONTROL
     //
-    User.accharge = (httpServer.arg("accharge") == "on");
-    prefs.putBool("accharge", User.accharge);
+User.accharge = httpServer.hasArg("accharge");
+prefs.putBool("accharge", User.accharge);
 
     // AC Max Power (>0)
     {
@@ -839,11 +839,17 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
 }
 
 void sendJson(JsonDocument& doc) {
-  httpServer.setContentLength(measureJson(doc));
-  httpServer.send(200, "application/json", "");
+    httpServer.setContentLength(measureJson(doc));
+    httpServer.send(200, "application/json", "");
 
-  // Zero-Copy: direkt in den TCP-Socket
-  serializeJson(doc, httpServer.client());
+#if defined(ESP8266)
+    // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
+    serializeJson(doc, httpServer.client());
+#else
+    // ESP32: serializeJson benötigt lvalue → Client zuerst speichern
+    WiFiClient client = httpServer.client();
+    serializeJson(doc, client);
+#endif
 }
 
 void sendJsonSite(void) {
@@ -1223,7 +1229,12 @@ void acchargeControl() {
     int32_t roundedRate = rawRate + off_set;
 
     // --- clamp auf 0–100 ---
-    uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
+    uint16_t targetpowerrate =
+#if defined(ESP8266)
+        std::clamp<int32_t>(roundedRate, 0, 100);
+#else
+        (roundedRate < 0) ? 0 : (roundedRate > 100 ? 100 : roundedRate);
+#endif
 
     // Nur schreiben, wenn nötig
     if (current_rate != targetpowerrate) {
@@ -1332,7 +1343,7 @@ void loop() {
   // Read Inverter every REFRESH_TIMER ms [defined in config.h]
   // ------------------------------------------------------------
   if ((now - RefreshTimer) > REFRESH_TIMER) {
-    if ((wifiState == WL_CONNECTED) && (Inverter.GetWiFiStickType())) {
+    if (Inverter.GetWiFiStickType()) {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
