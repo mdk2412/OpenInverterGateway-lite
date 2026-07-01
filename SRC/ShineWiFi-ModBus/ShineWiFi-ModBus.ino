@@ -1344,7 +1344,7 @@ void loop() {
   // Read Inverter every REFRESH_TIMER ms [defined in config.h]
   // ------------------------------------------------------------
   if ((now - RefreshTimer) > REFRESH_TIMER) {
-    if (stick == Undef_stick) {
+    if (stick != Undef_stick) {
 #if SIMULATE_INVERTER == 1
       readoutSucceeded = true;
 #else
