@@ -838,7 +838,7 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
 
 void sendJson(JsonDocument& doc) {
     httpServer.setContentLength(measureJson(doc));
-    httpServer.send(200, "application/json", "");
+    httpServer.send(200, "application/json", "OK");
 
 #if defined(ESP8266)
     // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
@@ -883,7 +883,7 @@ void sendMetrics(void) {
   Inverter.CreateMetrics(metrics, WiFi.macAddress(), Wifi.hostname);
 
   httpServer.setContentLength(metrics.length());
-  httpServer.send(200, "text/plain", "");
+  httpServer.send(200, "text/plain", "OK");
   WiFiClient client = httpServer.client();
   for (uint16_t i = 0; i < metrics.length(); i += TCP_MSS) {
     int len = min(TCP_MSS, (int)metrics.length() - i);
