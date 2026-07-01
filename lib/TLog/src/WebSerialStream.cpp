@@ -136,7 +136,14 @@ void WebSerialStream::loop() {
   static bool ipLogged = false;
 
   // Erst loggen, wenn IP wirklich gesetzt ist
-  if (!ipLogged && WiFi.status() == WL_CONNECTED && WiFi.localIP().isSet()) {
+  if (!ipLogged && WiFi.status() == WL_CONNECTED &&
+#if defined(ESP8266)
+      WiFi.localIP().isSet()
+#else
+      WiFi.localIP() != INADDR_NONE
+#endif
+  ) {
+
     ipLogged = true;
 
     Log.print(F("Opened Serial Web Server: http://"));
