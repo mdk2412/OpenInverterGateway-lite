@@ -98,8 +98,8 @@
 // during development where the stick is not connected to the inverter
 // if Simulating the Inverter we've to set a Device Type this could be
 // ShineWiFi_X or ShineWiFi_S
-#define SIMULATE_INVERTER 0
-#define SIMULATE_DEVICE ShineWiFi_X
+// #define SIMULATE_INVERTER 0
+// #define SIMULATE_DEVICE ShineWiFi_X
 
 // Data of the Wifi access point
 // Default IP 192.168.4.1
@@ -120,9 +120,9 @@
 //    RETRY_TIMER: Determines the time between reconnection [ms]
 //    LED_TIMER: Led blinking rate [ms]
 #define REFRESH_TIMER 1000       // 5s default
-#define WIFI_RETRY_TIMER 120000  // 120s default
+// #define WIFI_RETRY_TIMER 120000  // 120s default
 #define LED_TIMER 500            // 0.5s default
-#define WDT_TIMEOUT 60            // 5 minutes default 
+// #define WDT_TIMEOUT 60            // 5 minutes default 
 
 #if PINGER_SUPPORTED == 1
 #define GATEWAY_IP IPAddress(192, 168, 178, 1)
