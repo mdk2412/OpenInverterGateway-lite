@@ -162,6 +162,7 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
    */
   uint16_t registerAddress;
   uint8_t res;
+  int j = 0;
 
   // read each fragment separately
   for (; i < _Protocol.HoldingFragmentCount; i++) {
@@ -169,7 +170,7 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
         _Protocol.HoldingReadFragments[i].StartAddress,
         _Protocol.HoldingReadFragments[i].FragmentSize);
     if (res == Modbus.ku8MBSuccess) {
-      for (int j = 0; j < _Protocol.HoldingRegisterCount; j++) {
+      for (; j < _Protocol.HoldingRegisterCount; j++) {
         if (_Protocol.HoldingRegisters[j].address >=
             _Protocol.HoldingReadFragments[i].StartAddress) {
           if (_Protocol.HoldingRegisters[j].address >=
@@ -231,7 +232,11 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     }
   }
 
-  _GotData = (retryCnt < maxRetries);
+  bool inputOk = (inputFragOffs == _Protocol.InputFragmentCount);
+  bool holdingOk = (holdingFragOffs == _Protocol.HoldingFragmentCount);
+
+  _GotData = inputOk && holdingOk;
+
   if (!_GotData) {
     Log.println(F("Reading Modbus Data not successful!"));
   }
