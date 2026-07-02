@@ -221,8 +221,7 @@ void WiFi_Reconnect() {
 void InverterReconnect(void) {
   // Baudrate will be set here, depending on the version of the stick
   Inverter.begin(Serial);
-
-Log.println(F("ShineWifiX initialisiert"));
+  // Log.println(F("ShineWifi-X initialisiert"));
 }
 
 void loadConfig();
@@ -1136,8 +1135,7 @@ void acchargeControl() {
     int32_t roundedRate = rawRate + off_set;
 
     // --- clamp auf 0–100 ---
-    uint16_t targetpowerrate =
-        std::clamp<int32_t>(roundedRate, 0, 100);
+    uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
     // Nur schreiben, wenn nötig
     if (current_rate != targetpowerrate) {
@@ -1160,7 +1158,7 @@ unsigned long ButtonTimer = 0;
 #endif
 unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
-unsigned long WifiRetryTimer = 0;
+// unsigned long WifiRetryTimer = 0;
 unsigned long BatteryStandbyTimer = 0;
 unsigned long ACChargeControlTimer = 0;
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -1177,7 +1175,7 @@ void loop() {
   Log.loop();
   unsigned long now = millis();
   wl_status_t wifiState = WiFi.status();
-  
+
 #ifdef AP_BUTTON_PRESSED
   if (now - ButtonTimer > BUTTON_TIMER) {
     ButtonTimer = now;
@@ -1218,27 +1216,26 @@ void loop() {
   }
 
   // Inverter reconnect
-  if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
-    WifiRetryTimer = now;
-    InverterReconnect();
-  }
+  // if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
+  //   WifiRetryTimer = now;
+  //   InverterReconnect();
+  // }
 
   // Inverter read
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
 
-
-      readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
-      updateRedLed();
+    readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
+    updateRedLed();
 
 #if MQTT_SUPPORTED == 1
-      if (readoutSucceeded && shineMqtt.mqttEnabled()) {
-        sendMqttJson();
-      } else {
-        StaticJsonDocument<64> doc;
-        doc["InverterStatus"] = -1;
-        shineMqtt.mqttPublish(doc);
-      }
+    if (readoutSucceeded && shineMqtt.mqttEnabled()) {
+      sendMqttJson();
+    } else {
+      StaticJsonDocument<64> doc;
+      doc["InverterStatus"] = -1;
+      shineMqtt.mqttPublish(doc);
+    }
 #endif
 
 #if PINGER_SUPPORTED == 1

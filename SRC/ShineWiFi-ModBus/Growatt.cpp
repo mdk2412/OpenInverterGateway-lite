@@ -87,7 +87,7 @@ void Growatt::begin(Stream& serial) {
   while (Serial.available()) Serial.read();
 
   Modbus.begin(1, serial);
-  Modbus.setResponseTimeout(400);
+  Modbus.setResponseTimeout(100);
 }
 
 bool Growatt::ReadInputRegisters(uint8_t& i) {
