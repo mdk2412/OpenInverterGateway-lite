@@ -1137,11 +1137,7 @@ void acchargeControl() {
 
     // --- clamp auf 0–100 ---
     uint16_t targetpowerrate =
-#if defined(ESP8266)
         std::clamp<int32_t>(roundedRate, 0, 100);
-#else
-        (roundedRate < 0) ? 0 : (roundedRate > 100 ? 100 : roundedRate);
-#endif
 
     // Nur schreiben, wenn nötig
     if (current_rate != targetpowerrate) {
