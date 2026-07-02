@@ -1240,12 +1240,8 @@ void loop() {
     RefreshTimer = now;
 
     if (stick != Undef_stick) {
-#if SIMULATE_INVERTER == 1
-      readoutSucceeded = true;
-#else
       readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
       updateRedLed();
-#endif
 
 #if MQTT_SUPPORTED == 1
       if (readoutSucceeded && shineMqtt.mqttEnabled()) {

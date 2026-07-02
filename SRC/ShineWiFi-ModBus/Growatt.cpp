@@ -536,7 +536,6 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 }
 
 void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
-#if SIMULATE_INVERTER != 1
   const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
                            "Hz", "°C", "VA",  "mA", "kOhm", "var"};
   const char* statusStr[] = {"(Waiting)", "(Normal Operation)", "", "(Error)"};
@@ -592,57 +591,6 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
       }
     }
   }
-#else
-#warning simulating the inverter
-  JsonArray arr = doc.createNestedArray("Status");
-  arr.add(1);
-  arr.add("(Normal Operation)");
-  arr.add(false);
-  arr = doc.createNestedArray("DcPower");
-  arr.add(230);
-  arr.add("W");
-  arr.add(true);
-  arr = doc.createNestedArray("DcVoltage");
-  arr.add(70.5);
-  arr.add("V");
-  arr.add(false);
-  arr = doc.createNestedArray("DcInputCurrent");
-  arr.add(8.5);
-  arr.add("A");
-  arr.add(false);
-  arr = doc.createNestedArray("AcFreq");
-  arr.add(50);
-  arr.add("Hz");
-  arr.add(false);
-  arr = doc.createNestedArray("AcVoltage");
-  arr.add(230);
-  arr.add("V");
-  arr.add(false);
-  arr = doc.createNestedArray("AcPower");
-  arr.add(0.00);
-  arr.add("W");
-  arr.add(false);
-  arr = doc.createNestedArray("EnergyToday");
-  arr.add(0.3);
-  arr.add("kWh");
-  arr.add(false);
-  arr = doc.createNestedArray("EnergyTotal");
-  arr.add(49.1);
-  arr.add("kWh");
-  arr.add(false);
-  arr = doc.createNestedArray("OperatingTime");
-  arr.add(123456);
-  arr.add("s");
-  arr.add(false);
-  arr = doc.createNestedArray("Temperature");
-  arr.add(21.12);
-  arr.add("C");
-  arr.add(false);
-  arr = doc.createNestedArray("AccumulatedEnergy");
-  arr.add(320);
-  arr.add("kWh");
-  arr.add(false);
-#endif  // SIMULATE_INVERTER
 
   if (doc.overflowed()) {
     Log.println(

@@ -37,11 +37,9 @@ std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
-#if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(3036, value)) {
     return std::make_tuple(false, String(F("Failed to set BDCDischargePowerRate!")));
   }
-#endif
 
   return std::make_tuple(
       true, String(F("Set BDCDischargePowerRate to ")) + value + F(" %"));
@@ -60,11 +58,9 @@ std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
-#if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(3037, value)) {
     return std::make_tuple(false, String(F("Failed to set BDCDischargeStopSOC!")));
   }
-#endif
 
   return std::make_tuple(
       true, String(F("Set BDCDischargeStopSOC to ")) + value + F(" %"));
@@ -83,11 +79,9 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
-#if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(3047, value)) {
     return std::make_tuple(false, String(F("Failed to set BDCChargePowerRate!")));
   }
-#endif
 
   return std::make_tuple(
       true, String(F("Set BDCChargePowerRate: ")) + value + F(" %"));
@@ -106,11 +100,9 @@ std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
-#if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(3048, value)) {
     return std::make_tuple(false, String(F("Failed to set BDCChargeStopSOC!")));
   }
-#endif
 
   return std::make_tuple(
       true, String(F("Set BDCChargeStopSOC to ")) + value + F(" %"));
@@ -123,12 +115,10 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
     return std::make_tuple(false, String(F("'Value' Field is required")));
   }
 
-#if SIMULATE_INVERTER != 1
   uint16_t value = req["value"].as<uint16_t>();
   if (!inverter.WriteHoldingReg(3049, value)) {
     return std::make_tuple(true, String(F("Set BDCACChargeEnabled")));
   }
-#endif
 
   return std::make_tuple(true, String(F("Set BDCACChargeEnabled")));
 }
