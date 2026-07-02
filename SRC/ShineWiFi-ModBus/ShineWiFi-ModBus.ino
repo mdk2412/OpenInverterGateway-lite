@@ -175,9 +175,7 @@ void updateRedLed() {
   if (!readoutSucceeded) {
     state = 1;
   }
-  if (Inverter.GetWiFiStickType() == Undef_stick) {
-    state = 1;
-  }
+
 #if MQTT_SUPPORTED == 1
   if (shineMqtt.mqttEnabled() && !shineMqtt.mqttConnected()) {
     state = 1;
@@ -224,12 +222,7 @@ void InverterReconnect(void) {
   // Baudrate will be set here, depending on the version of the stick
   Inverter.begin(Serial);
 
-  if (Inverter.GetWiFiStickType() == ShineWiFi_X)
-    Log.println(F("ShineWiFi-X (USB) found"));
-  else if (Inverter.GetWiFiStickType() == ShineWiFi_S)
-    Log.println(F("ShineWiFi-S (Serial) found"));
-  else
-    Log.println(F("Error: no ShineWiFi stick found!"));
+Log.println(F("ShineWifiX initialisiert"));
 }
 
 void loadConfig();
@@ -1188,8 +1181,7 @@ void loop() {
   Log.loop();
   unsigned long now = millis();
   wl_status_t wifiState = WiFi.status();
-  uint8_t stick = Inverter.GetWiFiStickType();
-
+  
 #ifdef AP_BUTTON_PRESSED
   if (now - ButtonTimer > BUTTON_TIMER) {
     ButtonTimer = now;
@@ -1232,14 +1224,14 @@ void loop() {
   // Inverter reconnect
   if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
     WifiRetryTimer = now;
-    if (stick == Undef_stick) InverterReconnect();
+    InverterReconnect();
   }
 
   // Inverter read
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
 
-    if (stick != Undef_stick) {
+
       readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
       updateRedLed();
 
@@ -1252,7 +1244,6 @@ void loop() {
         shineMqtt.mqttPublish(doc);
       }
 #endif
-    }
 
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {

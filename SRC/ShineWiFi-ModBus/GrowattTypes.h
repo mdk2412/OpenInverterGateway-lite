@@ -7,15 +7,6 @@
 #define BUFFER_SIZE 3072
 
 typedef enum {
-  Undef_stick = 0,
-  ShineWiFi_S = 1,  // Serial DB9-Connector, 9600Bd, Protocol v3.05 (2013)
-  ShineWiFi_X =
-      2,  // USB Type A with Bajonet locking , 115200Bd, Protocol v1.05 (2018)
-  ShineWiFi_F = 3  // USB Type A DB9-style screws, (Baudrate and protocol
-                   // unclear; likely 115200Bd / v1.05)
-} eDevice_t;
-
-typedef enum {
   GwStatusWaiting,
   GwStatusNormal,
   GwStatusFault

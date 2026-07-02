@@ -19,7 +19,6 @@ class Growatt {
   bool ReadInputRegisters(uint8_t& offs);
   bool ReadHoldingRegisters(uint8_t& offs);
   bool ReadData(uint8_t maxRetries);
-  eDevice_t GetWiFiStickType();
   sGrowattModbusReg_t GetInputRegister(uint16_t reg);
   sGrowattModbusReg_t GetHoldingRegister(uint16_t reg);
   bool ReadInputReg(uint16_t adr, uint32_t* result);
@@ -38,13 +37,11 @@ class Growatt {
                      const String& Hostname);
 
  private:
-  eDevice_t _eDevice;
   bool _GotData = false;
   uint32_t _PacketCnt;
   uint32_t _PacketCntFailed;
   std::map<String, CommandHandlerFunc> handlers;
 
-  eDevice_t _InitModbusCommunication();
   double roundByResolution(const double& value, const float& resolution);
   double getRegValue(sGrowattModbusReg_t* reg);
   void camelCaseToSnakeCase(const String& input, char* output);

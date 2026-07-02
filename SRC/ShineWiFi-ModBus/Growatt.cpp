@@ -30,7 +30,6 @@ ModbusMaster Modbus;
 
 // Constructor
 Growatt::Growatt() {
-  _eDevice = Undef_stick;
   _PacketCnt = 0;
   _PacketCntFailed = 0;
 
@@ -81,37 +80,14 @@ void Growatt::InitProtocol() {
 }
 
 void Growatt::begin(Stream& serial) {
-  // ShineWiFi-X arbeitet immer mit 115200 Baud
   Serial.begin(115200);
-
-  // Warten, bis der Stick vollständig gebootet hat
   delay(1000);
 
-  // UART-Buffer leeren (sehr wichtig!)
   Serial.flush();
   while (Serial.available()) Serial.read();
 
-  // Modbus initialisieren
   Modbus.begin(1, serial);
   Modbus.setResponseTimeout(400);
-
-  // Einziger Versuch
-  uint8_t res = Modbus.readInputRegisters(14, 1);
-
-  if (res == Modbus.ku8MBSuccess) {
-    _eDevice = ShineWiFi_X;
-  } else {
-    _eDevice = Undef_stick;
-  }
-}
-
-eDevice_t Growatt::GetWiFiStickType() {
-  /**
-   * @brief After initialisation the type of the wifi stick is known
-   * @returns eDevice_t type of the wifi stick
-   */
-
-  return _eDevice;
 }
 
 bool Growatt::ReadInputRegisters(uint8_t& i) {
