@@ -93,7 +93,7 @@ void Growatt::begin(Stream& serial) {
 
   // Modbus initialisieren
   Modbus.begin(1, serial);
-  Modbus.setResponseTimeout(200);
+  Modbus.setResponseTimeout(400);
 
   // Einziger Versuch
   uint8_t res = Modbus.readInputRegisters(14, 1);
