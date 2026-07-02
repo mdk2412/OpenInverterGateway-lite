@@ -34,12 +34,7 @@
 // -----------------------------------------------------------------------------
 //  Plattformabhängige Includes
 // -----------------------------------------------------------------------------
-#if defined(ESP8266)
 #include <Updater.h>
-#elif defined(ESP32)
-#include <Update.h>
-#include <esp_task_wdt.h>
-#endif
 
 // -----------------------------------------------------------------------------
 //  Optional: OTA
@@ -106,11 +101,7 @@ boolean readoutSucceeded = false;
 Pinger pinger;
 #endif
 
-#if defined(ESP8266)
 ESP8266WebServer httpServer(80);
-#elif defined(ESP32)
-WebServer httpServer(80);
-#endif
 
 struct {
   WiFiManagerParameter* hostname = NULL;
@@ -163,12 +154,12 @@ struct WifiConfig {
 
 struct UserConfig {
   bool bat_standby;
-  int  bat_slp_thr;
-  int  bat_wke_thr;
+  int bat_slp_thr;
+  int bat_wke_thr;
 
   bool accharge;
-  int  ac_max_pow;
-  int  ac_off_set;
+  int ac_max_pow;
+  int ac_off_set;
 };
 
 WifiConfig Wifi;
@@ -352,65 +343,15 @@ void setupGPIO() {
 }
 
 void setupWifiHost() {
-#ifdef ESP32
-  // ESP32 needs this here (before WiFi.mode) for core 2.0.0
-  WiFi.hostname(Wifi.hostname);
-#endif
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
-#ifdef ESP8266
   // ESP8266 needs this here (after WiFi.mode)
   WiFi.hostname(Wifi.hostname);
-#endif
 #if OTA_SUPPORTED == 0
   MDNS.begin(Wifi.hostname);
 #endif
   Log.print(F("setupWifiHost: hostname "));
   Log.println(Wifi.hostname);
 }
-
-#if defined(ESP32)
-// void startWdt() {
-//   Log.println(F("Configuring WDT"));
-//   esp_task_wdt_deinit();
-//   esp_task_wdt_config_t twdt_config = {
-//       .timeout_ms = REFRESH_TIMER * 5,
-//       .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
-//       .trigger_panic = true};
-//   esp_task_wdt_deinit();
-//   esp_task_wdt_init(&twdt_config);
-//   esp_task_wdt_add(NULL);
-// }
-void startWdt() {
-  Log.print(F("Configuring WDT with Timeout of "));
-  Log.print(WDT_TIMEOUT);
-  Log.println(F(" Seconds"));
-  esp_task_wdt_init(WDT_TIMEOUT, true);
-  esp_task_wdt_add(NULL);
-}
-#endif
-
-// #if defined(ESP32)
-// void handleWdtReset(boolean mqttSuccess) {
-// #if MQTT_SUPPORTED == 1
-//   if (mqttSuccess) {
-//     resetWdt();
-//   } else {
-//     if (!shineMqtt.mqttEnabled()) {
-//       resetWdt();
-//     }
-//   }
-// #else
-//   resetWdt();
-// #endif
-// }
-// #endif
-
-// #if defined(ESP32)
-// void resetWdt() {
-//   // Log.println(F("WDT reset..."));
-//   esp_task_wdt_reset();
-// }
-// #endif
 
 // --- Zentrale Defaults
 constexpr int DEFAULT_SLEEP_THR = 50;
@@ -542,14 +483,8 @@ void setup() {
 #endif
   if (Wifi.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
-#if defined(ESP32)
-    esp_task_wdt_delete(NULL);
-#endif
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-#if defined(ESP32)
-    esp_task_wdt_add(NULL);
-#endif
     digitalWrite(LED_BL, 0);
     delay(3000);
     ESP.restart();
@@ -625,7 +560,7 @@ void setup() {
 
   Inverter.InitProtocol();
   InverterReconnect();
-httpServer.on("/saveSettings", HTTP_POST, []() {
+  httpServer.on("/saveSettings", HTTP_POST, []() {
     Preferences prefs;
     prefs.begin("config", false);
 
@@ -676,9 +611,9 @@ httpServer.on("/saveSettings", HTTP_POST, []() {
 
     prefs.end();
     httpServer.send(200, "text/plain", "Settings saved");
-});
+  });
 
-httpServer.on("/getSettings", HTTP_GET, []() {
+  httpServer.on("/getSettings", HTTP_GET, []() {
     Preferences prefs;
     prefs.begin("config", true);
 
@@ -694,14 +629,14 @@ httpServer.on("/getSettings", HTTP_GET, []() {
     //
     // AC Charging
     //
-    doc["accharge"]    = prefs.getBool("accharge", User.accharge);
-    doc["ac_max_pow"]  = prefs.getInt("ac_max_pow", User.ac_max_pow);
-    doc["ac_off_set"]  = prefs.getInt("ac_off_set", User.ac_off_set);
+    doc["accharge"] = prefs.getBool("accharge", User.accharge);
+    doc["ac_max_pow"] = prefs.getInt("ac_max_pow", User.ac_max_pow);
+    doc["ac_off_set"] = prefs.getInt("ac_off_set", User.ac_off_set);
 
     prefs.end();
 
     sendJson(doc);
-});
+  });
 
   // --- OTA Firmware Upload (Web) ---
   httpServer.on(
@@ -721,12 +656,8 @@ httpServer.on("/getSettings", HTTP_GET, []() {
         HTTPUpload& upload = httpServer.upload();
         if (upload.status == UPLOAD_FILE_START) {
           Serial.printf("Update: %s\n", upload.filename.c_str());
-#if defined(ESP32)
-          if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {  // ESP32
-#else
           if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) &
                             0xFFFFF000)) {  // ESP8266
-#endif
             Update.printError(Serial);
           }
         } else if (upload.status == UPLOAD_FILE_WRITE) {
@@ -755,16 +686,7 @@ httpServer.on("/getSettings", HTTP_GET, []() {
 #endif
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-#if defined(ESP32)
-  configTime(0, 0, DEFAULT_NTP_SERVER);
-  setenv("TZ", DEFAULT_TZ_INFO, 1);
-#else
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
-#endif
-#endif
-
-#if defined(ESP32)
-  startWdt();
 #endif
 }
 
@@ -837,17 +759,11 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
 }
 
 void sendJson(JsonDocument& doc) {
-    httpServer.setContentLength(measureJson(doc));
-    httpServer.send(200, "application/json", "");
+  httpServer.setContentLength(measureJson(doc));
+  httpServer.send(200, "application/json", "");
 
-#if defined(ESP8266)
-    // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
-    serializeJson(doc, httpServer.client());
-#else
-    // ESP32: serializeJson benötigt lvalue → Client zuerst speichern
-    WiFiClient client = httpServer.client();
-    serializeJson(doc, client);
-#endif
+  // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
+  serializeJson(doc, httpServer.client());
 }
 
 void sendJsonSite(void) {
@@ -1283,7 +1199,8 @@ void loop() {
         StartedConfigAfterBoot = true;
       }
       Log.println(F("Button pressed"));
-    } else btnPressed = 0;
+    } else
+      btnPressed = 0;
   }
 #endif
 
@@ -1294,19 +1211,16 @@ void loop() {
     ESP.restart();
   }
 
-  if (wifiState != WL_CONNECTED)
-    WiFi_Reconnect();
+  if (wifiState != WL_CONNECTED) WiFi_Reconnect();
 
 #if MQTT_SUPPORTED == 1
-  if (wifiState == WL_CONNECTED && shineMqtt.mqttReconnect())
-    shineMqtt.loop();
+  if (wifiState == WL_CONNECTED && shineMqtt.mqttReconnect()) shineMqtt.loop();
 #endif
 
   httpServer.handleClient();
 
 #if MODBUS_TCP_SUPPORTED == 1
-  if (modbusTCP.isEnabled())
-    modbusTCP.loop();
+  if (modbusTCP.isEnabled()) modbusTCP.loop();
 #endif
 
   // LED alive
@@ -1318,8 +1232,7 @@ void loop() {
   // Inverter reconnect
   if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
     WifiRetryTimer = now;
-    if (stick == Undef_stick)
-      InverterReconnect();
+    if (stick == Undef_stick) InverterReconnect();
   }
 
   // Inverter read
@@ -1352,10 +1265,6 @@ void loop() {
       ESP.restart();
     }
 #endif
-
-#if defined(ESP32)
-    esp_task_wdt_reset();
-#endif
   }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -1371,10 +1280,6 @@ void loop() {
 
 #if OTA_SUPPORTED == 1
   ArduinoOTA.handle();
-#else
-#ifndef ESP32
-  MDNS.update();
-#endif
 #endif
 
   if (User.bat_standby && now - BatteryStandbyTimer > BATTERY_STANDBY_TIMER) {

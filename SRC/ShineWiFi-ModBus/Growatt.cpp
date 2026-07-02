@@ -522,19 +522,11 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   doc["Uptime"] = millis() / 1000;
   doc["WifiRSSI"] = WiFi.RSSI();
   doc["HeapFree"] = ESP.getFreeHeap();
-#if defined(ESP32)
-  doc["HeapSize"] = ESP.getHeapSize();
-  doc["HeapMaxAlloc"] = ESP.getMaxAllocHeap();
-  doc["HeapMinFree"] = ESP.getMinFreeHeap();
-  doc["HeapFragmentation"] =
-      100 - (100 * ESP.getMaxAllocHeap() / ESP.getFreeHeap());
-#else
   static uint32_t heap_min_free = ESP.getFreeHeap();
   heap_min_free = min(ESP.getFreeHeap(), heap_min_free);
   doc["HeapMaxAlloc"] = ESP.getMaxFreeBlockSize();
   doc["HeapMinFree"] = heap_min_free;
   doc["HeapFragmentation"] = ESP.getHeapFragmentation();
-#endif
 
   if (doc.overflowed()) {
     Log.println(
@@ -723,14 +715,6 @@ void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
   metricsAddValue("WifiRSSI", WiFi.RSSI(), 1, metrics, labels);
 
   metricsAddValue("HeapFree", ESP.getFreeHeap(), 1, metrics, labels);
-#if defined(ESP32)
-  metricsAddValue("HeapSize", ESP.getHeapSize(), 1, metrics, labels);
-  metricsAddValue("HeapMaxAlloc", ESP.getMaxAllocHeap(), 1, metrics, labels);
-  metricsAddValue("HeapMinFree", ESP.getMinFreeHeap(), 1, metrics, labels);
-  metricsAddValue("HeapFragmentation",
-                  100 - (100 * ESP.getMaxAllocHeap() / ESP.getFreeHeap()), 1,
-                  metrics, labels);
-#else
   static uint32_t heap_min_free = ESP.getFreeHeap();
   heap_min_free = min(ESP.getFreeHeap(), heap_min_free);
   metricsAddValue("HeapMaxAlloc", ESP.getMaxFreeBlockSize(), 1, metrics,
@@ -738,7 +722,6 @@ void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
   metricsAddValue("HeapMinFree", heap_min_free, 1, metrics, labels);
   metricsAddValue("HeapFragmentation", ESP.getHeapFragmentation(), 1, metrics,
                   labels);
-#endif
 }
 
 void Growatt::RegisterCommand(const String& command,

@@ -17,11 +17,7 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
 // Sichere, gültige MQTT-Client-ID
 // -------------------------------------------------------
 String ShineMqtt::getId() {
-#if defined(ESP8266)
   uint32_t id = ESP.getChipId();
-#elif defined(ESP32)
-  uint32_t id = (uint32_t)(ESP.getEfuseMac() & 0xFFFFFFFF);
-#endif
   return "growatt-min_tl-xh-" + String(id, HEX);
 }
 

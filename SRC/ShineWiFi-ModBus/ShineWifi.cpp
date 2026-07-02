@@ -1,7 +1,6 @@
 #include "ShineWifi.h"
 
 bool ShineWifiDisconnect() {
-#if defined(ESP8266) || defined(ESP32)
 
 #ifdef WM_DEBUG_LEVEL
   Log.print(F("WiFi station disconnected"));
@@ -15,7 +14,4 @@ bool ShineWifiDisconnect() {
 
   return ret;
 
-#else
-  return false;
-#endif
 }
