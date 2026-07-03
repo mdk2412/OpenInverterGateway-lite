@@ -1018,20 +1018,6 @@ void handleNTPSync() {
 }
 #endif
 
-// Retry helper function
-bool writeWithRetry(uint16_t reg, uint16_t value) {
-  const int maxRetries = 4;
-  const int retryInterval = 200;
-
-  for (int attempts = 0; attempts < maxRetries; attempts++) {
-    if (Inverter.WriteHoldingReg(reg, value)) {
-      return true;
-    }
-    delay(retryInterval);
-  }
-  return false;
-}
-
 void batteryStandby() {
   // --- User-Parameter (bereits als *10 skaliert) ---
   uint32_t wake_threshold = User.bat_wke_thr * 10;
