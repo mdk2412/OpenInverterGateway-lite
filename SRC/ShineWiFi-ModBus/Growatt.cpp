@@ -275,17 +275,12 @@ bool Growatt::ReadHoldingReg(uint16_t adr, uint16_t* result) {
  * @param result pointer to the result
  * @returns true if successful
  */
-#if SIMULATE_INVERTER != 1
   uint8_t res = Modbus.readHoldingRegisters(adr, 1);
   if (res == Modbus.ku8MBSuccess) {
     *result = Modbus.getResponseBuffer(0);
     return true;
   }
   return false;
-#else
-  *result = 0;
-  return true;
-#endif
 }
 
 bool Growatt::ReadHoldingReg(uint16_t adr, uint32_t* result) {
@@ -295,17 +290,12 @@ bool Growatt::ReadHoldingReg(uint16_t adr, uint32_t* result) {
  * @param result pointer to the result
  * @returns true if successful
  */
-#if SIMULATE_INVERTER != 1
   uint8_t res = Modbus.readHoldingRegisters(adr, 2);
   if (res == Modbus.ku8MBSuccess) {
     *result = (Modbus.getResponseBuffer(0) << 16) + Modbus.getResponseBuffer(1);
     return true;
   }
   return false;
-#else
-  *result = 0;
-  return true;
-#endif
 }
 
 bool Growatt::ReadHoldingRegFrag(uint16_t adr, uint8_t size, uint16_t* result) {
@@ -352,15 +342,11 @@ bool Growatt::WriteHoldingReg(uint16_t adr, uint16_t value) {
  * @param value value to write to the register
  * @returns true if successful
  */
-#if SIMULATE_INVERTER != 1
   uint8_t res = Modbus.writeSingleRegister(adr, value);
   if (res == Modbus.ku8MBSuccess) {
     return true;
   }
   return false;
-#else
-  return true;
-#endif
 }
 
 bool Growatt::WriteHoldingRegFrag(uint16_t adr, uint8_t size, uint16_t* value) {
@@ -388,17 +374,12 @@ bool Growatt::ReadInputReg(uint16_t adr, uint16_t* result) {
  * @param result pointer to the result
  * @returns true if successful
  */
-#if SIMULATE_INVERTER != 1
   uint8_t res = Modbus.readInputRegisters(adr, 1);
   if (res == Modbus.ku8MBSuccess) {
     *result = Modbus.getResponseBuffer(0);
     return true;
   }
   return false;
-#else
-  *result = 0;
-  return true;
-#endif
 }
 
 bool Growatt::ReadInputReg(uint16_t adr, uint32_t* result) {
@@ -408,17 +389,12 @@ bool Growatt::ReadInputReg(uint16_t adr, uint32_t* result) {
  * @param result pointer to the result
  * @returns true if successful
  */
-#if SIMULATE_INVERTER != 1
   uint8_t res = Modbus.readInputRegisters(adr, 2);
   if (res == Modbus.ku8MBSuccess) {
     *result = (Modbus.getResponseBuffer(0) << 16) + Modbus.getResponseBuffer(1);
     return true;
   }
   return false;
-#else
-  *result = 0;
-  return true;
-#endif
 }
 
 double Growatt::roundByResolution(const double& value,
@@ -720,9 +696,7 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
     return std::make_tuple(false, "'ID' Field is required");
   }
 
-#if SIMULATE_INVERTER != 1
   uint16_t id = req["id"].as<uint16_t>();
-#endif
 
   if (!req.containsKey("type")) {
     return std::make_tuple(false, "'Type' Field is required");
@@ -745,7 +719,6 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
         false, "'RegisterType' must be 'H' (Holding) or 'I' (Input)");
   }
 
-#if SIMULATE_INVERTER != 1
   if (type == "16b") {
     uint16_t value;
     if (registerType == "H") {
@@ -771,13 +744,6 @@ std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
     }
     res["value"] = value;
   }
-#else
-  if (type == "16b") {
-    res["value"] = 16;
-  } else {
-    res["value"] = 32;
-  }
-#endif
 
   return std::make_tuple(true, "success");
 }
@@ -789,9 +755,7 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
     return std::make_tuple(false, "'ID' Field is required");
   }
 
-#if SIMULATE_INVERTER != 1
   uint16_t id = req["id"].as<uint16_t>();
-#endif
 
   if (!req.containsKey("type")) {
     return std::make_tuple(false, "'Type' Field is required");
@@ -827,15 +791,11 @@ std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
     return std::make_tuple(false, "'Value' Field is required");
   }
 
-#if SIMULATE_INVERTER != 1
   uint16_t value = req["value"].as<uint16_t>();
-#endif
 
-#if SIMULATE_INVERTER != 1
   if (!inverter.WriteHoldingReg(id, value)) {
     return std::make_tuple(false, "Failed to write into Holding Register!");
   }
-#endif
 
   return std::make_tuple(true, "success");
 }
