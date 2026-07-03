@@ -503,8 +503,12 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
                            "Hz", "°C", "VA",  "mA", "kOhm", "var"};
+
   const char* statusStr[] = {"(Waiting)", "(Normal Operation)", "", "(Error)"};
   const int statusStrLength = sizeof(statusStr) / sizeof(char*);
+  const char* onoffStr[] = {"(InverterOff)", "(InverterOn)", "(BDCOff)",
+                            "(BDCOn)"};
+  const int onoffStrLength = sizeof(onoffStr) / sizeof(char*);
   const char* priorityStr[] = {"(Load First)", "(Battery First)",
                                "(Grid First)"};
   const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
@@ -549,8 +553,12 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
 
       if (String(_Protocol.HoldingRegisters[i].name) == F("InverterStatus") &&
           _Protocol.HoldingRegisters[i].value < statusStrLength) {
-        arr.add(statusStr[_Protocol.HoldingRegisters[i].value]);  // use unit
-                                                                  // for status
+        arr.add(statusStr[_Protocol.HoldingRegisters[i].value]);
+
+      } else if (String(_Protocol.HoldingRegisters[i].name) == F("OnOff") &&
+                 _Protocol.HoldingRegisters[i].value < onoffStrLength) {
+        arr.add(onoffStr[_Protocol.HoldingRegisters[i].value]);
+
       } else {
         arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);  // unit
       }
@@ -625,68 +633,63 @@ void Growatt::RegisterCommand(const String& command,
   handlers[command] = handler;
 }
 
-void Growatt::HandleCommand(const String& command,
-                            const byte* payload,
-                            const unsigned int length,
-                            JsonDocument& req,
-                            JsonDocument& res)
-{
-    // Standard: keine Retries
-    uint8_t retries = 0;
+void Growatt::HandleCommand(const String& command, const byte* payload,
+                            const unsigned int length, JsonDocument& req,
+                            JsonDocument& res) {
+  // Standard: keine Retries
+  uint8_t retries = 0;
 
-    bool success = false;
-    String message = "";
+  bool success = false;
+  String message = "";
 
-    for (uint8_t attempt = 0; attempt <= retries; attempt++) {
+  for (uint8_t attempt = 0; attempt <= retries; attempt++) {
+    req.clear();
+    res.clear();
 
-        req.clear();
-        res.clear();
+    DeserializationError deserializationErr =
+        deserializeJson(req, payload, length);
 
-        DeserializationError deserializationErr =
-            deserializeJson(req, payload, length);
+    if (deserializationErr) {
+      Log.println("Failed to parse JSON Request in Command '" + command +
+                  "': " + String(deserializationErr.c_str()));
+      success = false;
+      message =
+          "Failed to parse JSON Request: " + String(deserializationErr.c_str());
+    } else {
+      // Retry-Wert aus JSON lesen (falls vorhanden)
+      if (req.containsKey("retry")) {
+        retries = req["retry"].as<uint8_t>();
+      }
 
-        if (deserializationErr) {
-            Log.println("Failed to parse JSON Request in Command '" + command +
-                        "': " + String(deserializationErr.c_str()));
-            success = false;
-            message = "Failed to parse JSON Request: " +
-                      String(deserializationErr.c_str());
-        } else {
+      if (req.containsKey("correlationId")) {
+        res["correlationId"] = String(req["correlationId"].as<String>());
+      }
 
-            // Retry-Wert aus JSON lesen (falls vorhanden)
-            if (req.containsKey("retry")) {
-                retries = req["retry"].as<uint8_t>();
-            }
-
-            if (req.containsKey("correlationId")) {
-                res["correlationId"] = String(req["correlationId"].as<String>());
-            }
-
-            auto it = handlers.find(command.c_str());
-            if (it != handlers.end()) {
-                Log.println("Handling Command: " + command);
-                std::tie(success, message) = it->second(req, res, *this);
-            } else {
-                Log.println("Unknown Command: " + command);
-                success = false;
-                message = "Unknown Command: " + command;
-            }
-        }
-
-        // Erfolg → abbrechen
-        if (success) {
-            break;
-        }
-
-        // Kein Logging hier — Handler + HandleCommand loggen bereits!
-        delay(100);
+      auto it = handlers.find(command.c_str());
+      if (it != handlers.end()) {
+        Log.println("Handling Command: " + command);
+        std::tie(success, message) = it->second(req, res, *this);
+      } else {
+        Log.println("Unknown Command: " + command);
+        success = false;
+        message = "Unknown Command: " + command;
+      }
     }
 
-    res["command"] = command;
-    res["success"] = success;
-    res["message"] = message;
+    // Erfolg → abbrechen
+    if (success) {
+      break;
+    }
 
-    Log.println(res["message"].as<String>());
+    // Kein Logging hier — Handler + HandleCommand loggen bereits!
+    delay(100);
+  }
+
+  res["command"] = command;
+  res["success"] = success;
+  res["message"] = message;
+
+  Log.println(res["message"].as<String>());
 }
 
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,

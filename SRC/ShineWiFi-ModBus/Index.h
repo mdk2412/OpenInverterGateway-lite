@@ -67,6 +67,10 @@ const char MAIN_page[] PROGMEM = R"=====(
       <table>
         <tbody>
           <tr>
+            <th>On/Off Mode</th>
+            <td id="onoffMode">Loading...</td>
+          </tr>    
+          <tr>
             <th>Priority Mode</th>
             <td id="priorityMode">Loading...</td>
           </tr>
@@ -268,6 +272,8 @@ const char MAIN_page[] PROGMEM = R"=====(
             if (!response.ok) return;
 
             const data = await response.json();
+            document.getElementById("onoffMode").textContent =
+              data.OnOff[0] + " " + data.OnOff[1];
 
             document.getElementById("priorityMode").textContent =
               data.Priority[0] + " " + data.Priority[1];
