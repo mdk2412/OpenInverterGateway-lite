@@ -205,7 +205,6 @@ std::tuple<bool, String> setPriority(const JsonDocument& req,
   }
 
   uint16_t mode_raw[2] = {0};
-  uint16_t ChargePowerRate = 100;
   String mode_text;
 
   if (mode == 0) {
@@ -222,11 +221,10 @@ std::tuple<bool, String> setPriority(const JsonDocument& req,
     mode_text = F("Grid First");
   }
 
-  // --- Single writes (retry removed) ---
+  // --- Only write 3038 (priority), 3047 removed ---
   bool success3038 = inverter.WriteHoldingRegFrag(3038, 2, mode_raw);
-  bool success3047 = inverter.WriteHoldingReg(3047, ChargePowerRate);
 
-  if (!success3038 || !success3047) {
+  if (!success3038) {
     return std::make_tuple(false, String(F("Failed to set Priority Mode!")));
   }
 
