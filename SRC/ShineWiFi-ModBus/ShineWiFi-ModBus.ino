@@ -837,13 +837,13 @@ void loadFirst(void) {
 
   StaticJsonDocument<128> req1, res1;
   const char* payload1 = "{\"mode\": 0, \"retry\": 2}";
-  Inverter.HandleCommand("priority/set", (const byte*)payload1, strlen(payload1),
-                         req1, res1);
+  Inverter.HandleCommand("priority/set", (const byte*)payload1,
+                         strlen(payload1), req1, res1);
 
   StaticJsonDocument<128> req2, res2;
   const char* payload2 = "{\"value\": 100, \"retry\": 2}";
-  Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload2, strlen(payload2),
-                         req2, res2);
+  Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload2,
+                         strlen(payload2), req2, res2);
 }
 
 void batteryFirst(void) {
@@ -1058,7 +1058,13 @@ void batteryStandby() {
   // --- Disable discharging ---
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
-      if (writeWithRetry(3036, 0)) {
+      StaticJsonDocument<128> req, res;
+      const char* payload = "{\"value\": 0, \"retry\": 2}";
+
+      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)payload,
+                             strlen(payload), req, res);
+
+      if (res["success"] == true) {
         Log.println(F("Battery discharging deactivated"));
       } else {
         Log.println(F("Battery discharging still activated!"));
@@ -1069,7 +1075,13 @@ void batteryStandby() {
   // --- Enable discharging ---
   else if (soc >= discharge_stop_w) {
     if (discharge_rate != 100) {
-      if (writeWithRetry(3036, 100)) {
+      StaticJsonDocument<128> req, res;
+      const char* payload = "{\"value\": 100, \"retry\": 2}";
+
+      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)payload,
+                             strlen(payload), req, res);
+
+      if (res["success"] == true) {
         Log.println(F("Battery discharging activated"));
       } else {
         Log.println(F("Battery discharging still deactivated!"));
