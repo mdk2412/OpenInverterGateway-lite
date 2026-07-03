@@ -52,12 +52,6 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
     return std::make_tuple(false, msg);
   }
 
-  // --- Optional retry parameter ---
-  uint8_t retry = 1;
-  if (req.containsKey("retry")) {
-    retry = req["retry"].as<uint8_t>();
-  }
-
   // --- Mapping text ---
   String mode_text;
   switch (value) {
@@ -67,13 +61,8 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
     case 3: mode_text = F("BDC On");       break;
   }
 
-  // --- Write register with retry ---
-  bool ok = false;
-  for (uint8_t i = 0; i < retry; i++) {
-    ok = inverter.WriteHoldingReg(0, value);
-    if (ok) break;
-    delay(100);
-  }
+  // --- Single write (retry removed) ---
+  bool ok = inverter.WriteHoldingReg(0, value);
 
   // --- Logging & result ---
   if (!ok) {
@@ -202,6 +191,7 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
 std::tuple<bool, String> setPriority(const JsonDocument& req,
                                      JsonDocument& res,
                                      Growatt& inverter) {
+
   if (!req.containsKey("mode")) {
     return std::make_tuple(false, String(F("'Mode' Field is required")));
   }
@@ -232,27 +222,9 @@ std::tuple<bool, String> setPriority(const JsonDocument& req,
     mode_text = F("Grid First");
   }
 
-  const int maxRetries = 4;
-  const int retryInterval = 200;
-
-  bool success3038 = false;
-  bool success3047 = false;
-
-  for (int attempts = 0; attempts < maxRetries; attempts++) {
-    if (!success3038) {
-      success3038 = inverter.WriteHoldingRegFrag(3038, 2, mode_raw);
-    }
-
-    if (!success3047) {
-      success3047 = inverter.WriteHoldingReg(3047, ChargePowerRate);
-    }
-
-    if (success3038 && success3047) {
-      break;
-    }
-
-    delay(retryInterval);
-  }
+  // --- Single writes (retry removed) ---
+  bool success3038 = inverter.WriteHoldingRegFrag(3038, 2, mode_raw);
+  bool success3047 = inverter.WriteHoldingReg(3047, ChargePowerRate);
 
   if (!success3038 || !success3047) {
     return std::make_tuple(false, String(F("Failed to set Priority Mode!")));
