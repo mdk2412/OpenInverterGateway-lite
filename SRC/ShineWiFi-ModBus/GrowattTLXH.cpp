@@ -44,10 +44,10 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
   // --- Validate range ---
   if (value > 3) {
     String msg = F("Invalid OnOff Mode! Select either "
-                   "0 (InverterOff), "
-                   "1 (InverterOn), "
-                   "2 (BDCOff) or "
-                   "3 (BDCOn)");
+                   "0 (Inverter Off), "
+                   "1 (Inverter On), "
+                   "2 (BDC Off) or "
+                   "3 (BDC On)");
     Log.println(msg);
     return std::make_tuple(false, msg);
   }
