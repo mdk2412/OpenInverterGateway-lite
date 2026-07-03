@@ -482,8 +482,8 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
 
   const char* statusStr[] = {"(Waiting)", "(Normal Operation)", "", "(Error)"};
   const int statusStrLength = sizeof(statusStr) / sizeof(char*);
-  const char* onoffStr[] = {"(InverterOff)", "(InverterOn)", "(BDCOff)",
-                            "(BDCOn)"};
+  const char* onoffStr[] = {"(Inverter Off)", "(Inverter On)", "(BDC Off)",
+                            "(BDC On)"};
   const int onoffStrLength = sizeof(onoffStr) / sizeof(char*);
   const char* priorityStr[] = {"(Load First)", "(Battery First)",
                                "(Grid First)"};
