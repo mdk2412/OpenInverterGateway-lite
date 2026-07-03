@@ -834,10 +834,16 @@ void rebootESP(void) {
 
 void loadFirst(void) {
   httpServer.send(200, F("text/plain"), F("Load First"));
-  StaticJsonDocument<128> req, res;
-  const char* payload = "{\"mode\": 0}";
-  Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
-                         req, res);
+
+  StaticJsonDocument<128> req1, res1;
+  const char* payload1 = "{\"mode\": 0}";
+  Inverter.HandleCommand("priority/set", (const byte*)payload1, strlen(payload1),
+                         req1, res1);
+
+  StaticJsonDocument<128> req2, res2;
+  const char* payload2 = "{\"value\": 100}";
+  Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload2, strlen(payload2),
+                         req2, res2);
 }
 
 void batteryFirst(void) {
