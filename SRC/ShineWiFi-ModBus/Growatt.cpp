@@ -46,15 +46,15 @@ Growatt::Growatt() {
     return handleCommandList(req, res, *this);
   });
 
-  RegisterCommand("modbus/get", [this](const JsonDocument& req,
-                                       JsonDocument& res, Growatt& inverter) {
-    return handleModbusGet(req, res, *this);
-  });
+  // RegisterCommand("modbus/get", [this](const JsonDocument& req,
+  //                                      JsonDocument& res, Growatt& inverter) {
+  //   return handleModbusGet(req, res, *this);
+  // });
 
-  RegisterCommand("modbus/set", [this](const JsonDocument& req,
-                                       JsonDocument& res, Growatt& inverter) {
-    return handleModbusSet(req, res, *this);
-  });
+  // RegisterCommand("modbus/set", [this](const JsonDocument& req,
+  //                                      JsonDocument& res, Growatt& inverter) {
+  //   return handleModbusSet(req, res, *this);
+  // });
 }
 
 void Growatt::InitProtocol() {
@@ -689,109 +689,109 @@ std::tuple<bool, String> Growatt::handleCommandList(const JsonDocument& req,
   return std::make_tuple(true, "");
 }
 
-std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
-                                                  JsonDocument& res,
-                                                  Growatt& inverter) {
-  if (!req.containsKey("reg")) {
-    return std::make_tuple(false, "'Register ID' Field is required");
-  }
+// std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
+//                                                   JsonDocument& res,
+//                                                   Growatt& inverter) {
+//   if (!req.containsKey("reg")) {
+//     return std::make_tuple(false, "'Register ID' Field is required");
+//   }
 
-  uint16_t reg = req["reg"].as<uint16_t>();
+//   uint16_t reg = req["reg"].as<uint16_t>();
 
-  if (!req.containsKey("width")) {
-    return std::make_tuple(false, "'Register Width' Field is required");
-  }
+//   if (!req.containsKey("width")) {
+//     return std::make_tuple(false, "'Register Width' Field is required");
+//   }
 
-  String width = req["width"].as<String>();
+//   String width = req["width"].as<String>();
 
-  if (width != "16b" && width != "32b") {
-    return std::make_tuple(false, "'Register Width' must be '16b' or '32b'");
-  }
+//   if (width != "16b" && width != "32b") {
+//     return std::make_tuple(false, "'Register Width' must be '16b' or '32b'");
+//   }
 
-  if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'Register Type' Field is required");
-  }
+//   if (!req.containsKey("type")) {
+//     return std::make_tuple(false, "'Register Type' Field is required");
+//   }
 
-  String type = req["type"].as<String>();
+//   String type = req["type"].as<String>();
 
-  if (type != "H" && type != "I") {
-    return std::make_tuple(
-        false, "'Register Type' must be 'H' (Holding) or 'I' (Input)");
-  }
+//   if (type != "H" && type != "I") {
+//     return std::make_tuple(
+//         false, "'Register Type' must be 'H' (Holding) or 'I' (Input)");
+//   }
 
-  if (width == "16b") {
-    uint16_t value;
-    if (type == "H") {
-      if (!inverter.ReadHoldingReg(reg, &value)) {
-        return std::make_tuple(false, "Failed to read Holding Register!");
-      }
-    } else {
-      if (!inverter.ReadInputReg(reg, &value)) {
-        return std::make_tuple(false, "Failed to read Input Register!");
-      }
-    }
-    res["value"] = value;
-  } else {
-    uint32_t value;
-    if (type == "H") {
-      if (!inverter.ReadHoldingReg(reg, &value)) {
-        return std::make_tuple(false, "Failed to read Holding Register!");
-      }
-    } else {
-      if (!inverter.ReadInputReg(reg, &value)) {
-        return std::make_tuple(false, "Failed to read Input Register!");
-      }
-    }
-    res["value"] = value;
-  }
+//   if (width == "16b") {
+//     uint16_t value;
+//     if (type == "H") {
+//       if (!inverter.ReadHoldingReg(reg, &value)) {
+//         return std::make_tuple(false, "Failed to read Holding Register!");
+//       }
+//     } else {
+//       if (!inverter.ReadInputReg(reg, &value)) {
+//         return std::make_tuple(false, "Failed to read Input Register!");
+//       }
+//     }
+//     res["value"] = value;
+//   } else {
+//     uint32_t value;
+//     if (type == "H") {
+//       if (!inverter.ReadHoldingReg(reg, &value)) {
+//         return std::make_tuple(false, "Failed to read Holding Register!");
+//       }
+//     } else {
+//       if (!inverter.ReadInputReg(reg, &value)) {
+//         return std::make_tuple(false, "Failed to read Input Register!");
+//       }
+//     }
+//     res["value"] = value;
+//   }
 
-  return std::make_tuple(true, "success");
-}
+//   return std::make_tuple(true, "success");
+// }
 
-std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
-                                                  JsonDocument& res,
-                                                  Growatt& inverter) {
-  // --- Parameter prüfen ---
-  if (!req.containsKey("reg")) {
-    return std::make_tuple(false, "'Register ID' Field is required");
-  }
-  uint16_t reg = req["reg"].as<uint16_t>();
+// std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
+//                                                   JsonDocument& res,
+//                                                   Growatt& inverter) {
+//   // --- Parameter prüfen ---
+//   if (!req.containsKey("reg")) {
+//     return std::make_tuple(false, "'Register ID' Field is required");
+//   }
+//   uint16_t reg = req["reg"].as<uint16_t>();
 
-  if (!req.containsKey("width")) {
-    return std::make_tuple(false, "'Register Width' Field is required");
-  }
-  String width = req["width"].as<String>();
+//   if (!req.containsKey("width")) {
+//     return std::make_tuple(false, "'Register Width' Field is required");
+//   }
+//   String width = req["width"].as<String>();
 
-  if (width == "32b") {
-    return std::make_tuple(
-        false, "Writing to double (32b) Registers is not supported");
-  }
-  if (width != "16b") {
-    return std::make_tuple(false, "'Width' must be '16b'");
-  }
+//   if (width == "32b") {
+//     return std::make_tuple(
+//         false, "Writing to double (32b) Registers is not supported");
+//   }
+//   if (width != "16b") {
+//     return std::make_tuple(false, "'Width' must be '16b'");
+//   }
 
-  if (!req.containsKey("type")) {
-    return std::make_tuple(false, "'Register Type' Field is required");
-  }
-  String type = req["type"].as<String>();
+//   if (!req.containsKey("type")) {
+//     return std::make_tuple(false, "'Register Type' Field is required");
+//   }
+//   String type = req["type"].as<String>();
 
-  if (type == "I") {
-    return std::make_tuple(false,
-                           "It is not possible to write into Input Registers");
-  }
-  if (type != "H") {
-    return std::make_tuple(false, "'Register Type' must be 'H' (holding)");
-  }
+//   if (type == "I") {
+//     return std::make_tuple(false,
+//                            "It is not possible to write into Input Registers");
+//   }
+//   if (type != "H") {
+//     return std::make_tuple(false, "'Register Type' must be 'H' (holding)");
+//   }
 
-  if (!req.containsKey("val")) {
-    return std::make_tuple(false, "'Register Value' Field is required");
-  }
-  uint16_t val = req["val"].as<uint16_t>();
+//   if (!req.containsKey("val")) {
+//     return std::make_tuple(false, "'Register Value' Field is required");
+//   }
+//   uint16_t val = req["val"].as<uint16_t>();
 
-  // --- Write ---
-  if (!inverter.WriteHoldingReg(reg, val)) {
-    return std::make_tuple(false, "Failed to write into Holding Register!");
-  }
+//   // --- Write ---
+//   if (!inverter.WriteHoldingReg(reg, val)) {
+//     return std::make_tuple(false, "Failed to write into Holding Register!");
+//   }
 
-  return std::make_tuple(true, "success");
-}
+//   return std::make_tuple(true, "success");
+// }
