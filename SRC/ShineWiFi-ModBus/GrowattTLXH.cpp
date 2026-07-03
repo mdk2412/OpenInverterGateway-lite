@@ -61,10 +61,10 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
   // --- Mapping text ---
   String mode_text;
   switch (value) {
-    case 0: mode_text = F("InverterOff"); break;
-    case 1: mode_text = F("InverterOn");  break;
-    case 2: mode_text = F("BDCOff");      break;
-    case 3: mode_text = F("BDCOn");       break;
+    case 0: mode_text = F("Inverter Off"); break;
+    case 1: mode_text = F("Inverter On");  break;
+    case 2: mode_text = F("BDC Off");      break;
+    case 3: mode_text = F("BDC On");       break;
   }
 
   // --- Write register with retry ---
