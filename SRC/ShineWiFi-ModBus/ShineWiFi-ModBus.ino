@@ -1074,11 +1074,14 @@ void batteryStandby() {
   // --- Battery OFF → wake ---
   if (sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
-      if (writeWithRetry(0, 3)) {
-        Log.println(F("Battery activated"));
-      } else {
-        Log.println(F("Battery still deactivated!"));
-      }
+      char json[64];
+      snprintf(json, sizeof(json), "{\"value\":3,\"retry\":2}");
+
+      StaticJsonDocument<256> req;
+      StaticJsonDocument<256> res;
+
+      Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
+                             res);
     }
   }
 
@@ -1086,11 +1089,14 @@ void batteryStandby() {
   else if (sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
-      if (writeWithRetry(0, 2)) {
-        Log.println(F("Battery deactivated"));
-      } else {
-        Log.println(F("Battery still activated!"));
-      }
+      char json[64];
+      snprintf(json, sizeof(json), "{\"value\":2,\"retry\":2}");
+
+      StaticJsonDocument<256> req;
+      StaticJsonDocument<256> res;
+
+      Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
+                             res);
     }
   }
 }
@@ -1137,15 +1143,16 @@ void acchargeControl() {
     // --- clamp auf 0–100 ---
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
-    // Nur schreiben, wenn nötig
     if (current_rate != targetpowerrate) {
-      if (writeWithRetry(3047, targetpowerrate)) {
-        Log.print(F("Set BDCChargePowerRate: "));
-        Log.print(targetpowerrate);
-        Log.println(F(" %"));
-      } else {
-        Log.println(F("Failed to set BDCChargePowerRate!"));
-      }
+      char json[64];
+      snprintf(json, sizeof(json), "{\"value\":%d,\"retry\":2}",
+               targetpowerrate);
+
+      StaticJsonDocument<256> req;
+      StaticJsonDocument<256> res;
+
+      Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
+                             strlen(json), req, res);
     }
   }
 }

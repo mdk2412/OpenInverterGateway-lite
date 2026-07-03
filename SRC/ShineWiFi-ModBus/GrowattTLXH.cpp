@@ -16,6 +16,82 @@ std::tuple<bool, String> updateDateTime(const JsonDocument& req,
                                         JsonDocument& res,
                                         Growatt& inverter);
 
+std::tuple<bool, String> getOnOff(const JsonDocument& req,
+                                  JsonDocument& res,
+                                  Growatt& inverter) {
+  uint16_t value;
+  if (!inverter.ReadHoldingReg(0, &value)) {
+    return std::make_tuple(false, String(F("Failed to read OnOff!")));
+  }
+
+  res["value"] = value;
+  return std::make_tuple(true, String(F("OnOff: ")) + value);
+}
+
+std::tuple<bool, String> setOnOff(const JsonDocument& req,
+                                  JsonDocument& res,
+                                  Growatt& inverter) {
+
+  // --- Validate JSON field ---
+  if (!req.containsKey("value")) {
+    String msg = F("'Value' field is required");
+    Log.println(msg);
+    return std::make_tuple(false, msg);
+  }
+
+  uint16_t value = req["value"].as<uint16_t>();
+
+  // --- Validate range ---
+  if (value > 3) {
+    String msg = F("Invalid OnOff Mode! Select either "
+                   "0 (InverterOff), "
+                   "1 (InverterOn), "
+                   "2 (BDCOff) or "
+                   "3 (BDCOn)");
+    Log.println(msg);
+    return std::make_tuple(false, msg);
+  }
+
+  // --- Optional retry parameter ---
+  uint8_t retry = 1;
+  if (req.containsKey("retry")) {
+    retry = req["retry"].as<uint8_t>();
+  }
+
+  // --- Mapping text ---
+  String mode_text;
+  switch (value) {
+    case 0: mode_text = F("InverterOff"); break;
+    case 1: mode_text = F("InverterOn");  break;
+    case 2: mode_text = F("BDCOff");      break;
+    case 3: mode_text = F("BDCOn");       break;
+  }
+
+  // --- Write register with retry ---
+  bool ok = false;
+  for (uint8_t i = 0; i < retry; i++) {
+    ok = inverter.WriteHoldingReg(0, value);
+    if (ok) break;
+    delay(100);
+  }
+
+  // --- Logging & result ---
+  if (!ok) {
+    String msg = String(F("Failed to set OnOff Mode: ")) + mode_text;
+    Log.println(msg);
+    return std::make_tuple(false, msg);
+  }
+
+  String msg = String(F("OnOff Mode set to ")) + value + F(" (") + mode_text + F(")");
+  Log.println(msg);
+
+  res["success"] = true;
+  res["value"] = value;
+  res["mode"]  = mode_text;
+
+  return std::make_tuple(true, msg);
+}
+
 std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
                                             Growatt& inverter);
@@ -431,6 +507,8 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
   // FRAGMENT 1: BEGIN
+  Protocol.HoldingRegisters[P3000_ONOFF] =
+      sGrowattModbusReg_t{0, 0, SIZE_16BIT, F("OnOff"), 1, 1, NONE, true};
   Protocol.HoldingRegisters[P3000_ACTIVE_P_RATE] = sGrowattModbusReg_t{
       3, 0, SIZE_16BIT, F("ActivePowerRate"), 1, 1, PERCENTAGE, false};
   // FRAGMENT 1: END
@@ -458,6 +536,8 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
   Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
+      sGrowattReadFragment_t{0, 1};
+  Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
       sGrowattReadFragment_t{3, 1};
   Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
       sGrowattReadFragment_t{3036, 14};
@@ -467,6 +547,9 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   inverter.RegisterCommand("datetime/get", getDateTime);
   inverter.RegisterCommand("datetime/set", updateDateTime);
 
+  inverter.RegisterCommand("onoff/get", getOnOff);
+  inverter.RegisterCommand("onoff/set", setOnOff);
+  
   inverter.RegisterCommand("power/get/activerate", getPowerActiveRate);
   inverter.RegisterCommand("power/set/activerate", setPowerActiveRate);
 

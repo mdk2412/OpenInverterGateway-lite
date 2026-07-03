@@ -107,6 +107,7 @@ typedef enum {
 } eP3000InputRegisters_t;
 
 typedef enum {
+  P3000_ONOFF,
   P3000_ACTIVE_P_RATE,
   P3000_BDC_DISCHARGE_P_RATE,
   P3000_BDC_DISCHARGE_STOPSOC,

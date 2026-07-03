@@ -474,7 +474,6 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   if (!Hostname.isEmpty()) {
     doc["Hostname"] = Hostname;
   }
-#if SIMULATE_INVERTER != 1
   for (int i = 0; i < _Protocol.InputRegisterCount; i++)
     doc[_Protocol.InputRegisters[i].name] =
         getRegValue(&_Protocol.InputRegisters[i]);
@@ -482,21 +481,6 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   for (int i = 0; i < _Protocol.HoldingRegisterCount; i++)
     doc[_Protocol.HoldingRegisters[i].name] =
         getRegValue(&_Protocol.HoldingRegisters[i]);
-#else
-#warning simulating the inverter
-  doc["Status"] = 1;
-  doc["DcPower"] = 230;
-  doc["DcVoltage"] = 70.5;
-  doc["DcInputCurrent"] = 8.5;
-  doc["AcFreq"] = 50.00;
-  doc["AcVoltage"] = 230.0;
-  doc["AcPower"] = 0.00;
-  doc["EnergyToday"] = 0.3;
-  doc["EnergyTotal"] = 49.1;
-  doc["OperatingTime"] = 123456;
-  doc["Temperature"] = 21.12;
-  doc["AccumulatedEnergy"] = 320;
-#endif  // SIMULATE_INVERTER
   doc["Mac"] = MacAddress;
   doc["Cnt"] = _PacketCnt;
   doc["CntFailed"] = _PacketCntFailed;
@@ -612,7 +596,6 @@ void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
   } else {
     labels = "mac=\"" + MacAddress + "\",name=\"" + Hostname + "\"";
   }
-#if SIMULATE_INVERTER != 1
   for (int i = 0; i < _Protocol.InputRegisterCount; i++)
     metricsAddValue(_Protocol.InputRegisters[i].name,
                     getRegValue(&_Protocol.InputRegisters[i]),
@@ -622,22 +605,6 @@ void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
     metricsAddValue(_Protocol.HoldingRegisters[i].name,
                     getRegValue(&_Protocol.HoldingRegisters[i]),
                     _Protocol.HoldingRegisters[i].resolution, metrics, labels);
-
-#else
-#warning simulating the inverter
-  metricsAddValue("Status", 1, 1, metrics, labels);
-  metricsAddValue("DcPower", 230, 0.1, metrics, labels);
-  metricsAddValue("DcVoltage", 70.5, 0.1, metrics, labels);
-  metricsAddValue("DcInputCurrent", 8.5, 0.1, metrics, labels);
-  metricsAddValue("AcFreq", 50.00, 0.01, metrics, labels);
-  metricsAddValue("AcVoltage", 230.0, 0.1, metrics, labels);
-  metricsAddValue("AcPower", 0.0, 0.1, metrics, labels);
-  metricsAddValue("EnergyToday", 0.3, 0.1, metrics, labels);
-  metricsAddValue("EnergyTotal", 49.1, 0.1, metrics, labels);
-  metricsAddValue("OperatingTime", 123456, 0.1, metrics, labels);
-  metricsAddValue("Temperature", 21.12, 0.1, metrics, labels);
-  metricsAddValue("AccumulatedEnergy", 320, 0.1, metrics, labels);
-#endif  // SIMULATE_INVERTER
   metricsAddValue("Cnt", _PacketCnt, 1, metrics, labels);
   metricsAddValue("CntFailed", _PacketCntFailed, 1, metrics, labels);
   metricsAddValue("Uptime", millis() / 1000, 1, metrics, labels);
@@ -658,41 +625,68 @@ void Growatt::RegisterCommand(const String& command,
   handlers[command] = handler;
 }
 
-void Growatt::HandleCommand(const String& command, const byte* payload,
-                            const unsigned int length, JsonDocument& req,
-                            JsonDocument& res) {
-  String correlationId = "";
-  DeserializationError deserializationErr =
-      deserializeJson(req, payload, length);
+void Growatt::HandleCommand(const String& command,
+                            const byte* payload,
+                            const unsigned int length,
+                            JsonDocument& req,
+                            JsonDocument& res)
+{
+    // Standard: keine Retries
+    uint8_t retries = 0;
 
-  bool success;
-  String message;
-  if (deserializationErr) {
-    Log.println("Failed to parse JSON Request in Command '" + command +
-                "': " + String(deserializationErr.c_str()));
-    success = false;
-    message =
-        "Failed to parse JSON Request: " + String(deserializationErr.c_str());
-  } else {
-    if (req.containsKey("correlationId")) {
-      res["correlationId"] = String(req["correlationId"].as<String>());
+    bool success = false;
+    String message = "";
+
+    for (uint8_t attempt = 0; attempt <= retries; attempt++) {
+
+        req.clear();
+        res.clear();
+
+        DeserializationError deserializationErr =
+            deserializeJson(req, payload, length);
+
+        if (deserializationErr) {
+            Log.println("Failed to parse JSON Request in Command '" + command +
+                        "': " + String(deserializationErr.c_str()));
+            success = false;
+            message = "Failed to parse JSON Request: " +
+                      String(deserializationErr.c_str());
+        } else {
+
+            // Retry-Wert aus JSON lesen (falls vorhanden)
+            if (req.containsKey("retry")) {
+                retries = req["retry"].as<uint8_t>();
+            }
+
+            if (req.containsKey("correlationId")) {
+                res["correlationId"] = String(req["correlationId"].as<String>());
+            }
+
+            auto it = handlers.find(command.c_str());
+            if (it != handlers.end()) {
+                Log.println("Handling Command: " + command);
+                std::tie(success, message) = it->second(req, res, *this);
+            } else {
+                Log.println("Unknown Command: " + command);
+                success = false;
+                message = "Unknown Command: " + command;
+            }
+        }
+
+        // Erfolg → abbrechen
+        if (success) {
+            break;
+        }
+
+        // Kein Logging hier — Handler + HandleCommand loggen bereits!
+        delay(100);
     }
 
-    auto it = handlers.find(command.c_str());
-    if (it != handlers.end()) {
-      Log.println("Handling Command: " + command);
-      std::tie(success, message) = it->second(req, res, *this);
-    } else {
-      Log.println("Unknown Command: " + command);
-      success = false;
-      message = "Unknown Command: " + command;
-    }
-  }
+    res["command"] = command;
+    res["success"] = success;
+    res["message"] = message;
 
-  res["command"] = command;
-  res["success"] = success;
-  res["message"] = message;
-  Log.println(res["message"].as<String>());
+    Log.println(res["message"].as<String>());
 }
 
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
