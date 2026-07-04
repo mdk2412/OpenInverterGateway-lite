@@ -668,16 +668,16 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   Log.println(res["message"].as<String>());
 }
 
-// std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
-//                                              JsonDocument& res,
-//                                              Growatt& inverter) {
-//   if (!req.containsKey("text")) {
-//     return std::make_tuple(false, "'Text' Field is required");
-//   }
-//   String text = req["text"].as<String>();
-//   res["text"] = "Echo: " + text;
-//   return std::make_tuple(true, "");
-// }
+std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
+                                             JsonDocument& res,
+                                             Growatt& inverter) {
+  if (!req.containsKey("text")) {
+    return std::make_tuple(false, "'Text' Field is required");
+  }
+  String text = req["text"].as<String>();
+  res["text"] = "Echo: " + text;
+  return std::make_tuple(true, "");
+}
 
 std::tuple<bool, String> Growatt::handleCommandList(const JsonDocument& req,
                                                     JsonDocument& res,
