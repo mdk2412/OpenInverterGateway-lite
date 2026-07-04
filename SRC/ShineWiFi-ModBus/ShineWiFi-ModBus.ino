@@ -1103,7 +1103,6 @@ void batteryStandby() {
 }
 
 void acchargeControl() {
-  // --- User-Parameter laden und validieren ---
   uint32_t max_power = User.ac_max_pow;
   if (max_power == 0) max_power = DEFAULT_AC_MAX;
 
@@ -1111,7 +1110,6 @@ void acchargeControl() {
   if (off_set < -99) off_set = -99;
   if (off_set > 99) off_set = 99;
 
-  // --- Register EINMAL auslesen ---
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
   int32_t ac_enabled =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
@@ -1126,103 +1124,40 @@ void acchargeControl() {
   uint16_t current_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
-  // --- LOG: Eingelesene Werte ---
-  Log.print("[ACCTRL] priority=");
-  Log.print(priority);
-  Log.print(" ac_enabled=");
-  Log.print(ac_enabled);
-  Log.print(" soc=");
-  Log.print(soc);
-  Log.print(" p_chr=");
-  Log.print(p_chr);
-  Log.print(" p_togrid=");
-  Log.print(p_togrid);
-  Log.print(" p_touser=");
-  Log.print(p_touser);
-  Log.print(" current_rate=");
-  Log.print(current_rate);
-  Log.print(" max_power=");
-  Log.print(max_power);
-  Log.print(" off_set=");
-  Log.println(off_set);
-
-  // --- Bedingungen prüfen ---
   if (priority == 1 && ac_enabled == 1) {
-    // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
-      Log.println(
-          "[ACCTRL] SOC=100 → Umschalten auf LoadFirst + ChargePowerRate=100");
-
-      // 1) Priority setzen: Load First = mode 0
       {
         StaticJsonDocument<128> req, res;
         const char* payload = "{\"mode\":0,\"retry\":2}";
-        Log.print("[ACCTRL] SEND priority/set payload=");
-        Log.println(payload);
         Inverter.HandleCommand("priority/set", (const byte*)payload,
                                strlen(payload), req, res);
       }
-
-      // 2) ChargePowerRate auf 100% setzen
       {
         StaticJsonDocument<128> req, res;
         const char* payload = "{\"value\":100,\"retry\":2}";
-        Log.print("[ACCTRL] SEND chargepowerrate payload=");
-        Log.println(payload);
         Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
                                strlen(payload), req, res);
       }
-
       return;
     }
 
-    // --- Delta berechnen ---
     int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
-
-    // --- Integer-Mathematik ---
     int32_t rawRate = (delta * 10) / max_power;
     int32_t roundedRate = rawRate + off_set;
 
-    // --- clamp auf 0–100 ---
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
-
-    // --- LOG: Berechnungswerte ---
-    Log.print("[ACCTRL] delta=");
-    Log.print((long long)delta);
-    Log.print(" rawRate=");
-    Log.print(rawRate);
-    Log.print(" roundedRate=");
-    Log.print(roundedRate);
-    Log.print(" targetpowerrate=");
-    Log.println(targetpowerrate);
 
     if (current_rate != targetpowerrate) {
       char json[64];
       snprintf(json, sizeof(json), "{\"value\":%d,\"retry\":2}",
                targetpowerrate);
 
-      Log.print("[ACCTRL] UPDATE chargepowerrate: current=");
-      Log.print(current_rate);
-      Log.print(" → target=");
-      Log.print(targetpowerrate);
-      Log.print(" payload=");
-      Log.println(json);
-
       StaticJsonDocument<256> req;
       StaticJsonDocument<256> res;
 
       Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
                              strlen(json), req, res);
-    } else {
-      Log.print("[ACCTRL] NO UPDATE: current_rate == targetpowerrate (");
-      Log.print(current_rate);
-      Log.println(")");
     }
-  } else {
-    Log.print("[ACCTRL] NO ACTION: priority=");
-    Log.print(priority);
-    Log.print(" ac_enabled=");
-    Log.println(ac_enabled);
   }
 }
 
