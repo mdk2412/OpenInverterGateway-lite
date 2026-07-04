@@ -62,52 +62,10 @@ const char MAIN_page[] PROGMEM = R"=====(
     </nav>
 
     <!-- Dashboard -->
-    <section id="main" class="tab-content">
-
-      <table>
-        <tbody>
-          <tr>
-            <th>On/Off Mode</th>
-            <td id="onoffMode">Loading...</td>
-          </tr>    
-          <tr>
-            <th>Priority Mode</th>
-            <td id="priorityMode">Loading...</td>
-          </tr>
-          <tr>
-            <th>Output Power</th>
-            <td id="outputPower">Loading...</td>
-          </tr>
-          <tr>
-            <th>PV2 Power</th>
-            <td id="pv2Power">Loading...</td>
-          </tr>
-          <tr>
-            <th>PV2 Voltage</th>
-            <td id="pv2Voltage">Loading...</td>
-          </tr>
-          <tr>
-            <th>Inverter Temperature</th>
-            <td id="inverterTemperature">Loading...</td>
-          </tr>
-          <tr>
-            <th>State of Charge</th>
-            <td id="stateofCharge">Loading...</td>
-          </tr>
-          <tr>
-            <th>Charging Power (Limit)</th>
-            <td id="batteryCharge">Loading...</td>
-          </tr>
-          <tr>
-            <th>Discharging Power (Limit)</th>
-            <td id="batteryDischarge">Loading...</td>
-          </tr>
-          <tr>
-            <th>Battery Temperature</th>
-            <td id="batteryTemperature">Loading...</td>
-          </tr>
-        </tbody>
-      </table>
+<section id="main" class="tab-content">
+  <table>
+    <tbody id="autoTable"></tbody>
+  </table>
 
       <!-- PRIORITY BUTTONS -->
       <fieldset>
@@ -263,51 +221,43 @@ const char MAIN_page[] PROGMEM = R"=====(
         // -------------------------------
         // MAIN PAGE AUTO-UPDATE
         // -------------------------------
-        async function loadData() {
-          const dashboard = document.getElementById("main");
-          if (dashboard.hidden) return;
+async function loadData() {
+  const dashboard = document.getElementById("main");
+  if (dashboard.hidden) return;
 
-          try {
-            const response = await fetch("/uiStatus");
-            if (!response.ok) return;
+  try {
+    const response = await fetch("/uiStatus");
+    if (!response.ok) return;
 
-            const data = await response.json();
-            document.getElementById("onoffMode").textContent =
-              data.OnOff[0] + " " + data.OnOff[1];
+    const data = await response.json();
 
-            document.getElementById("priorityMode").textContent =
-              data.Priority[0] + " " + data.Priority[1];
+    const tbody = document.getElementById("autoTable");
+    tbody.innerHTML = ""; // reset
 
-            document.getElementById("outputPower").textContent =
-              data.OutputPower[0] + " " + data.OutputPower[1];
+    const keys = Object.keys(data).sort(); // alphabetisch sortiert
 
-            document.getElementById("pv2Power").textContent =
-              data.PV2Power[0] + " " + data.PV2Power[1];
+    for (const key of keys) {
+      const value = data[key];
 
-            document.getElementById("pv2Voltage").textContent =
-              data.PV2Voltage[0] + " " + data.PV2Voltage[1];
+      let text = "-";
+      if (Array.isArray(value) && value.length >= 2) {
+        text = value[0] + " " + value[1];
+      }
 
-            document.getElementById("inverterTemperature").textContent =
-              data.InverterTemperature[0] + " " + data.InverterTemperature[1];
+      const tr = document.createElement("tr");
 
-            document.getElementById("stateofCharge").textContent =
-              data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
+      tr.innerHTML = `
+        <th>${key}</th>
+        <td>${text}</td>
+      `;
 
-            document.getElementById("batteryCharge").textContent =
-              data.BDCChargePower[0] + " " + data.BDCChargePower[1] +
-              " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
+      tbody.appendChild(tr);
+    }
 
-            document.getElementById("batteryDischarge").textContent =
-              data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] +
-              " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
-
-            document.getElementById("batteryTemperature").textContent =
-              data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];
-
-          } catch (e) {
-            console.error("Error fetching data:", e);
-          }
-        }
+  } catch (e) {
+    console.error("Error fetching data:", e);
+  }
+}
 
         // -------------------------------
         // MODBUS UI LOGIC
