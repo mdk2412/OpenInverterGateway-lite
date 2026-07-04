@@ -1027,9 +1027,6 @@ void batteryStandby() {
   int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t discharge_stop =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
-  int32_t discharge_stop_w =
-      Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC + 5]
-          .value;
   int32_t discharge_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value;
 
@@ -1058,8 +1055,8 @@ void batteryStandby() {
     }
   }
 
-  // --- Enable discharging ---
-  else if (soc >= discharge_stop_w) {
+  // --- Enable discharging with offset 5---
+  else if (soc >= (discharge_stop + 5)) {
     if (discharge_rate != 100) {
       StaticJsonDocument<128> req, res;
       const char* payload = "{\"value\": 100, \"retry\": 2}";
