@@ -352,45 +352,45 @@ constexpr int DEFAULT_AC_MAX = 3750;
 constexpr int DEFAULT_OFFSET = -1;
 
 void loadSettingsFromPrefs() {
-  Preferences prefs;
-  prefs.begin("config", true);
+    Preferences prefs;
+    prefs.begin("config", true);
 
-  // Battery Standby (bool)
-  User.bat_standby = prefs.getBool("bat_standby", false);
+    // Battery Standby (bool)
+    User.bat_standby = prefs.getBool("bat_standby", false);
 
-  // Sleep Threshold (>0)
-  {
-    int v = prefs.getString("bat_slp_thr", String(DEFAULT_SLEEP_THR)).toInt();
-    if (v <= 0) v = 1;
-    User.bat_slp_thr = v;
-  }
+    // Sleep Threshold (>0)
+    {
+        int v = prefs.getInt("bat_slp_thr", DEFAULT_SLEEP_THR);
+        if (v <= 0) v = DEFAULT_SLEEP_THR;
+        User.bat_slp_thr = v;
+    }
 
-  // Wake Threshold (>0)
-  {
-    int v = prefs.getString("bat_wke_thr", String(DEFAULT_WAKE_THR)).toInt();
-    if (v <= 0) v = 1;
-    User.bat_wke_thr = v;
-  }
+    // Wake Threshold (>0)
+    {
+        int v = prefs.getInt("bat_wke_thr", DEFAULT_WAKE_THR);
+        if (v <= 0) v = DEFAULT_WAKE_THR;
+        User.bat_wke_thr = v;
+    }
 
-  // AC Charging enabled?
-  User.accharge = prefs.getBool("accharge", false);
+    // AC Charging enabled?
+    User.accharge = prefs.getBool("accharge", false);
 
-  // AC Max Power (>0)
-  {
-    int v = prefs.getString("ac_max_pow", String(DEFAULT_AC_MAX)).toInt();
-    if (v <= 0) v = 1;
-    User.ac_max_pow = v;
-  }
+    // AC Max Power (>0)
+    {
+        int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
+        if (v <= 0) v = DEFAULT_AC_MAX;
+        User.ac_max_pow = v;
+    }
 
-  // Offset (-100 bis +100)
-  {
-    int v = prefs.getString("ac_off_set", String(DEFAULT_OFFSET)).toInt();
-    if (v < -99) v = -99;
-    if (v > 99) v = 99;
-    User.ac_off_set = v;
-  }
+    // Offset (-100 bis +100)
+    {
+        int v = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
+        if (v < -99) v = -99;
+        if (v > 99) v = 99;
+        User.ac_off_set = v;
+    }
 
-  prefs.end();
+    prefs.end();
 }
 
 // new
@@ -1126,14 +1126,39 @@ void acchargeControl() {
   uint16_t current_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
+  // --- LOG: Eingelesene Werte ---
+  Log.print("[ACCTRL] priority=");
+  Log.print(priority);
+  Log.print(" ac_enabled=");
+  Log.print(ac_enabled);
+  Log.print(" soc=");
+  Log.print(soc);
+  Log.print(" p_chr=");
+  Log.print(p_chr);
+  Log.print(" p_togrid=");
+  Log.print(p_togrid);
+  Log.print(" p_touser=");
+  Log.print(p_touser);
+  Log.print(" current_rate=");
+  Log.print(current_rate);
+  Log.print(" max_power=");
+  Log.print(max_power);
+  Log.print(" off_set=");
+  Log.println(off_set);
+
   // --- Bedingungen prüfen ---
   if (priority == 1 && ac_enabled == 1) {
     // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
+      Log.println(
+          "[ACCTRL] SOC=100 → Umschalten auf LoadFirst + ChargePowerRate=100");
+
       // 1) Priority setzen: Load First = mode 0
       {
         StaticJsonDocument<128> req, res;
         const char* payload = "{\"mode\":0,\"retry\":2}";
+        Log.print("[ACCTRL] SEND priority/set payload=");
+        Log.println(payload);
         Inverter.HandleCommand("priority/set", (const byte*)payload,
                                strlen(payload), req, res);
       }
@@ -1142,6 +1167,8 @@ void acchargeControl() {
       {
         StaticJsonDocument<128> req, res;
         const char* payload = "{\"value\":100,\"retry\":2}";
+        Log.print("[ACCTRL] SEND chargepowerrate payload=");
+        Log.println(payload);
         Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
                                strlen(payload), req, res);
       }
@@ -1149,7 +1176,7 @@ void acchargeControl() {
       return;
     }
 
-    // --- Delta berechnen (64-bit für Sicherheit) ---
+    // --- Delta berechnen ---
     int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
 
     // --- Integer-Mathematik ---
@@ -1159,17 +1186,43 @@ void acchargeControl() {
     // --- clamp auf 0–100 ---
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
+    // --- LOG: Berechnungswerte ---
+    Log.print("[ACCTRL] delta=");
+    Log.print((long long)delta);
+    Log.print(" rawRate=");
+    Log.print(rawRate);
+    Log.print(" roundedRate=");
+    Log.print(roundedRate);
+    Log.print(" targetpowerrate=");
+    Log.println(targetpowerrate);
+
     if (current_rate != targetpowerrate) {
       char json[64];
       snprintf(json, sizeof(json), "{\"value\":%d,\"retry\":2}",
                targetpowerrate);
+
+      Log.print("[ACCTRL] UPDATE chargepowerrate: current=");
+      Log.print(current_rate);
+      Log.print(" → target=");
+      Log.print(targetpowerrate);
+      Log.print(" payload=");
+      Log.println(json);
 
       StaticJsonDocument<256> req;
       StaticJsonDocument<256> res;
 
       Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
                              strlen(json), req, res);
+    } else {
+      Log.print("[ACCTRL] NO UPDATE: current_rate == targetpowerrate (");
+      Log.print(current_rate);
+      Log.println(")");
     }
+  } else {
+    Log.print("[ACCTRL] NO ACTION: priority=");
+    Log.print(priority);
+    Log.print(" ac_enabled=");
+    Log.println(ac_enabled);
   }
 }
 
