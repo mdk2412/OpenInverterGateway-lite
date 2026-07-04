@@ -48,8 +48,8 @@ class Growatt {
   void metricsAddValue(const String& name, const double& value,
                        const float& resolution, String& metrics,
                        const String& labels);
-  std::tuple<bool, String> handleEcho(const JsonDocument& req,
-                                      JsonDocument& res, Growatt& inverter);
+//   std::tuple<bool, String> handleEcho(const JsonDocument& req,
+//                                       JsonDocument& res, Growatt& inverter);
   std::tuple<bool, String> handleCommandList(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter);
