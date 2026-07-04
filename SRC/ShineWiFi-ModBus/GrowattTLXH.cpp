@@ -67,12 +67,12 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
   // --- Logging & result ---
   if (!ok) {
     String msg = String(F("Failed to set OnOff Mode: ")) + mode_text;
-    Log.println(msg);
+    // Log.println(msg);
     return std::make_tuple(false, msg);
   }
 
   String msg = String(F("OnOff Mode set to ")) + value + F(" (") + mode_text + F(")");
-  Log.println(msg);
+  // Log.println(msg);
 
   res["success"] = true;
   res["value"] = value;
