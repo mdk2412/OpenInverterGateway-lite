@@ -352,45 +352,45 @@ constexpr int DEFAULT_AC_MAX = 3750;
 constexpr int DEFAULT_OFFSET = -1;
 
 void loadSettingsFromPrefs() {
-    Preferences prefs;
-    prefs.begin("config", true);
+  Preferences prefs;
+  prefs.begin("config", true);
 
-    // Battery Standby (bool)
-    User.bat_standby = prefs.getBool("bat_standby", false);
+  // Battery Standby (bool)
+  User.bat_standby = prefs.getBool("bat_standby", false);
 
-    // Sleep Threshold (>0)
-    {
-        int v = prefs.getInt("bat_slp_thr", DEFAULT_SLEEP_THR);
-        if (v <= 0) v = DEFAULT_SLEEP_THR;
-        User.bat_slp_thr = v;
-    }
+  // Sleep Threshold (>0)
+  {
+    int v = prefs.getInt("bat_slp_thr", DEFAULT_SLEEP_THR);
+    if (v <= 0) v = DEFAULT_SLEEP_THR;
+    User.bat_slp_thr = v;
+  }
 
-    // Wake Threshold (>0)
-    {
-        int v = prefs.getInt("bat_wke_thr", DEFAULT_WAKE_THR);
-        if (v <= 0) v = DEFAULT_WAKE_THR;
-        User.bat_wke_thr = v;
-    }
+  // Wake Threshold (>0)
+  {
+    int v = prefs.getInt("bat_wke_thr", DEFAULT_WAKE_THR);
+    if (v <= 0) v = DEFAULT_WAKE_THR;
+    User.bat_wke_thr = v;
+  }
 
-    // AC Charging enabled?
-    User.accharge = prefs.getBool("accharge", false);
+  // AC Charging enabled?
+  User.accharge = prefs.getBool("accharge", false);
 
-    // AC Max Power (>0)
-    {
-        int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
-        if (v <= 0) v = DEFAULT_AC_MAX;
-        User.ac_max_pow = v;
-    }
+  // AC Max Power (>0)
+  {
+    int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
+    if (v <= 0) v = DEFAULT_AC_MAX;
+    User.ac_max_pow = v;
+  }
 
-    // Offset (-100 bis +100)
-    {
-        int v = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
-        if (v < -99) v = -99;
-        if (v > 99) v = 99;
-        User.ac_off_set = v;
-    }
+  // Offset (-100 bis +100)
+  {
+    int v = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
+    if (v < -99) v = -99;
+    if (v > 99) v = 99;
+    User.ac_off_set = v;
+  }
 
-    prefs.end();
+  prefs.end();
 }
 
 // new
@@ -1029,7 +1029,6 @@ void batteryStandby() {
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
   int32_t discharge_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value;
-
   int32_t sysstate =
       Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value;
   int32_t ptogrid =
@@ -1042,7 +1041,7 @@ void batteryStandby() {
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
       StaticJsonDocument<128> req, res;
-      const char* payload = "{\"value\": 0, \"retry\": 2}";
+      const char* payload = "{\"value\":0,\"retry\":2}";
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)payload,
                              strlen(payload), req, res);
@@ -1055,11 +1054,11 @@ void batteryStandby() {
     }
   }
 
-  // --- Enable discharging with offset 5---
+  // --- Enable discharging with offset 5 ---
   else if (soc >= (discharge_stop + 5)) {
     if (discharge_rate != 100) {
       StaticJsonDocument<128> req, res;
-      const char* payload = "{\"value\": 100, \"retry\": 2}";
+      const char* payload = "{\"value\":100,\"retry\":2}";
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)payload,
                              strlen(payload), req, res);
@@ -1078,8 +1077,7 @@ void batteryStandby() {
       char json[64];
       snprintf(json, sizeof(json), "{\"value\":3,\"retry\":2}");
 
-      StaticJsonDocument<256> req;
-      StaticJsonDocument<256> res;
+      StaticJsonDocument<256> req, res;
 
       Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
                              res);
@@ -1093,8 +1091,7 @@ void batteryStandby() {
       char json[64];
       snprintf(json, sizeof(json), "{\"value\":2,\"retry\":2}");
 
-      StaticJsonDocument<256> req;
-      StaticJsonDocument<256> res;
+      StaticJsonDocument<256> req, res;
 
       Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
                              res);
@@ -1103,6 +1100,7 @@ void batteryStandby() {
 }
 
 void acchargeControl() {
+  // --- User-Parameter laden und validieren ---
   uint32_t max_power = User.ac_max_pow;
   if (max_power == 0) max_power = DEFAULT_AC_MAX;
 
@@ -1110,41 +1108,44 @@ void acchargeControl() {
   if (off_set < -99) off_set = -99;
   if (off_set > 99) off_set = 99;
 
+  // --- Register EINMAL auslesen ---
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
   int32_t ac_enabled =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
   int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
-
   int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
   int32_t p_togrid =
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
   int32_t p_touser =
       Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
-
   uint16_t current_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
+  // --- Bedingungen prüfen ---
   if (priority == 1 && ac_enabled == 1) {
+    // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
-      {
-        StaticJsonDocument<128> req, res;
-        const char* payload = "{\"mode\":0,\"retry\":2}";
-        Inverter.HandleCommand("priority/set", (const byte*)payload,
-                               strlen(payload), req, res);
-      }
-      {
-        StaticJsonDocument<128> req, res;
-        const char* payload = "{\"value\":100,\"retry\":2}";
-        Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
-                               strlen(payload), req, res);
-      }
+      StaticJsonDocument<128> req1, res1;
+      Inverter.HandleCommand("priority/set",
+                             (const byte*)"{\"mode\":0,\"retry\":2}",
+                             strlen("{\"mode\":0,\"retry\":2}"), req1, res1);
+
+      StaticJsonDocument<128> req2, res2;
+      Inverter.HandleCommand("bdc/set/chargepowerrate",
+                             (const byte*)"{\"value\":100,\"retry\":2}",
+                             strlen("{\"value\":100,\"retry\":2}"), req2, res2);
+
       return;
     }
 
+    // --- Delta berechnen ---
     int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
+
+    // --- Integer-Mathematik ---
     int32_t rawRate = (delta * 10) / max_power;
     int32_t roundedRate = rawRate + off_set;
 
+    // --- clamp auf 0–100 ---
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);
 
     if (current_rate != targetpowerrate) {
@@ -1152,9 +1153,7 @@ void acchargeControl() {
       snprintf(json, sizeof(json), "{\"value\":%d,\"retry\":2}",
                targetpowerrate);
 
-      StaticJsonDocument<256> req;
-      StaticJsonDocument<256> res;
-
+      StaticJsonDocument<256> req, res;
       Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
                              strlen(json), req, res);
     }
