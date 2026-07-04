@@ -1130,7 +1130,22 @@ void acchargeControl() {
   if (priority == 1 && ac_enabled == 1) {
     // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
-      loadFirst();
+      // 1) Priority setzen: Load First = mode 0
+      {
+        StaticJsonDocument<128> req, res;
+        const char* payload = "{\"mode\":0,\"retry\":2}";
+        Inverter.HandleCommand("priority/set", (const byte*)payload,
+                               strlen(payload), req, res);
+      }
+
+      // 2) ChargePowerRate auf 100% setzen
+      {
+        StaticJsonDocument<128> req, res;
+        const char* payload = "{\"value\":100,\"retry\":2}";
+        Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload,
+                               strlen(payload), req, res);
+      }
+
       return;
     }
 
