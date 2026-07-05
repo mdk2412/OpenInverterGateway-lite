@@ -642,22 +642,20 @@ void setup() {
       []() {
         // Diese Funktion verarbeitet die Upload-Daten
         HTTPUpload& upload = httpServer.upload();
+
         if (upload.status == UPLOAD_FILE_START) {
-          Serial.printf("Update: %s\n", upload.filename.c_str());
-          if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) &
-                            0xFFFFF000)) {  // ESP8266
+          if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
             Update.printError(Serial);
           }
+
         } else if (upload.status == UPLOAD_FILE_WRITE) {
           if (Update.write(upload.buf, upload.currentSize) !=
               upload.currentSize) {
             Update.printError(Serial);
           }
+
         } else if (upload.status == UPLOAD_FILE_END) {
-          if (Update.end(true)) {
-            Serial.printf("Update Success: %u bytes\nRebooting...\n",
-                          upload.totalSize);
-          } else {
+          if (!Update.end(true)) {
             Update.printError(Serial);
           }
         }
@@ -1098,7 +1096,7 @@ void batteryStandby() {
 void acchargeControl() {
   // --- User-Parameter laden ---
   uint32_t max_power = User.ac_max_pow;
-  int32_t off_set = User.ac_off_set;
+  int32_t off_set = User.ac_off_set * 10;
 
   // --- Register EINMAL auslesen ---
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
@@ -1132,7 +1130,7 @@ void acchargeControl() {
 
     // --- Delta berechnen ---
     int64_t delta =
-        (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser + (off_set * 10);
+        (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser + off_set;
 
     // --- Integer-Mathematik ---
     int32_t rawRate = (delta * 10) / max_power;
