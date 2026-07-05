@@ -2,12 +2,11 @@
 #define ACCHARGECONTROL_H
 
 #include <Arduino.h>
+#include "UserConfig.h"
 
 class Growatt;
-struct UserConfig;
 
 extern Growatt Inverter;
-extern UserConfig User;
 
 void acchargeControl();
 

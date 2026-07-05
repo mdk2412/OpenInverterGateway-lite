@@ -15,6 +15,7 @@
 #include "GrowattTLXH.h"
 #include "BatteryStandby.h"
 #include "ACChargeControl.h"
+#include "UserConfig.h"
 
 #if MQTT_SUPPORTED == 1
 #include "ShineMqtt.h"
