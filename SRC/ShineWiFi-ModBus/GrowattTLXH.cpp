@@ -193,46 +193,43 @@ std::tuple<bool, String> setPriority(const JsonDocument& req,
                                      Growatt& inverter) {
 
   if (!req.containsKey("mode")) {
-    return std::make_tuple(false, String(F("'Mode' Field is required")));
+    return {false, F("'Mode' Field is required")};
   }
 
-  uint16_t mode = req["mode"].as<uint16_t>();
-
+  const uint16_t mode = req["mode"].as<uint16_t>();
   if (mode > 2) {
-    return std::make_tuple(
-        false,
-        String(F("Invalid Priority Mode! Select either 0 (Load First), 1 (Battery First) or 2 (Grid First)")));
+    return {false,
+            F("Invalid Priority Mode! Select either 0 (Load First), 1 (Battery First) or 2 (Grid First)")};
   }
 
-  uint16_t mode_raw[2] = {0};
-  String mode_text;
+  static uint16_t mode_raw_map[3][2] = {
+      {8192,  5947},
+      {40960, 5947},
+      {49152, 5947}
+  };
 
-  if (mode == 0) {
-    mode_raw[0] = 8192;
-    mode_raw[1] = 5947;
-    mode_text = F("Load First");
-  } else if (mode == 1) {
-    mode_raw[0] = 40960;
-    mode_raw[1] = 5947;
-    mode_text = F("Battery First");
-  } else if (mode == 2) {
-    mode_raw[0] = 49152;
-    mode_raw[1] = 5947;
-    mode_text = F("Grid First");
+  static const char* mode_text_map[3] = {
+      "Load First",
+      "Battery First",
+      "Grid First"
+  };
+
+  const char* mode_text = mode_text_map[mode];
+
+  if (!inverter.WriteHoldingRegFrag(3038, 2, mode_raw_map[mode])) {
+    return {false, F("Failed to set Priority Mode!")};
   }
 
-  // --- Only write 3038 (priority), 3047 removed ---
-  bool success3038 = inverter.WriteHoldingRegFrag(3038, 2, mode_raw);
+  String msg;
+  msg.reserve(40);
+  msg = F("Set Priority Mode: ");
+  msg += mode;
+  msg += F(" (");
+  msg += mode_text;
+  msg += F(")");
 
-  if (!success3038) {
-    return std::make_tuple(false, String(F("Failed to set Priority Mode!")));
-  }
-
-  String msg = String(F("Set Priority Mode: ")) + mode + F(" (") + mode_text + F(")");
-  return std::make_tuple(true, msg);
+  return {true, msg};
 }
-
-// TODO: add setters and getters for timeslots.
 
 void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   // definition of input registers
