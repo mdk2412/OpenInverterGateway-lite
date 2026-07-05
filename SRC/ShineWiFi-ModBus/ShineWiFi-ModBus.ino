@@ -1139,11 +1139,11 @@ void acchargeControl() {
     }
 
     // --- Delta berechnen ---
-    int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser;
+    int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser + (off_set * 10);
 
     // --- Integer-Mathematik ---
     int32_t rawRate = (delta * 10) / max_power;
-    int32_t roundedRate = rawRate + off_set;
+    int32_t roundedRate = rawRate;
 
     // --- clamp auf 0–100 ---
     uint16_t targetpowerrate = std::clamp<int32_t>(roundedRate, 0, 100);

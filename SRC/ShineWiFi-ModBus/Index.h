@@ -209,8 +209,8 @@ const char MAIN_page[] PROGMEM = R"=====(
             <input type="number" name="ac_max_pow" id="ac_max_pow" min="0" step="1" placeholder="2500">
           </label>
 
-          <label>Offset (%)
-            <input type="number" name="ac_off_set" id="ac_off_set" min="0" max="100" step="1" placeholder="1">
+          <label>Offset (W)
+            <input type="number" name="ac_off_set" id="ac_off_set" min="0" max="99" step="1" placeholder="1">
           </label>
 
           <fieldset>
