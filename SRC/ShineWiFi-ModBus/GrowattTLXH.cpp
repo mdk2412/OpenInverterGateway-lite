@@ -39,7 +39,7 @@ std::tuple<bool, String> updateDateTime(const JsonDocument& req,
 
   String datetime = req["value"].as<String>();
   if (datetime.length() != 19) {
-    return std::make_tuple(false, "Invalid datetime format!");
+    return std::make_tuple(false, "Invalid Date/Time Format!");
   }
 
   uint16_t year = datetime.substring(0, 4).toInt();
