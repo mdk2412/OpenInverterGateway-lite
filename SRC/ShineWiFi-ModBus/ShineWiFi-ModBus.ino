@@ -356,7 +356,7 @@ void loadSettingsFromPrefs() {
   prefs.begin("config", true);
 
   // Battery Standby (bool)
-  User.bat_standby = prefs.getBool("bat_standby", false);
+  User.bat_standby = prefs.getBool("bat_standby", true);
 
   // Sleep Threshold (>0)
   {
@@ -373,7 +373,7 @@ void loadSettingsFromPrefs() {
   }
 
   // AC Charging enabled?
-  User.accharge = prefs.getBool("accharge", false);
+  User.accharge = prefs.getBool("accharge", true);
 
   // AC Max Power (valid range 2500–12500)
   int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
