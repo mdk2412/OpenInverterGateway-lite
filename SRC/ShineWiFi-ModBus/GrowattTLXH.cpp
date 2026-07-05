@@ -1,20 +1,66 @@
 #include "Arduino.h"
-
 #include "Config.h"
 #include "Growatt.h"
-//#include "Growatt124.h"
 #include "GrowattTLXH.h"
 #include <TLog.h>
 
-// Forward-Declarations aus ehemals Growatt124.h
+std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
+                                     Growatt& inverter) {
+  String respStr;
+  uint16_t year, month, day, hour, minute, second;
 
-std::tuple<bool, String> getDateTime(const JsonDocument& req,
-                                     JsonDocument& res,
-                                     Growatt& inverter);
+  uint16_t result[6];
+  bool success = inverter.ReadHoldingRegFrag(45, 6, result);
+  if (success) {
+    year = result[0];
+    month = result[1];
+    day = result[2];
+    hour = result[3];
+    minute = result[4];
+    second = result[5];
+  }
+
+  if (success) {
+    char buf[30];
+    snprintf(buf, sizeof(buf), "%04hu-%02hu-%02hu %02hu:%02hu:%02hu", year,
+             month, day, hour, minute, second);
+    res["value"] = buf;
+    return std::make_tuple(true, "Read Date/Time");
+  } else {
+    return std::make_tuple(false, "Failed to read Date/Time!");
+  }
+};
 
 std::tuple<bool, String> updateDateTime(const JsonDocument& req,
-                                        JsonDocument& res,
-                                        Growatt& inverter);
+                                        JsonDocument& res, Growatt& inverter) {
+  if (!req.containsKey("value")) {
+    return std::make_tuple(false, "'value' Field is required");
+  }
+
+  String datetime = req["value"].as<String>();
+  if (datetime.length() != 19) {
+    return std::make_tuple(false, "Invalid datetime format!");
+  }
+
+  uint16_t year = datetime.substring(0, 4).toInt();
+  uint16_t month = datetime.substring(5, 7).toInt();
+  uint16_t day = datetime.substring(8, 10).toInt();
+  uint16_t hour = datetime.substring(11, 13).toInt();
+  uint16_t minute = datetime.substring(14, 16).toInt();
+  uint16_t second = datetime.substring(17, 19).toInt();
+
+  year = year > 2000 ? year - 2000 : 0;
+
+  uint16_t values[] = {year, month, day, hour, minute, second};
+
+  bool success = inverter.WriteHoldingRegFrag(45, 6, values);
+  if (success) {
+    String message = "Updated Date/Time: " + datetime;
+    return std::make_tuple(true, message);
+  }
+
+  return std::make_tuple(false, "Failed to update Date/Time!");
+};
 
 std::tuple<bool, String> getOnOff(const JsonDocument& req,
                                   JsonDocument& res,
@@ -83,11 +129,37 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
 
 std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
-                                            Growatt& inverter);
+                                            Growatt& inverter) {
+  uint16_t value;
+
+  if (!inverter.ReadHoldingReg(3, &value)) {
+    return std::make_tuple(false, "Failed to read active Rate!");
+  }
+
+  res["value"] = value;
+
+  return std::make_tuple(true, "Read active Rate");
+};
 
 std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
-                                            Growatt& inverter);
+                                            Growatt& inverter) {
+  if (!req.containsKey("value")) {
+    return std::make_tuple(false, "'value' Field is required");
+  }
+
+  uint16_t value = req["value"].as<uint16_t>();
+
+  if (!((value >= 0 && value <= 100) || value == 255)) {
+    return std::make_tuple(false, "'value' Field not in Range");
+  }
+
+  if (!inverter.WriteHoldingReg(3, value)) {
+    return std::make_tuple(false, "Failed to write active Rate!");
+  }
+
+  return std::make_tuple(true, "Updated active Rate");
+};
 
 std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
                                                   JsonDocument& res,
@@ -181,8 +253,9 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
   }
 
   uint16_t value = req["value"].as<uint16_t>();
+
   if (!inverter.WriteHoldingReg(3049, value)) {
-    return std::make_tuple(true, String(F("Set BDCACChargeEnabled")));
+    return std::make_tuple(false, String(F("Failed to set BDCACChargeEnabled!")));
   }
 
   return std::make_tuple(true, String(F("Set BDCACChargeEnabled")));
