@@ -196,21 +196,21 @@ const char MAIN_page[] PROGMEM = R"=====(
           <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
 
           <label>Sleep Threshold (W)
-            <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="50">
+            <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="0">
           </label>
 
           <label>Wake Threshold (W)
-            <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="75">
+            <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="0">
           </label>
           <hr>
           <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
 
           <label>Inverter Maximum Power (W)
-            <input type="number" name="ac_max_pow" id="ac_max_pow" min="0" step="1" placeholder="2500">
+            <input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500" step="50" placeholder="2500">
           </label>
 
           <label>Offset (W)
-            <input type="number" name="ac_off_set" id="ac_off_set" min="0" max="99" step="1" placeholder="1">
+            <input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1" placeholder="0">
           </label>
 
           <fieldset>

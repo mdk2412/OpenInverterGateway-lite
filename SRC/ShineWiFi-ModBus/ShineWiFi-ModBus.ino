@@ -349,7 +349,7 @@ void setupWifiHost() {
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
 constexpr int DEFAULT_AC_MAX = 3750;
-constexpr int DEFAULT_OFFSET = -1;
+constexpr int DEFAULT_OFFSET = -25;
 
 void loadSettingsFromPrefs() {
   Preferences prefs;
@@ -375,18 +375,15 @@ void loadSettingsFromPrefs() {
   // AC Charging enabled?
   User.accharge = prefs.getBool("accharge", false);
 
-  // AC Max Power (>0)
-  {
-    int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
-    if (v <= 0) v = DEFAULT_AC_MAX;
-    User.ac_max_pow = v;
-  }
+  // AC Max Power (valid range 2500–12500)
+  int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
+  if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
+  User.ac_max_pow = v;
 
-  // Offset (-100 bis +100)
+  // Offset (valid range -100 to +100)
   {
     int v = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
-    if (v < -99) v = -99;
-    if (v > 99) v = 99;
+    if (v < -100 || v > 100) v = DEFAULT_OFFSET;
     User.ac_off_set = v;
   }
 
@@ -565,7 +562,7 @@ void setup() {
     // Sleep Threshold (>0)
     {
       int v = httpServer.arg("bat_slp_thr").toInt();
-      if (v <= 0) v = 1;
+      if (v <= 0) v = DEFAULT_SLEEP_THR;
       User.bat_slp_thr = v;
       prefs.putInt("bat_slp_thr", v);
     }
@@ -573,7 +570,7 @@ void setup() {
     // Wake Threshold (>0)
     {
       int v = httpServer.arg("bat_wke_thr").toInt();
-      if (v <= 0) v = 1;
+      if (v <= 0) v = DEFAULT_WAKE_THR;
       User.bat_wke_thr = v;
       prefs.putInt("bat_wke_thr", v);
     }
@@ -584,19 +581,18 @@ void setup() {
     User.accharge = httpServer.hasArg("accharge");
     prefs.putBool("accharge", User.accharge);
 
-    // AC Max Power (>0)
+    // AC Max Power (valid range 2500–12500)
     {
       int v = httpServer.arg("ac_max_pow").toInt();
-      if (v <= 0) v = 1;
+      if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
       User.ac_max_pow = v;
       prefs.putInt("ac_max_pow", v);
     }
 
-    // Offset (-99 bis +99)
+    // Offset (valid range -100 to +100)
     {
       int v = httpServer.arg("ac_off_set").toInt();
-      if (v < -99) v = -99;
-      if (v > 99) v = 99;
+      if (v < -100 || v > 100) v = DEFAULT_OFFSET;
       User.ac_off_set = v;
       prefs.putInt("ac_off_set", v);
     }
@@ -1100,13 +1096,9 @@ void batteryStandby() {
 }
 
 void acchargeControl() {
-  // --- User-Parameter laden und validieren ---
+  // --- User-Parameter laden ---
   uint32_t max_power = User.ac_max_pow;
-  if (max_power == 0) max_power = DEFAULT_AC_MAX;
-
   int32_t off_set = User.ac_off_set;
-  if (off_set < -99) off_set = -99;
-  if (off_set > 99) off_set = 99;
 
   // --- Register EINMAL auslesen ---
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
@@ -1139,7 +1131,8 @@ void acchargeControl() {
     }
 
     // --- Delta berechnen ---
-    int64_t delta = (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser + (off_set * 10);
+    int64_t delta =
+        (int64_t)p_chr + (int64_t)p_togrid - (int64_t)p_touser + (off_set * 10);
 
     // --- Integer-Mathematik ---
     int32_t rawRate = (delta * 10) / max_power;
