@@ -60,3 +60,5 @@ class Growatt {
                                            JsonDocument& res,
                                            Growatt& inverter);
 };
+
+extern Growatt Inverter;
