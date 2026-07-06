@@ -152,6 +152,8 @@ struct WifiConfig {
   bool force_ap;
 };
 
+WifiConfig Wifi;
+
 struct UserConfig {
   bool bat_standby;
   int bat_slp_thr;
@@ -162,7 +164,6 @@ struct UserConfig {
   int ac_off_set;
 };
 
-WifiConfig Wifi;
 UserConfig User;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
@@ -549,117 +550,17 @@ void setup() {
 
   Inverter.InitProtocol();
   InverterReconnect();
-  httpServer.on("/saveSettings", HTTP_POST, []() {
-    Preferences prefs;
-    prefs.begin("config", false);
 
-    //
-    // BATTERY STANDBY (bool)
-    //
-    User.bat_standby = httpServer.hasArg("bat_standby");
-    prefs.putBool("bat_standby", User.bat_standby);
+  httpServer.on("/saveSettings", HTTP_POST,
+                []() { handleSaveSettings(httpServer); });
 
-    // Sleep Threshold (>0)
-    {
-      int v = httpServer.arg("bat_slp_thr").toInt();
-      if (v <= 0) v = DEFAULT_SLEEP_THR;
-      User.bat_slp_thr = v;
-      prefs.putInt("bat_slp_thr", v);
-    }
-
-    // Wake Threshold (>0)
-    {
-      int v = httpServer.arg("bat_wke_thr").toInt();
-      if (v <= 0) v = DEFAULT_WAKE_THR;
-      User.bat_wke_thr = v;
-      prefs.putInt("bat_wke_thr", v);
-    }
-
-    //
-    // AC CHARGE CONTROL (bool)
-    //
-    User.accharge = httpServer.hasArg("accharge");
-    prefs.putBool("accharge", User.accharge);
-
-    // AC Max Power (valid range 2500–12500)
-    {
-      int v = httpServer.arg("ac_max_pow").toInt();
-      if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
-      User.ac_max_pow = v;
-      prefs.putInt("ac_max_pow", v);
-    }
-
-    // Offset (valid range -100 to +100)
-    {
-      int v = httpServer.arg("ac_off_set").toInt();
-      if (v < -100 || v > 100) v = DEFAULT_OFFSET;
-      User.ac_off_set = v;
-      prefs.putInt("ac_off_set", v);
-    }
-
-    prefs.end();
-    httpServer.send(200, "text/plain", "Settings saved");
-  });
-
-  httpServer.on("/getSettings", HTTP_GET, []() {
-    Preferences prefs;
-    prefs.begin("config", true);
-
-    DynamicJsonDocument doc(512);
-
-    //
-    // Battery Standby
-    //
-    doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
-    doc["bat_slp_thr"] = prefs.getInt("bat_slp_thr", User.bat_slp_thr);
-    doc["bat_wke_thr"] = prefs.getInt("bat_wke_thr", User.bat_wke_thr);
-
-    //
-    // AC Charging
-    //
-    doc["accharge"] = prefs.getBool("accharge", User.accharge);
-    doc["ac_max_pow"] = prefs.getInt("ac_max_pow", User.ac_max_pow);
-    doc["ac_off_set"] = prefs.getInt("ac_off_set", User.ac_off_set);
-
-    prefs.end();
-
-    sendJson(doc);
-  });
+  httpServer.on("/getSettings", HTTP_GET,
+                []() { handleGetSettings(httpServer); });
 
   // --- OTA Firmware Upload (Web) ---
   httpServer.on(
-      "/update", HTTP_POST,
-      []() {
-        // Diese Funktion wird nach dem Upload aufgerufen
-        bool ok = !Update.hasError();
-        String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
-        httpServer.send(ok ? 200 : 500, "text/plain", msg);
-        delay(1000);
-        if (ok) {
-          ESP.restart();
-        }
-      },
-      []() {
-        // Diese Funktion verarbeitet die Upload-Daten
-        HTTPUpload& upload = httpServer.upload();
-
-        if (upload.status == UPLOAD_FILE_START) {
-          if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
-            Update.printError(Serial);
-          }
-
-        } else if (upload.status == UPLOAD_FILE_WRITE) {
-          if (Update.write(upload.buf, upload.currentSize) !=
-              upload.currentSize) {
-            Update.printError(Serial);
-          }
-
-        } else if (upload.status == UPLOAD_FILE_END) {
-          if (!Update.end(true)) {
-            Update.printError(Serial);
-          }
-        }
-      });
+      "/update", HTTP_POST, []() { handleUpdateFinished(httpServer); },
+      []() { handleUpdateUpload(httpServer); });
 
   httpServer.begin();
 
@@ -674,6 +575,107 @@ void setup() {
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
 #endif
+}
+
+void handleSaveSettings(ESP8266WebServer& httpServer) {
+  Preferences prefs;
+  prefs.begin("config", false);
+
+  // BATTERY STANDBY (bool)
+  User.bat_standby = httpServer.hasArg("bat_standby");
+  prefs.putBool("bat_standby", User.bat_standby);
+
+  // Sleep Threshold (>0)
+  {
+    int v = httpServer.arg("bat_slp_thr").toInt();
+    if (v <= 0) v = DEFAULT_SLEEP_THR;
+    User.bat_slp_thr = v;
+    prefs.putInt("bat_slp_thr", v);
+  }
+
+  // Wake Threshold (>0)
+  {
+    int v = httpServer.arg("bat_wke_thr").toInt();
+    if (v <= 0) v = DEFAULT_WAKE_THR;
+    User.bat_wke_thr = v;
+    prefs.putInt("bat_wke_thr", v);
+  }
+
+  // AC CHARGE CONTROL (bool)
+  User.accharge = httpServer.hasArg("accharge");
+  prefs.putBool("accharge", User.accharge);
+
+  // AC Max Power (2500–12500)
+  {
+    int v = httpServer.arg("ac_max_pow").toInt();
+    if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
+    User.ac_max_pow = v;
+    prefs.putInt("ac_max_pow", v);
+  }
+
+  // Offset (-100 bis +100)
+  {
+    int v = httpServer.arg("ac_off_set").toInt();
+    if (v < -100 || v > 100) v = DEFAULT_OFFSET;
+    User.ac_off_set = v;
+    prefs.putInt("ac_off_set", v);
+  }
+
+  prefs.end();
+  httpServer.send(200, "text/plain", "Settings saved");
+}
+
+void handleGetSettings(ESP8266WebServer& httpServer) {
+  Preferences prefs;
+  prefs.begin("config", true);
+
+  DynamicJsonDocument doc(512);
+
+  // Battery Standby
+  doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
+  doc["bat_slp_thr"] = prefs.getInt("bat_slp_thr", User.bat_slp_thr);
+  doc["bat_wke_thr"] = prefs.getInt("bat_wke_thr", User.bat_wke_thr);
+
+  // AC Charging
+  doc["accharge"] = prefs.getBool("accharge", User.accharge);
+  doc["ac_max_pow"] = prefs.getInt("ac_max_pow", User.ac_max_pow);
+  doc["ac_off_set"] = prefs.getInt("ac_off_set", User.ac_off_set);
+
+  prefs.end();
+
+  sendJson(doc);
+}
+
+void handleUpdateFinished(ESP8266WebServer& httpServer) {
+  bool ok = !Update.hasError();
+  String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
+  httpServer.send(ok ? 200 : 500, "text/plain", msg);
+
+  delay(1000);
+  if (ok) {
+    ESP.restart();
+  }
+}
+
+void handleUpdateUpload(ESP8266WebServer& httpServer) {
+  HTTPUpload& upload = httpServer.upload();
+
+  if (upload.status == UPLOAD_FILE_START) {
+    size_t sketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+    if (!Update.begin(sketchSpace)) {
+      Update.printError(Serial);
+    }
+
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Update.printError(Serial);
+    }
+
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (!Update.end(true)) {
+      Update.printError(Serial);
+    }
+  }
 }
 
 void setupWifiManagerConfigMenu(WiFiManager& wm) {
