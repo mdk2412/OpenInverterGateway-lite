@@ -12,7 +12,6 @@
 #include "ShineWifi.h"
 #include "Index.h"
 #include "Growatt.h"
-#include "GrowattTLXH.h"
 
 #if MQTT_SUPPORTED == 1
 #include "ShineMqtt.h"
