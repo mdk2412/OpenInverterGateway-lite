@@ -399,8 +399,9 @@ bool Growatt::ReadInputReg(uint16_t adr, uint32_t* result) {
 
 double Growatt::roundByResolution(const double& value,
                                   const float& resolution) {
-  double res = 1 / resolution;
-  return int32_t(value * res + 0.5) / res;
+    double res = 1 / resolution;
+    double v = value * res;
+    return (v >= 0 ? int32_t(v + 0.5) : int32_t(v - 0.5)) / res;
 }
 
 double Growatt::getRegValue(sGrowattModbusReg_t* reg) {

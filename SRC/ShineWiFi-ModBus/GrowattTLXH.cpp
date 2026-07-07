@@ -24,8 +24,11 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
     char buf[30];
     snprintf(buf, sizeof(buf), "%04hu-%02hu-%02hu %02hu:%02hu:%02hu", year,
              month, day, hour, minute, second);
+           
     res["value"] = buf;
-    return std::make_tuple(true, "Read Date/Time");
+
+    String message = String("Read Date/Time: ") + buf;
+    return std::make_tuple(true, message);
   } else {
     return std::make_tuple(false, "Failed to read Date/Time!");
   }
