@@ -402,9 +402,9 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
 void setup() {
   // >>> LittleFS mounten (MUSS als erstes passieren)
   if (!LittleFS.begin()) {
-    Serial.println("LittleFS mount failed!");
+    Log.println(F("LittleFS mount failed!"));
   } else {
-    Serial.println("LittleFS OK");
+    Log.println(F("LittleFS mounted"));
   }
 
   // Jetzt ist LittleFS sicher gemountet → Static Files registrieren
