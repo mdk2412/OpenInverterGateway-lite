@@ -426,15 +426,6 @@ void setup() {
   configureLogging();
   setupWifiHost();
 
-#if OTA_SUPPORTED == 1
-#if !defined(OTA_PASSWORD)
-#error "Please define an OTA_PASSWORD in Config.h"
-#endif
-  ArduinoOTA.setPassword(OTA_PASSWORD);
-  ArduinoOTA.setHostname(Wifi.hostname.c_str());
-  ArduinoOTA.begin();
-#endif
-
   Log.begin();
 
   setupWifiManagerConfigMenu(wm);
@@ -514,6 +505,15 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     WiFi_Reconnect();
   }
+
+#if OTA_SUPPORTED == 1
+#if !defined(OTA_PASSWORD)
+#error "Please define an OTA_PASSWORD in Config.h"
+#endif
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.setHostname(Wifi.hostname.c_str());
+  ArduinoOTA.begin();
+#endif
 
 #if MQTT_SUPPORTED == 1
 #ifdef MQTTS_ENABLED
