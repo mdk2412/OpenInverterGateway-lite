@@ -578,10 +578,8 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
 
   Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
-  Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
-      sGrowattReadFragment_t{0, 1};
-  Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
-      sGrowattReadFragment_t{3, 1};
+Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
+    sGrowattReadFragment_t{0, 4};
   Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
       sGrowattReadFragment_t{3036, 14};
 
