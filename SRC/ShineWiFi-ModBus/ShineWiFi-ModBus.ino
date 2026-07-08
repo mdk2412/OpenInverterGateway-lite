@@ -181,17 +181,22 @@ void updateRedLed() {
 // Check the WiFi status and reconnect if necessary
 // -------------------------------------------------------
 void WiFi_Reconnect() {
+  static bool wasConnecting = false;
+
   if (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(LED_GN, 0);
+    wasConnecting = true;
 
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(200);
-      Log.print(F("."));
-      digitalWrite(LED_RT,
-                   !digitalRead(LED_RT));  // toggle red led on WiFi (re)connect
-    }
+    // echter reconnect
+    WiFi.reconnect();
 
-    // todo: use Log
+    Log.print(F("."));
+    digitalWrite(LED_RT, !digitalRead(LED_RT));
+    return;
+  }
+
+  if (wasConnecting) {
+    wasConnecting = false;
+
     WiFi.printDiag(Serial);
     Log.print(F("Local IP: "));
     Log.println(WiFi.localIP());
@@ -199,7 +204,6 @@ void WiFi_Reconnect() {
     Log.println(Wifi.hostname);
 
     Log.println(F("WiFi reconnected"));
-
     updateRedLed();
   }
 }
@@ -490,21 +494,15 @@ void setup() {
   // ("GrowattConfig")
   int connect_timeout_seconds = 15;
   wm.setConnectTimeout(connect_timeout_seconds);
-  bool res = wm.autoConnect("GrowattConfig",
-                            APPassword);  // password protected wificonfig ap
+  bool res = wm.autoConnect("GrowattConfig", APPassword);
 
   if (!res) {
     Log.println(F("Failed to connect WiFi!"));
     ESP.restart();
-  } else {
-    digitalWrite(LED_BL, 0);
-    // if you get here you have connected to the WiFi
-    Log.println(F("WiFi connected"));
   }
 
-  while (WiFi.status() != WL_CONNECTED) {
-    WiFi_Reconnect();
-  }
+  digitalWrite(LED_BL, 0);
+  Log.println(F("WiFi connected"));
 
 #if OTA_SUPPORTED == 1
 #if !defined(OTA_PASSWORD)
@@ -1053,7 +1051,7 @@ void loop() {
     ESP.restart();
   }
 
-  if (wifiState != WL_CONNECTED) WiFi_Reconnect();
+  WiFi_Reconnect();
 
 #if MQTT_SUPPORTED == 1
   if (wifiState == WL_CONNECTED && shineMqtt.mqttReconnect()) shineMqtt.loop();
