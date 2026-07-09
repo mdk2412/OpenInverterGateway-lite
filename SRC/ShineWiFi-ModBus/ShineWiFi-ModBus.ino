@@ -458,7 +458,7 @@ SetLED.off(LED_GREEN);
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-    SetLED.off(LED_BLUE);
+    SetLED.off(LED_RED);
     delay(3000);
     ESP.restart();
   }
@@ -494,6 +494,7 @@ SetLED.off(LED_GREEN);
 
   if (!res) {
     Log.println(F("Failed to connect WiFi!"));
+    SetLED.on(LED_RED);
     ESP.restart();
   }
 
@@ -639,6 +640,7 @@ void handleUpdateFinished(ESP8266WebServer& httpServer) {
 
   delay(1000);
   if (ok) {
+    SetLED.on(LED_RED);
     ESP.restart();
   }
 }
@@ -1000,6 +1002,49 @@ void handleNTPSync() {
 }
 #endif
 
+void updateStatusLEDs()
+{
+    bool wifiOK  = (WiFi.status() == WL_CONNECTED);
+    bool modbusOK = readoutSucceeded;
+    bool mqttOK  = false;
+
+#if MQTT_SUPPORTED == 1
+    mqttOK = shineMqtt.mqttConnected();
+#endif
+
+    // --- Fall 1: Grün blinkt ---
+    if (wifiOK && modbusOK && mqttOK)
+    {
+        SetLED.blink(LED_GREEN, 500);
+        SetLED.off(LED_RED);
+        SetLED.off(LED_BLUE);
+        return;
+    }
+
+    // --- Fall 3: Blau blinkt ---
+    if (wifiOK && modbusOK && !mqttOK)
+    {
+        SetLED.blink(LED_BLUE, 500);
+        SetLED.off(LED_GREEN);
+        SetLED.off(LED_RED);
+        return;
+    }
+
+    // --- Fall 2: Rot blinkt ---
+    if (modbusOK && !mqttOK)
+    {
+        SetLED.blink(LED_RED, 500);
+        SetLED.off(LED_GREEN);
+        SetLED.off(LED_BLUE);
+        return;
+    }
+
+    // --- Default ---
+    SetLED.off(LED_GREEN);
+    SetLED.off(LED_RED);
+    SetLED.off(LED_BLUE);
+}
+
 // -------------------------------------------------------
 // Main loop
 // -------------------------------------------------------
@@ -1021,9 +1066,7 @@ void loop() {
 #if ENABLE_DOUBLE_RESET
   drd->loop();
 #endif
-
 SetLED.loop();
-
 // #if MQTT_SUPPORTED == 1
 //   if (shineMqtt.mqttEnabled()) {
 //     if (shineMqtt.mqttConnected()) {
@@ -1055,6 +1098,7 @@ SetLED.loop();
   if (StartedConfigAfterBoot) {
     Log.println(F("StartedConfigAfterBoot"));
     prefs.putBool(ConfigFiles.force_ap, true);
+    SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();
   }
@@ -1076,7 +1120,7 @@ SetLED.loop();
   //   LEDTimer = now;
   //   digitalWrite(LED_GN, wifiState == WL_CONNECTED ? !digitalRead(LED_GN) : 0);
   // }
-SetLED.set(LED_GREEN, LED_BLINK, 500);
+//SetLED.set(LED_GREEN, LED_BLINK, 500);
 
   // Inverter reconnect
   // if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
@@ -1090,7 +1134,7 @@ SetLED.set(LED_GREEN, LED_BLINK, 500);
 
     readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
     // updateRedLed();
-
+updateStatusLEDs();
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
@@ -1103,7 +1147,7 @@ SetLED.set(LED_GREEN, LED_BLINK, 500);
 
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {
-      digitalWrite(LED_RT, 1);
+      SetLED.on(LED_RED);
       delay(3000);
       ESP.restart();
     }
