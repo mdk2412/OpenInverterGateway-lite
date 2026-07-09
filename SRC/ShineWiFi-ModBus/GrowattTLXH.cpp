@@ -34,7 +34,7 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
   }
 };
 
-std::tuple<bool, String> updateDateTime(const JsonDocument& req,
+std::tuple<bool, String> setDateTime(const JsonDocument& req,
                                         JsonDocument& res, Growatt& inverter) {
   if (!req.containsKey("value")) {
     return std::make_tuple(false, "'value' Field is required");
@@ -586,7 +586,7 @@ Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
   // COMMANDS
 
   inverter.RegisterCommand("datetime/get", getDateTime);
-  inverter.RegisterCommand("datetime/set", updateDateTime);
+  inverter.RegisterCommand("datetime/set", setDateTime);
 
   inverter.RegisterCommand("onoff/get", getOnOff);
   inverter.RegisterCommand("onoff/set", setOnOff);
