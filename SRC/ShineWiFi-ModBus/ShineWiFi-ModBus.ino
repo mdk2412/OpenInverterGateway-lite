@@ -23,6 +23,7 @@
 
 #include "ACChargeControl.h"
 #include "BatteryStandby.h"
+#include "SetLED.h"
 
 // -----------------------------------------------------------------------------
 //  Externe Bibliotheken
@@ -160,22 +161,21 @@ UserConfig User;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
-// -------------------------------------------------------
-// Set the red led in case of error
-// -------------------------------------------------------
-void updateRedLed() {
-  uint8_t state = 0;
-  if (!readoutSucceeded) {
-    state = 1;
-  }
+// // -------------------------------------------------------
+// // Set the red led in case of error
+// // -------------------------------------------------------
+// void updateRedLed() {
+//   uint8_t state = 0;
+//   if (!readoutSucceeded) {
+//     state = 1;
+//   }
 
-#if MQTT_SUPPORTED == 1
-  if (shineMqtt.mqttEnabled() && !shineMqtt.mqttConnected()) {
-    state = 1;
-  }
-#endif
-  digitalWrite(LED_RT, state);
-}
+//   // digitalWrite(LED_RT, state);
+//   if (state)
+//     SetLED.on(LED_RED);
+//   else
+//     SetLED.off(LED_RED);
+// }
 
 // -------------------------------------------------------
 // Check the WiFi status and reconnect if necessary
@@ -190,7 +190,7 @@ void WiFi_Reconnect() {
     WiFi.reconnect();
 
     Log.print(F("."));
-    digitalWrite(LED_RT, !digitalRead(LED_RT));
+    // digitalWrite(LED_RT, !digitalRead(LED_RT));
     return;
   }
 
@@ -204,7 +204,7 @@ void WiFi_Reconnect() {
     Log.println(Wifi.hostname);
 
     Log.println(F("WiFi reconnected"));
-    updateRedLed();
+    // updateRedLed();
   }
 }
 
@@ -325,11 +325,11 @@ void configureLogging() {
   }
 }
 
-void setupGPIO() {
-  pinMode(LED_GN, OUTPUT);
-  pinMode(LED_RT, OUTPUT);
-  pinMode(LED_BL, OUTPUT);
-}
+// void setupGPIO() {
+//   pinMode(LED_GN, OUTPUT);
+//   pinMode(LED_RT, OUTPUT);
+//   pinMode(LED_BL, OUTPUT);
+// }
 
 void setupWifiHost() {
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
@@ -410,7 +410,9 @@ void setup() {
 
   WiFiManager wm;
 
-  setupGPIO();
+  // setupGPIO();
+
+  SetLED.begin();
 
 #if ENABLE_DOUBLE_RESET == 1
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
@@ -426,10 +428,12 @@ void setup() {
 
   setupWifiManagerConfigMenu(wm);
 
-  digitalWrite(LED_BL, 1);
-  digitalWrite(LED_RT, 0);
-  digitalWrite(LED_GN, 0);
-
+  // digitalWrite(LED_BL, 1);
+  // digitalWrite(LED_RT, 0);
+  // digitalWrite(LED_GN, 0);
+SetLED.on(LED_BLUE);
+SetLED.off(LED_RED);
+SetLED.off(LED_GREEN);
   // Set a timeout so the ESP doesn't hang waiting to be configured, for
   // instance after a power failure
 
@@ -454,7 +458,7 @@ void setup() {
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-    digitalWrite(LED_BL, 0);
+    SetLED.off(LED_BLUE);
     delay(3000);
     ESP.restart();
   }
@@ -493,7 +497,7 @@ void setup() {
     ESP.restart();
   }
 
-  digitalWrite(LED_BL, 0);
+  SetLED.off(LED_BLUE);
   Log.println(F("WiFi connected"));
 
 #if OTA_SUPPORTED == 1
@@ -1018,6 +1022,18 @@ void loop() {
   drd->loop();
 #endif
 
+SetLED.loop();
+
+#if MQTT_SUPPORTED == 1
+  if (shineMqtt.mqttEnabled()) {
+    if (shineMqtt.mqttConnected()) {
+      SetLED.on(LED_BLUE);
+    } else {
+      SetLED.off(LED_BLUE);
+    }
+  }
+#endif
+
   Log.loop();
   unsigned long now = millis();
   wl_status_t wifiState = WiFi.status();
@@ -1056,10 +1072,11 @@ void loop() {
 #endif
 
   // LED alive
-  if (now - LEDTimer > LED_TIMER) {
-    LEDTimer = now;
-    digitalWrite(LED_GN, wifiState == WL_CONNECTED ? !digitalRead(LED_GN) : 0);
-  }
+  // if (now - LEDTimer > LED_TIMER) {
+  //   LEDTimer = now;
+  //   digitalWrite(LED_GN, wifiState == WL_CONNECTED ? !digitalRead(LED_GN) : 0);
+  // }
+SetLED.set(LED_GREEN, LED_BLINK, 500);
 
   // Inverter reconnect
   // if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
@@ -1072,7 +1089,7 @@ void loop() {
     RefreshTimer = now;
 
     readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
-    updateRedLed();
+    // updateRedLed();
 
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
