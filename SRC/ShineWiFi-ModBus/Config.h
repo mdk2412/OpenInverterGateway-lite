@@ -121,7 +121,7 @@
 //    LED_TIMER: Led blinking rate [ms]
 #define REFRESH_TIMER 1000       // 5s default
 // #define WIFI_RETRY_TIMER 120000  // 120s default
-#define LED_TIMER 500            // 0.5s default
+// #define LED_TIMER 500            // 0.5s default
 // #define WDT_TIMEOUT 60            // 5 minutes default 
 
 #if PINGER_SUPPORTED == 1
