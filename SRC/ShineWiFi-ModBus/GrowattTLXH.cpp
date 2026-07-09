@@ -58,24 +58,24 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req,
 
   bool success = inverter.WriteHoldingRegFrag(45, 6, values);
   if (success) {
-    String message = "Updated Date/Time: " + datetime;
+    String message = "Wrote Date/Time: " + datetime;
     return std::make_tuple(true, message);
   }
 
-  return std::make_tuple(false, "Failed to update Date/Time!");
+  return std::make_tuple(false, "Failed to write Date/Time!");
 };
 
-std::tuple<bool, String> getOnOff(const JsonDocument& req,
-                                  JsonDocument& res,
-                                  Growatt& inverter) {
-  uint16_t value;
-  if (!inverter.ReadHoldingReg(0, &value)) {
-    return std::make_tuple(false, String(F("Failed to read OnOff!")));
-  }
+// std::tuple<bool, String> getOnOff(const JsonDocument& req,
+//                                   JsonDocument& res,
+//                                   Growatt& inverter) {
+//   uint16_t value;
+//   if (!inverter.ReadHoldingReg(0, &value)) {
+//     return std::make_tuple(false, String(F("Failed to read OnOff!")));
+//   }
 
-  res["value"] = value;
-  return std::make_tuple(true, String(F("OnOff: ")) + value);
-}
+//   res["value"] = value;
+//   return std::make_tuple(true, String(F("OnOff: ")) + value);
+// }
 
 std::tuple<bool, String> setOnOff(const JsonDocument& req,
                                   JsonDocument& res,
