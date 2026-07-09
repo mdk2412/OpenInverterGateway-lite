@@ -109,6 +109,19 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
     res =
         Modbus.readInputRegisters(_Protocol.InputReadFragments[i].StartAddress,
                                   _Protocol.InputReadFragments[i].FragmentSize);
+// for debug logging replace previous 3 lines with:
+// uint32_t start = millis();
+// res = Modbus.readInputRegisters(
+//     _Protocol.InputReadFragments[i].StartAddress,
+//     _Protocol.InputReadFragments[i].FragmentSize);
+// uint32_t duration = millis() - start;
+// Log.printf(
+//     "[MODBUS][INPUT] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu ms\n",
+//     _Protocol.InputReadFragments[i].StartAddress,
+//     _Protocol.InputReadFragments[i].FragmentSize,
+//     (res == Modbus.ku8MBSuccess) ? "OK" : "FAIL",
+//     res,
+//     duration);
     if (res == Modbus.ku8MBSuccess) {
 #ifdef DEBUG_MODBUS_OUTPUT
       Log.println(F("ok"));
@@ -169,6 +182,19 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
     res = Modbus.readHoldingRegisters(
         _Protocol.HoldingReadFragments[i].StartAddress,
         _Protocol.HoldingReadFragments[i].FragmentSize);
+// for debug logging replace previous 3 lines with:
+// uint32_t start = millis();
+// res = Modbus.readHoldingRegisters(
+//     _Protocol.HoldingReadFragments[i].StartAddress,
+//     _Protocol.HoldingReadFragments[i].FragmentSize);
+// uint32_t duration = millis() - start;
+// Log.printf(
+//     "[MODBUS][HOLDING] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu ms\n",
+//     _Protocol.HoldingReadFragments[i].StartAddress,
+//     _Protocol.HoldingReadFragments[i].FragmentSize,
+//     (res == Modbus.ku8MBSuccess) ? "OK" : "FAIL",
+//     res,
+//     duration);      
     if (res == Modbus.ku8MBSuccess) {
       for (; j < _Protocol.HoldingRegisterCount; j++) {
         if (_Protocol.HoldingRegisters[j].address >=
