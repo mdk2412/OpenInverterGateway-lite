@@ -161,22 +161,6 @@ UserConfig User;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
-// // -------------------------------------------------------
-// // Set the red led in case of error
-// // -------------------------------------------------------
-// void updateRedLed() {
-//   uint8_t state = 0;
-//   if (!readoutSucceeded) {
-//     state = 1;
-//   }
-
-//   // digitalWrite(LED_RT, state);
-//   if (state)
-//     SetLED.on(LED_RED);
-//   else
-//     SetLED.off(LED_RED);
-// }
-
 // -------------------------------------------------------
 // Check the WiFi status and reconnect if necessary
 // -------------------------------------------------------
@@ -190,7 +174,6 @@ void WiFi_Reconnect() {
     WiFi.reconnect();
 
     Log.print(F("."));
-    // digitalWrite(LED_RT, !digitalRead(LED_RT));
     return;
   }
 
@@ -204,21 +187,7 @@ void WiFi_Reconnect() {
     Log.println(Wifi.hostname);
 
     Log.println(F("WiFi reconnected"));
-    // updateRedLed();
   }
-}
-
-// Connection can fail after sunrise. The stick powers up before the inverter.
-// So the detection of the inverter will fail. If no inverter is detected, we
-// have to retry later (s. loop() ) The detection without running inverter will
-// take several seconds, because the ModBus-Lib has a timeout of 2s for each
-// read access (and we do several of them). The WiFi can crash during this
-// function. Perhaps we can fix this by using the callback function of the
-// ModBus-Lib
-void InverterReconnect(void) {
-  // Baudrate will be set here, depending on the version of the stick
-  Inverter.begin(Serial);
-  // Log.println(F("ShineWifi-X initialisiert"));
 }
 
 void loadConfig();
@@ -316,7 +285,6 @@ void configureLogging() {
 #endif
   if (!Wifi.syslog_ip.isEmpty()) {
     syslogStream.setDestination(Wifi.syslog_ip.c_str());
-    // syslogStream.setRaw(true);
     const std::shared_ptr<LOGBase> syslogStreamPtr =
         std::make_shared<SyslogStream>(syslogStream);
     Log.addPrintStream(syslogStreamPtr);
@@ -324,12 +292,6 @@ void configureLogging() {
     Log.println(Wifi.syslog_ip);
   }
 }
-
-// void setupGPIO() {
-//   pinMode(LED_GN, OUTPUT);
-//   pinMode(LED_RT, OUTPUT);
-//   pinMode(LED_BL, OUTPUT);
-// }
 
 void setupWifiHost() {
   WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
@@ -387,7 +349,6 @@ void loadSettingsFromPrefs() {
   prefs.end();
 }
 
-// new
 #if MODBUS_TCP_SUPPORTED == 1
 bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
   return Inverter.ReadHoldingReg(address, value);
@@ -401,7 +362,6 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
   return Inverter.WriteHoldingReg(address, value);
 }
 #endif
-// new end
 
 void setup() {
   // >>> LittleFS mounten (MUSS als erstes passieren)
@@ -409,8 +369,6 @@ void setup() {
   httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
 
   WiFiManager wm;
-
-  // setupGPIO();
 
   SetLED.begin();
 
@@ -428,12 +386,9 @@ void setup() {
 
   setupWifiManagerConfigMenu(wm);
 
-  // digitalWrite(LED_BL, 1);
-  // digitalWrite(LED_RT, 0);
-  // digitalWrite(LED_GN, 0);
-SetLED.on(LED_BLUE);
-SetLED.off(LED_RED);
-SetLED.off(LED_GREEN);
+  SetLED.on(LED_BLUE);
+  SetLED.off(LED_RED);
+  SetLED.off(LED_GREEN);
   // Set a timeout so the ESP doesn't hang waiting to be configured, for
   // instance after a power failure
 
@@ -536,7 +491,7 @@ SetLED.off(LED_GREEN);
   httpServer.onNotFound(handleNotFound);
 
   Inverter.InitProtocol();
-  InverterReconnect();
+  Inverter.begin(Serial);
 
   httpServer.on("/saveSettings", HTTP_POST,
                 []() { handleSaveSettings(httpServer); });
@@ -1002,47 +957,43 @@ void handleNTPSync() {
 }
 #endif
 
-void updateStatusLEDs()
-{
-    bool wifiOK  = (WiFi.status() == WL_CONNECTED);
-    bool modbusOK = readoutSucceeded;
-    bool mqttOK  = false;
+void updateStatusLEDs() {
+  bool wifiOK = (WiFi.status() == WL_CONNECTED);
+  bool modbusOK = readoutSucceeded;
+  bool mqttOK = false;
 
 #if MQTT_SUPPORTED == 1
-    mqttOK = shineMqtt.mqttConnected();
+  mqttOK = shineMqtt.mqttConnected();
 #endif
 
-    // --- Fall 1: Grün blinkt ---
-    if (wifiOK && modbusOK && mqttOK)
-    {
-        SetLED.blink(LED_GREEN, 500);
-        SetLED.off(LED_RED);
-        SetLED.off(LED_BLUE);
-        return;
-    }
-
-    // --- Fall 3: Blau blinkt ---
-    if (wifiOK && modbusOK && !mqttOK)
-    {
-        SetLED.blink(LED_BLUE, 500);
-        SetLED.off(LED_GREEN);
-        SetLED.off(LED_RED);
-        return;
-    }
-
-    // --- Fall 2: Rot blinkt ---
-    if (modbusOK && !mqttOK)
-    {
-        SetLED.blink(LED_RED, 500);
-        SetLED.off(LED_GREEN);
-        SetLED.off(LED_BLUE);
-        return;
-    }
-
-    // --- Default ---
-    SetLED.off(LED_GREEN);
+  // --- Fall 1: Grün blinkt ---
+  if (wifiOK && modbusOK && mqttOK) {
+    SetLED.blink(LED_GREEN, 500);
     SetLED.off(LED_RED);
     SetLED.off(LED_BLUE);
+    return;
+  }
+
+  // --- Fall 3: Blau blinkt ---
+  if (wifiOK && modbusOK && !mqttOK) {
+    SetLED.blink(LED_BLUE, 500);
+    SetLED.off(LED_GREEN);
+    SetLED.off(LED_RED);
+    return;
+  }
+
+  // --- Fall 2: Rot blinkt ---
+  if (modbusOK && !mqttOK) {
+    SetLED.blink(LED_RED, 500);
+    SetLED.off(LED_GREEN);
+    SetLED.off(LED_BLUE);
+    return;
+  }
+
+  // --- Default ---
+  SetLED.off(LED_GREEN);
+  SetLED.off(LED_RED);
+  SetLED.off(LED_BLUE);
 }
 
 // -------------------------------------------------------
@@ -1051,9 +1002,7 @@ void updateStatusLEDs()
 #if ENABLE_AP_BUTTON == 1
 unsigned long ButtonTimer = 0;
 #endif
-// unsigned long LEDTimer = 0;
 unsigned long RefreshTimer = 0;
-// unsigned long WifiRetryTimer = 0;
 unsigned long BatteryStandbyTimer = 0;
 unsigned long ACChargeControlTimer = 0;
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
@@ -1066,16 +1015,7 @@ void loop() {
 #if ENABLE_DOUBLE_RESET
   drd->loop();
 #endif
-SetLED.loop();
-// #if MQTT_SUPPORTED == 1
-//   if (shineMqtt.mqttEnabled()) {
-//     if (shineMqtt.mqttConnected()) {
-//       SetLED.on(LED_BLUE);
-//     } else {
-//       SetLED.off(LED_BLUE);
-//     }
-//   }
-// #endif
+  SetLED.loop();
 
   Log.loop();
   unsigned long now = millis();
@@ -1115,26 +1055,13 @@ SetLED.loop();
   if (modbusTCP.isEnabled()) modbusTCP.loop();
 #endif
 
-  // LED alive
-  // if (now - LEDTimer > LED_TIMER) {
-  //   LEDTimer = now;
-  //   digitalWrite(LED_GN, wifiState == WL_CONNECTED ? !digitalRead(LED_GN) : 0);
-  // }
-//SetLED.set(LED_GREEN, LED_BLINK, 500);
-
-  // Inverter reconnect
-  // if (now - WifiRetryTimer > WIFI_RETRY_TIMER) {
-  //   WifiRetryTimer = now;
-  //   InverterReconnect();
-  // }
-
   // Inverter read
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
 
     readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
-    // updateRedLed();
-updateStatusLEDs();
+
+    updateStatusLEDs();
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
