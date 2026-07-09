@@ -1024,15 +1024,15 @@ void loop() {
 
 SetLED.loop();
 
-#if MQTT_SUPPORTED == 1
-  if (shineMqtt.mqttEnabled()) {
-    if (shineMqtt.mqttConnected()) {
-      SetLED.on(LED_BLUE);
-    } else {
-      SetLED.off(LED_BLUE);
-    }
-  }
-#endif
+// #if MQTT_SUPPORTED == 1
+//   if (shineMqtt.mqttEnabled()) {
+//     if (shineMqtt.mqttConnected()) {
+//       SetLED.on(LED_BLUE);
+//     } else {
+//       SetLED.off(LED_BLUE);
+//     }
+//   }
+// #endif
 
   Log.loop();
   unsigned long now = millis();
