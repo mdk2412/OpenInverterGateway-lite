@@ -130,7 +130,7 @@
 
 // Define LED pins, set to -1 for disable/not present
 #define LED_GN 0   // GPIO0
-#define LED_RT 2   // GPIO2
+#define LED_RD 2   // GPIO2
 #define LED_BL 16  // GPIO16
 
 // Add support for the AP button on the normal Shine Stick. You can

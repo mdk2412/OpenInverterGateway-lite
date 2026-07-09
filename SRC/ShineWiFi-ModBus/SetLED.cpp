@@ -5,7 +5,7 @@ SetLEDClass SetLED;
 
 void SetLEDClass::begin()
 {
-    leds[LED_RED]   = { LED_RT,   LED_OFF, LOW, 0, 0 };
+    leds[LED_RED]   = { LED_RD,   LED_OFF, LOW, 0, 0 };
     leds[LED_GREEN] = { LED_GN,   LED_OFF, LOW, 0, 0 };
     leds[LED_BLUE]  = { LED_BL,   LED_OFF, LOW, 0, 0 };
 
