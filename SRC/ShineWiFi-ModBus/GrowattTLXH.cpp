@@ -588,7 +588,7 @@ Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
   inverter.RegisterCommand("datetime/get", getDateTime);
   inverter.RegisterCommand("datetime/set", setDateTime);
 
-  inverter.RegisterCommand("onoff/get", getOnOff);
+//   inverter.RegisterCommand("onoff/get", getOnOff);
   inverter.RegisterCommand("onoff/set", setOnOff);
   
   inverter.RegisterCommand("power/get/activerate", getPowerActiveRate);
