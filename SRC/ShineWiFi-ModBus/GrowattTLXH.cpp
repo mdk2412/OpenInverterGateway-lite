@@ -24,7 +24,7 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
     char buf[30];
     snprintf(buf, sizeof(buf), "%04hu-%02hu-%02hu %02hu:%02hu:%02hu", year,
              month, day, hour, minute, second);
-           
+
     res["value"] = buf;
 
     String message = String("Read Date/Time: ") + buf;
@@ -34,8 +34,8 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
   }
 };
 
-std::tuple<bool, String> setDateTime(const JsonDocument& req,
-                                        JsonDocument& res, Growatt& inverter) {
+std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
+                                     Growatt& inverter) {
   if (!req.containsKey("value")) {
     return std::make_tuple(false, "'value' Field is required");
   }
@@ -77,10 +77,8 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req,
 //   return std::make_tuple(true, String(F("OnOff: ")) + value);
 // }
 
-std::tuple<bool, String> setOnOff(const JsonDocument& req,
-                                  JsonDocument& res,
+std::tuple<bool, String> setOnOff(const JsonDocument& req, JsonDocument& res,
                                   Growatt& inverter) {
-
   // --- Validate JSON field ---
   if (!req.containsKey("value")) {
     String msg = F("'Value' field is required");
@@ -92,11 +90,12 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
 
   // --- Validate range ---
   if (value > 3) {
-    String msg = F("Invalid OnOff Mode! Select either "
-                   "0 (Inverter Off), "
-                   "1 (Inverter On), "
-                   "2 (BDC Off) or "
-                   "3 (BDC On)");
+    String msg =
+        F("Invalid OnOff Mode! Select either "
+          "0 (Inverter Off), "
+          "1 (Inverter On), "
+          "2 (BDC Off) or "
+          "3 (BDC On)");
     Log.println(msg);
     return std::make_tuple(false, msg);
   }
@@ -104,10 +103,18 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
   // --- Mapping text ---
   String mode_text;
   switch (value) {
-    case 0: mode_text = F("Inverter Off"); break;
-    case 1: mode_text = F("Inverter On");  break;
-    case 2: mode_text = F("BDC Off");      break;
-    case 3: mode_text = F("BDC On");       break;
+    case 0:
+      mode_text = F("Inverter Off");
+      break;
+    case 1:
+      mode_text = F("Inverter On");
+      break;
+    case 2:
+      mode_text = F("BDC Off");
+      break;
+    case 3:
+      mode_text = F("BDC On");
+      break;
   }
 
   // --- Single write (retry removed) ---
@@ -120,12 +127,13 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req,
     return std::make_tuple(false, msg);
   }
 
-  String msg = String(F("OnOff Mode set to ")) + value + F(" (") + mode_text + F(")");
+  String msg =
+      String(F("OnOff Mode set to ")) + value + F(" (") + mode_text + F(")");
   // Log.println(msg);
 
   res["success"] = true;
   res["value"] = value;
-  res["mode"]  = mode_text;
+  res["mode"] = mode_text;
 
   return std::make_tuple(true, msg);
 }
@@ -178,7 +186,8 @@ std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
   }
 
   if (!inverter.WriteHoldingReg(3036, value)) {
-    return std::make_tuple(false, String(F("Failed to set BDCDischargePowerRate!")));
+    return std::make_tuple(false,
+                           String(F("Failed to set BDCDischargePowerRate!")));
   }
 
   return std::make_tuple(
@@ -199,7 +208,8 @@ std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
   }
 
   if (!inverter.WriteHoldingReg(3037, value)) {
-    return std::make_tuple(false, String(F("Failed to set BDCDischargeStopSOC!")));
+    return std::make_tuple(false,
+                           String(F("Failed to set BDCDischargeStopSOC!")));
   }
 
   return std::make_tuple(
@@ -220,7 +230,8 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
   }
 
   if (!inverter.WriteHoldingReg(3047, value)) {
-    return std::make_tuple(false, String(F("Failed to set BDCChargePowerRate!")));
+    return std::make_tuple(false,
+                           String(F("Failed to set BDCChargePowerRate!")));
   }
 
   return std::make_tuple(
@@ -258,37 +269,30 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
   uint16_t value = req["value"].as<uint16_t>();
 
   if (!inverter.WriteHoldingReg(3049, value)) {
-    return std::make_tuple(false, String(F("Failed to set BDCACChargeEnabled!")));
+    return std::make_tuple(false,
+                           String(F("Failed to set BDCACChargeEnabled!")));
   }
 
   return std::make_tuple(true, String(F("Set BDCACChargeEnabled")));
 }
 
-std::tuple<bool, String> setPriority(const JsonDocument& req,
-                                     JsonDocument& res,
+std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
                                      Growatt& inverter) {
-
   if (!req.containsKey("mode")) {
     return {false, F("'Mode' Field is required")};
   }
 
   const uint16_t mode = req["mode"].as<uint16_t>();
   if (mode > 2) {
-    return {false,
-            F("Invalid Priority Mode! Select either 0 (Load First), 1 (Battery First) or 2 (Grid First)")};
+    return {false, F("Invalid Priority Mode! Select either 0 (Load First), 1 "
+                     "(Battery First) or 2 (Grid First)")};
   }
 
   static uint16_t mode_raw_map[3][2] = {
-      {8192,  5947},
-      {40960, 5947},
-      {49152, 5947}
-  };
+      {8192, 5947}, {40960, 5947}, {49152, 5947}};
 
-  static const char* mode_text_map[3] = {
-      "Load First",
-      "Battery First",
-      "Grid First"
-  };
+  static const char* mode_text_map[3] = {"Load First", "Battery First",
+                                         "Grid First"};
 
   const char* mode_text = mode_text_map[mode];
 
@@ -349,7 +353,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       0.1,  0.1, CURRENT,    false};
   Protocol.InputRegisters[P3000_PAC1] = sGrowattModbusReg_t{
       3028, 0,   SIZE_32BIT, F("L1ThreePhaseGridOutputPower"),
-      0.1,  0.1, POWER_W,         false};
+      0.1,  0.1, POWER_W,    false};
   Protocol.InputRegisters[P3000_VAC2] =
       sGrowattModbusReg_t{3030, 0,   SIZE_16BIT, F("L2ThreePhaseGridVoltage"),
                           0.1,  0.1, VOLTAGE,    false};
@@ -385,10 +389,12 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3045, 0, SIZE_32BIT_S, F("TotalLoadPower"), 0.1, 0.1, POWER_W, false};
   Protocol.InputRegisters[P3000_TIME_TOTAL] = sGrowattModbusReg_t{
       3047, 0, SIZE_32BIT, F("WorkTimeTotal"), 0.5, 1, SECONDS, false};
-  Protocol.InputRegisters[P3000_EAC_TODAY] = sGrowattModbusReg_t{
-      3049, 0, SIZE_32BIT, F("TodayGenerateEnergy"), 0.1, 0.1, ENERGY_KWH, false};
-  Protocol.InputRegisters[P3000_EAC_TOTAL] = sGrowattModbusReg_t{
-      3051, 0, SIZE_32BIT, F("TotalGenerateEnergy"), 0.1, 0.1, ENERGY_KWH, false};
+  Protocol.InputRegisters[P3000_EAC_TODAY] =
+      sGrowattModbusReg_t{3049, 0,   SIZE_32BIT, F("TodayGenerateEnergy"),
+                          0.1,  0.1, ENERGY_KWH, false};
+  Protocol.InputRegisters[P3000_EAC_TOTAL] =
+      sGrowattModbusReg_t{3051, 0,   SIZE_32BIT, F("TotalGenerateEnergy"),
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV_TOTAL] = sGrowattModbusReg_t{
       3053, 0, SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV1_TODAY] = sGrowattModbusReg_t{
@@ -412,10 +418,10 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3073, 0, SIZE_32BIT, F("TotalEnergyToGrid"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ELOAD_TODAY] =
       sGrowattModbusReg_t{3075, 0,   SIZE_32BIT, F("TodayEnergyOfUserLoad"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ELOAD_TOTAL] =
       sGrowattModbusReg_t{3077, 0,   SIZE_32BIT, F("TotalEnergyOfUserLoad"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EPV_TODAY] = sGrowattModbusReg_t{
       3083, 0, SIZE_32BIT, F("PVEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_DERATING_MODE] =
@@ -453,8 +459,9 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3100, 0, SIZE_16BIT, F("InverterOutputPFNow"), 1, 1, NONE, false};
   Protocol.InputRegisters[P3000_REALOPPERCENT] = sGrowattModbusReg_t{
       3101, 0, SIZE_16BIT_S, F("RealOutputPercent"), 1, 1, PERCENTAGE, false};
-  Protocol.InputRegisters[P3000_OPFULLWATT] = sGrowattModbusReg_t{
-      3102, 0, SIZE_32BIT, F("OutputMaxpowerLimited"), 0.1, 0.1, POWER_W, false};
+  Protocol.InputRegisters[P3000_OPFULLWATT] =
+      sGrowattModbusReg_t{3102, 0,   SIZE_32BIT, F("OutputMaxpowerLimited"),
+                          0.1,  0.1, POWER_W,    false};
   Protocol.InputRegisters[P3000_STANDBY_FLAG] = sGrowattModbusReg_t{
       3104, 0, SIZE_16BIT, F("InverterStandbyFlag"), 1, 1, NONE, false};
   Protocol.InputRegisters[P3000_FAULT_MAINCODE] = sGrowattModbusReg_t{
@@ -478,26 +485,28 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   // FRAGMENT 3: BEGIN
   Protocol.InputRegisters[P3000_EDISCHR_TODAY] =
       sGrowattModbusReg_t{3125, 0,   SIZE_32BIT, F("DischargeEnergyToday"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_EDISCHR_TOTAL] =
       sGrowattModbusReg_t{3127, 0,   SIZE_32BIT, F("DischargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ECHR_TODAY] = sGrowattModbusReg_t{
       3129, 0, SIZE_32BIT, F("ChargeEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ECHR_TOTAL] = sGrowattModbusReg_t{
       3131, 0, SIZE_32BIT, F("ChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
-  Protocol.InputRegisters[P3000_EACCHR_TODAY] = sGrowattModbusReg_t{
-      3133, 0, SIZE_32BIT, F("ACChargeEnergyToday"), 0.1, 0.1, ENERGY_KWH, false};
-  Protocol.InputRegisters[P3000_EACCHR_TOTAL] = sGrowattModbusReg_t{
-      3135, 0, SIZE_32BIT, F("ACChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
+  Protocol.InputRegisters[P3000_EACCHR_TODAY] =
+      sGrowattModbusReg_t{3133, 0,   SIZE_32BIT, F("ACChargeEnergyToday"),
+                          0.1,  0.1, ENERGY_KWH, false};
+  Protocol.InputRegisters[P3000_EACCHR_TOTAL] =
+      sGrowattModbusReg_t{3135, 0,   SIZE_32BIT, F("ACChargeEnergyTotal"),
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ESYS_TOTAL] = sGrowattModbusReg_t{
       3137, 0, SIZE_32BIT, F("SystemEnergyTotal"), 0.1, 0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ESELF_TODAY] =
       sGrowattModbusReg_t{3139, 0,   SIZE_32BIT, F("SelfOutputEnergyToday"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_ESELF_TOTAL] =
       sGrowattModbusReg_t{3141, 0,   SIZE_32BIT, F("SelfOutputEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_PRIORITY] =
       sGrowattModbusReg_t{3144, 0, SIZE_16BIT, F("Priority"), 1, 1, NONE, true};
   Protocol.InputRegisters[P3000_BDC_DERATINGMODE] = sGrowattModbusReg_t{
@@ -534,10 +543,10 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3180, 0, SIZE_32BIT, F("BDCChargePower"), 0.1, 0.1, POWER_W, true};
   Protocol.InputRegisters[P3000_BDC_EDISCHR_TOTAL] =
       sGrowattModbusReg_t{3182, 0,   SIZE_32BIT, F("BDCDischargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   Protocol.InputRegisters[P3000_BDC_ECHR_TOTAL] =
       sGrowattModbusReg_t{3184, 0,   SIZE_32BIT, F("BDCChargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH,  false};
+                          0.1,  0.1, ENERGY_KWH, false};
   // FRAGMENT 3: END
 
   Protocol.InputReadFragments[Protocol.InputFragmentCount++] =
@@ -578,8 +587,8 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
 
   Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
-Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
-    sGrowattReadFragment_t{0, 4};
+  Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
+      sGrowattReadFragment_t{0, 4};
   Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
       sGrowattReadFragment_t{3036, 14};
 
@@ -588,9 +597,9 @@ Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
   inverter.RegisterCommand("datetime/get", getDateTime);
   inverter.RegisterCommand("datetime/set", setDateTime);
 
-//   inverter.RegisterCommand("onoff/get", getOnOff);
+  //   inverter.RegisterCommand("onoff/get", getOnOff);
   inverter.RegisterCommand("onoff/set", setOnOff);
-  
+
   inverter.RegisterCommand("power/get/activerate", getPowerActiveRate);
   inverter.RegisterCommand("power/set/activerate", setPowerActiveRate);
 
