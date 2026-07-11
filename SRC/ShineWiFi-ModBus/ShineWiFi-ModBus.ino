@@ -413,7 +413,7 @@ void setup() {
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.println(F("GrowattConfig finished"));
-    SetLED.off(LED_RED);
+    SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();
   }
