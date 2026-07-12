@@ -844,7 +844,6 @@ uint8_t ModbusMaster::ModbusMasterTransaction(uint8_t u8MBFunction)
         case ku8MBMaskWriteRegister:
           u8BytesLeft = 5;
           break;
-        break;
       }
     }
     if (u8ModbusADU[1] == ku8MBReadDeviceIdentifiers) // function 2B-0E
