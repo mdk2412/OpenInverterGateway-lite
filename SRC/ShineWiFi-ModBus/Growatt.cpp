@@ -684,8 +684,7 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
       break;
     }
 
-    // Kein Logging hier — Handler + HandleCommand loggen bereits!
-    delay(100);
+    delay(1);
   }
 
   res["command"] = command;
