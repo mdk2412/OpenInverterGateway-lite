@@ -5,13 +5,14 @@ SetLEDClass SetLED;
 
 void SetLEDClass::begin()
 {
-    leds[LED_RED]   = { LED_RD,   LED_OFF, LOW, 0, 0 };
-    leds[LED_GREEN] = { LED_GN,   LED_OFF, LOW, 0, 0 };
-    leds[LED_BLUE]  = { LED_BL,   LED_OFF, LOW, 0, 0 };
+    // 255 = LED nicht vorhanden
+    leds[LED_RED]   = { LED_RD,   LED_OFF, LOW, 0, 255 };
+    leds[LED_GREEN] = { LED_GN,   LED_OFF, LOW, 0, 255 };
+    leds[LED_BLUE]  = { LED_BL,   LED_OFF, LOW, 0, 255 };
 
     for (uint8_t i = 0; i < 3; i++)
     {
-        if (leds[i].pin >= 0)
+        if (leds[i].pin != 255)
         {
             pinMode(leds[i].pin, OUTPUT);
             digitalWrite(leds[i].pin, LOW);
@@ -23,7 +24,7 @@ void SetLEDClass::set(LedColor led, LedMode mode, uint32_t blinkMs)
 {
     LedState &l = leds[led];
 
-    if (l.pin < 0)
+    if (l.pin == 255)
         return;
 
     // Keine Änderung?
@@ -80,7 +81,7 @@ void SetLEDClass::loop()
     {
         LedState &l = leds[i];
 
-        if (l.pin < 0)
+        if (l.pin == 255)
             continue;
 
         if (!l.enabled)
