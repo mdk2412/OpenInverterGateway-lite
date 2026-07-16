@@ -132,6 +132,9 @@
 #define LED_GN 0   // GPIO0
 #define LED_RD 2   // GPIO2
 #define LED_BL 16  // GPIO16
+#define LED_GN_ACTIVE_HIGH 1  
+#define LED_RD_ACTIVE_HIGH 1   
+#define LED_BL_ACTIVE_HIGH 1
 
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.

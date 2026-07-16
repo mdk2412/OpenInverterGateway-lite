@@ -39,9 +39,13 @@ private:
         uint32_t interval;
         uint32_t lastToggle;
         bool     enabled;
+        bool     activeHigh;   // NEU: HIGH = AN, LOW = AN
     };
 
     LedState leds[3];
+
+    // NEU: zentrale LED‑Schreibfunktion
+    void writeLed(LedState &l, bool on);
 };
 
 extern SetLEDClass SetLED;
