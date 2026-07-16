@@ -39,7 +39,7 @@ private:
         uint32_t interval;
         uint32_t lastToggle;
         bool     enabled;
-        bool     activeHigh;   // NEU: HIGH = AN, LOW = AN
+        bool     activeLevel;   // NEU: HIGH = AN, LOW = AN
     };
 
     LedState leds[3];

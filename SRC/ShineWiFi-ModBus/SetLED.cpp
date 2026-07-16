@@ -6,7 +6,7 @@ SetLEDClass SetLED;
 // zentrale LED-Schreibfunktion
 void SetLEDClass::writeLed(LedState &l, bool on)
 {
-    digitalWrite(l.pin, (on == l.activeHigh) ? HIGH : LOW);
+    digitalWrite(l.pin, (on == l.activeLevel) ? HIGH : LOW);
 }
 
 void SetLEDClass::begin()
@@ -19,7 +19,7 @@ void SetLEDClass::begin()
         0,                  // interval
         0,                  // lastToggle (WICHTIG!)
         false,              // enabled
-        LED_RD_ACTIVE_HIGH  // Polarität aus config.h
+        LED_RD_ACTIVE_LEVEL  // Polarität aus config.h
     };
 
     leds[LED_GREEN] = {
@@ -29,7 +29,7 @@ void SetLEDClass::begin()
         0,
         0,
         false,
-        LED_GN_ACTIVE_HIGH
+        LED_GN_ACTIVE_LEVEL
     };
 
     leds[LED_BLUE] = {
@@ -39,7 +39,7 @@ void SetLEDClass::begin()
         0,
         0,
         false,
-        LED_BL_ACTIVE_HIGH
+        LED_BL_ACTIVE_LEVEL
     };
 
     for (uint8_t i = 0; i < 3; i++)
