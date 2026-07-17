@@ -5,7 +5,7 @@
 void priorityControl() {
   static float avg_ptouser = 0;
   static float avg_ptogrid = 0;
-  const float alpha = 0.1f;  // Glättungsfaktor
+  const float alpha = 0.02f;  // Glättungsfaktor
 
   uint16_t ptogrid_threshold = User.ptogrid_thr;
   uint16_t ptouser_threshold = User.ptouser_thr;

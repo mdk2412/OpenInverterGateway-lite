@@ -311,7 +311,7 @@ constexpr int DEFAULT_WAKE_THR = 75;
 constexpr int DEFAULT_AC_MAX = 3750;
 constexpr int DEFAULT_OFFSET = -25;
 constexpr int DEFAULT_PTOGRID_THR = 125;
-constexpr int DEFAULT_PTOUSER_THR = 250;
+constexpr int DEFAULT_PTOUSER_THR = 125;
 
 UserConfig validateUserConfig(const UserConfig& in) {
   UserConfig out = in;
