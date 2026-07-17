@@ -69,7 +69,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           <tr>
             <th>On/Off Mode</th>
             <td id="onoffMode">Loading...</td>
-          </tr>    
+          </tr>
           <tr>
             <th>Priority Mode</th>
             <td id="priorityMode">Loading...</td>
