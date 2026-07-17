@@ -212,6 +212,16 @@ const char MAIN_page[] PROGMEM = R"=====(
           <label>Offset (W)
             <input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1" placeholder="0">
           </label>
+          <hr>
+          <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
+
+          <label>Power to Grid threshold (W)
+            <input type="number" name="ptogrid_thr" id="ptogrid_thr">
+          </label>
+
+          <label>Power to User threshold (W)
+            <input type="number" name="ptouser_thr" id="ptouser_thr">
+          </label>
 
           <fieldset>
             <div class="grid">
@@ -344,11 +354,14 @@ const char MAIN_page[] PROGMEM = R"=====(
 
             document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
             document.querySelector('input[name="accharge"]').checked = !!data.accharge;
+            document.querySelector('input[name="prioctrl"]').checked = !!data.prioctrl;
 
             document.getElementById("bat_slp_thr").value = data.bat_slp_thr || "";
             document.getElementById("bat_wke_thr").value = data.bat_wke_thr || "";
             document.getElementById("ac_max_pow").value = data.ac_max_pow || "";
             document.getElementById("ac_off_set").value = data.ac_off_set || "";
+            document.getElementById("ptogrid_thr").value = data.ptogrid_thr || "";
+            document.getElementById("ptouser_thr").value = data.ptouser_thr || "";
 
           } catch (e) {
             console.error("Error loading settings:", e);
@@ -400,11 +413,14 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
           payload.append("accharge", form.accharge.checked ? "on" : "off");
+          payload.append("prioctrl", form.prioctrl.checked ? "on" : "off");
 
           payload.append("bat_slp_thr", form.bat_slp_thr.value);
           payload.append("bat_wke_thr", form.bat_wke_thr.value);
           payload.append("ac_max_pow", form.ac_max_pow.value);
           payload.append("ac_off_set", form.ac_off_set.value);
+          payload.append("ptogrid_thr", form.ptogrid_thr.value);
+          payload.append("ptouser_thr", form.ptouser_thr.value);
 
           const oldText = btn.textContent;
           const oldClass = btn.className;

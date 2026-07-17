@@ -24,6 +24,7 @@
 #include "ACChargeControl.h"
 #include "BatteryStandby.h"
 #include "SetLED.h"
+#include "PriorityControl.h"
 
 // -----------------------------------------------------------------------------
 //  Externe Bibliotheken
@@ -346,6 +347,20 @@ void loadSettingsFromPrefs() {
     User.ac_off_set = v;
   }
 
+  // Priority Control enabled?
+  User.prioctrl = prefs.getBool("prioctrl", false);
+
+  // PtoGrid Threshold
+  {
+    int v = prefs.getInt("ptogrid_thr");
+    User.ptogrid_thr = v;
+  }
+  // PtoGrid Threshold
+  {
+    int v = prefs.getInt("ptouser_thr");
+    User.ptouser_thr = v;
+  }
+
   prefs.end();
 }
 
@@ -520,11 +535,32 @@ void setup() {
 }
 
 void handleSaveSettings(ESP8266WebServer& httpServer) {
+  // Debug: alle relevanten Args loggen
+  // Log.printf("ARGS count: %d\n", httpServer.args());
+  // for (int i = 0; i < httpServer.args(); i++) {
+  //   Log.printf("arg[%d]: name='%s' value='%s'\n", i,
+  //              httpServer.argName(i).c_str(), httpServer.arg(i).c_str());
+  // }
+
+  // Log.printf("bat_standby: hasArg=%d val='%s'\n",
+  //            httpServer.hasArg("bat_standby"),
+  //            httpServer.arg("bat_standby").c_str());
+  // Log.printf("accharge:    hasArg=%d val='%s'\n", httpServer.hasArg("accharge"),
+  //            httpServer.arg("accharge").c_str());
+  // Log.printf("prioctrl:    hasArg=%d val='%s'\n", httpServer.hasArg("prioctrl"),
+  //            httpServer.arg("prioctrl").c_str());
+  // Log.printf("ptogrid_thr: hasArg=%d val='%s'\n",
+  //            httpServer.hasArg("ptogrid_thr"),
+  //            httpServer.arg("ptogrid_thr").c_str());
+  // Log.printf("ptouser_thr: hasArg=%d val='%s'\n",
+  //            httpServer.hasArg("ptouser_thr"),
+  //            httpServer.arg("ptouser_thr").c_str());
+
   Preferences prefs;
   prefs.begin("config", false);
 
   // BATTERY STANDBY (bool)
-  User.bat_standby = httpServer.hasArg("bat_standby");
+  User.bat_standby = (httpServer.arg("bat_standby") == "on");
   prefs.putBool("bat_standby", User.bat_standby);
 
   // Sleep Threshold (>0)
@@ -544,7 +580,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   }
 
   // AC CHARGE CONTROL (bool)
-  User.accharge = httpServer.hasArg("accharge");
+  User.accharge = (httpServer.arg("accharge") == "on");
   prefs.putBool("accharge", User.accharge);
 
   // AC Max Power (2500–12500)
@@ -561,6 +597,26 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
     if (v < -100 || v > 100) v = DEFAULT_OFFSET;
     User.ac_off_set = v;
     prefs.putInt("ac_off_set", v);
+  }
+
+  // Priority Control (bool)
+  User.prioctrl = (httpServer.arg("prioctrl") == "on");
+  prefs.putBool("prioctrl", User.prioctrl);
+
+  // --- NEW: PTOGRID Threshold ---
+  {
+    int v = httpServer.arg("ptogrid_thr").toInt();
+    // if (v <= 0) v = 125;   // Default analog zu deinem Code
+    User.ptogrid_thr = v;
+    prefs.putInt("ptogrid_thr", v);
+  }
+
+  // --- NEW: PTOUSER Threshold ---
+  {
+    int v = httpServer.arg("ptouser_thr").toInt();
+    // if (v <= 0) v = 250;   // Default analog zu deinem Code
+    User.ptouser_thr = v;
+    prefs.putInt("ptouser_thr", v);
   }
 
   prefs.end();
@@ -583,8 +639,12 @@ void handleGetSettings(ESP8266WebServer& httpServer) {
   doc["ac_max_pow"] = prefs.getInt("ac_max_pow", User.ac_max_pow);
   doc["ac_off_set"] = prefs.getInt("ac_off_set", User.ac_off_set);
 
-  prefs.end();
+  // --- NEW: Priority Control ---
+  doc["prioctrl"] = prefs.getBool("prioctrl", User.prioctrl);
+  doc["ptogrid_thr"] = prefs.getInt("ptogrid_thr", User.ptogrid_thr);
+  doc["ptouser_thr"] = prefs.getInt("ptouser_thr", User.ptouser_thr);
 
+  prefs.end();
   sendJson(doc);
 }
 
@@ -1099,10 +1159,16 @@ void loop() {
   if (User.bat_standby && now - BatteryStandbyTimer > BATTERY_STANDBY_TIMER) {
     BatteryStandbyTimer = now;
     batteryStandby();
+    // Log.print("BatteryStandby active");
   }
 
   if (User.accharge && now - ACChargeControlTimer > ACCHARGE_CONTROL_TIMER) {
     ACChargeControlTimer = now;
     acchargeControl();
+    // Log.print("ACControl active");
+    if (User.prioctrl) {
+      priorityControl();
+      // Log.print("PriorityControl active");
+    }
   }
 }

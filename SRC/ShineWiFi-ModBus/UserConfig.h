@@ -8,6 +8,10 @@ struct UserConfig {
     bool accharge;
     int ac_max_pow;
     int ac_off_set;
+
+    bool prioctrl;
+    int ptogrid_thr;
+    int ptouser_thr;
 };
 
 // nur Deklaration – keine Instanz!
