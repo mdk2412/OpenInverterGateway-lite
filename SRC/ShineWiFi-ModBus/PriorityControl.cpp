@@ -15,7 +15,7 @@ void priorityControl() {
   // Log.println(ptouser_threshold);
 
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
-  // int32_t soc      = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t soc      = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t p_togrid = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value / 10;
   int32_t p_touser = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value / 10;
 
@@ -55,7 +55,7 @@ void priorityControl() {
                            strlen("{\"value\":100,\"retry\":2}"), req2, res2);
   }
 
-  if (priority == 0 && avg_ptogrid > ptogrid_threshold) {
+  if (priority == 0 && avg_ptogrid > ptogrid_threshold && soc < 95) {
     StaticJsonDocument<128> req1, res1;
     Inverter.HandleCommand("priority/set",
                            (const byte*)"{\"mode\":1,\"retry\":2}",
