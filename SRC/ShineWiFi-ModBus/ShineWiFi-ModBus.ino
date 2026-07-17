@@ -313,63 +313,57 @@ constexpr int DEFAULT_OFFSET = -25;
 constexpr int DEFAULT_PTOGRID_THR = 125;
 constexpr int DEFAULT_PTOUSER_THR = 250;
 
+UserConfig validateUserConfig(const UserConfig& in) {
+  UserConfig out = in;
+
+  // BATTERY STANDBY
+  // bool ist bereits bool → keine Validierung nötig
+
+  // Sleep Threshold (>0)
+  if (out.bat_slp_thr <= 0) out.bat_slp_thr = DEFAULT_SLEEP_THR;
+
+  // Wake Threshold (>0)
+  if (out.bat_wke_thr <= 0) out.bat_wke_thr = DEFAULT_WAKE_THR;
+
+  // AC Max Power (2500–12500)
+  if (out.ac_max_pow < 2500 || out.ac_max_pow > 12500)
+    out.ac_max_pow = DEFAULT_AC_MAX;
+
+  // Offset (-100 bis +100)
+  if (out.ac_off_set < -100 || out.ac_off_set > 100)
+    out.ac_off_set = DEFAULT_OFFSET;
+
+  // Priority Control (bool)
+  // bool → keine Validierung nötig
+
+  // PTOGRID (>0)
+  if (out.ptogrid_thr <= 0) out.ptogrid_thr = DEFAULT_PTOGRID_THR;
+
+  // PTOUSER (>0)
+  if (out.ptouser_thr <= 0) out.ptouser_thr = DEFAULT_PTOUSER_THR;
+
+  return out;
+}
 
 void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
 
-  // BATTERY STANDBY (bool)
-  User.bat_standby = prefs.getBool("bat_standby", true);
+  UserConfig raw;
 
-  // Sleep Threshold (>0)
-  {
-    int v = prefs.getInt("bat_slp_thr", DEFAULT_SLEEP_THR);
-    if (v <= 0) v = DEFAULT_SLEEP_THR;
-    User.bat_slp_thr = v;
-  }
-
-  // Wake Threshold (>0)
-  {
-    int v = prefs.getInt("bat_wke_thr", DEFAULT_WAKE_THR);
-    if (v <= 0) v = DEFAULT_WAKE_THR;
-    User.bat_wke_thr = v;
-  }
-
-  // AC CHARGE CONTROL (bool)
-  User.accharge = prefs.getBool("accharge", true);
-
-  // AC Max Power (2500–12500)
-  {
-    int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
-    if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
-    User.ac_max_pow = v;
-  }
-
-  // Offset (-100 bis +100)
-  {
-    int v = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
-    if (v < -100 || v > 100) v = DEFAULT_OFFSET;
-    User.ac_off_set = v;
-  }
-
-  // Priority Control (bool)
-  User.prioctrl = prefs.getBool("prioctrl", false);
-
-  // PTOGRID Threshold (>0)
-  {
-    int v = prefs.getInt("ptogrid_thr", DEFAULT_PTOGRID_THR);
-    if (v <= 0) v = DEFAULT_PTOGRID_THR;
-    User.ptogrid_thr = v;
-  }
-
-  // PTOUSER Threshold (>0)
-  {
-    int v = prefs.getInt("ptouser_thr", DEFAULT_PTOUSER_THR);
-    if (v <= 0) v = DEFAULT_PTOUSER_THR;
-    User.ptouser_thr = v;
-  }
+  raw.bat_standby = prefs.getBool("bat_standby", true);
+  raw.bat_slp_thr = prefs.getInt("bat_slp_thr", DEFAULT_SLEEP_THR);
+  raw.bat_wke_thr = prefs.getInt("bat_wke_thr", DEFAULT_WAKE_THR);
+  raw.accharge = prefs.getBool("accharge", true);
+  raw.ac_max_pow = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
+  raw.ac_off_set = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
+  raw.prioctrl = prefs.getBool("prioctrl", false);
+  raw.ptogrid_thr = prefs.getInt("ptogrid_thr", DEFAULT_PTOGRID_THR);
+  raw.ptouser_thr = prefs.getInt("ptouser_thr", DEFAULT_PTOUSER_THR);
 
   prefs.end();
+
+  User = validateUserConfig(raw);
 }
 
 #if MODBUS_TCP_SUPPORTED == 1
@@ -543,89 +537,32 @@ void setup() {
 }
 
 void handleSaveSettings(ESP8266WebServer& httpServer) {
-  // Debug: alle relevanten Args loggen
-  // Log.printf("ARGS count: %d\n", httpServer.args());
-  // for (int i = 0; i < httpServer.args(); i++) {
-  //   Log.printf("arg[%d]: name='%s' value='%s'\n", i,
-  //              httpServer.argName(i).c_str(), httpServer.arg(i).c_str());
-  // }
-
-  // Log.printf("bat_standby: hasArg=%d val='%s'\n",
-  //            httpServer.hasArg("bat_standby"),
-  //            httpServer.arg("bat_standby").c_str());
-  // Log.printf("accharge:    hasArg=%d val='%s'\n", httpServer.hasArg("accharge"),
-  //            httpServer.arg("accharge").c_str());
-  // Log.printf("prioctrl:    hasArg=%d val='%s'\n", httpServer.hasArg("prioctrl"),
-  //            httpServer.arg("prioctrl").c_str());
-  // Log.printf("ptogrid_thr: hasArg=%d val='%s'\n",
-  //            httpServer.hasArg("ptogrid_thr"),
-  //            httpServer.arg("ptogrid_thr").c_str());
-  // Log.printf("ptouser_thr: hasArg=%d val='%s'\n",
-  //            httpServer.hasArg("ptouser_thr"),
-  //            httpServer.arg("ptouser_thr").c_str());
-
   Preferences prefs;
   prefs.begin("config", false);
 
-  // BATTERY STANDBY (bool)
-  User.bat_standby = (httpServer.arg("bat_standby") == "on");
+  UserConfig raw;
+
+  raw.bat_standby = (httpServer.arg("bat_standby") == "on");
+  raw.bat_slp_thr = httpServer.arg("bat_slp_thr").toInt();
+  raw.bat_wke_thr = httpServer.arg("bat_wke_thr").toInt();
+  raw.accharge = (httpServer.arg("accharge") == "on");
+  raw.ac_max_pow = httpServer.arg("ac_max_pow").toInt();
+  raw.ac_off_set = httpServer.arg("ac_off_set").toInt();
+  raw.prioctrl = (httpServer.arg("prioctrl") == "on");
+  raw.ptogrid_thr = httpServer.arg("ptogrid_thr").toInt();
+  raw.ptouser_thr = httpServer.arg("ptouser_thr").toInt();
+
+  User = validateUserConfig(raw);
+
   prefs.putBool("bat_standby", User.bat_standby);
-
-  // Sleep Threshold (>0)
-  {
-    int v = httpServer.arg("bat_slp_thr").toInt();
-    if (v <= 0) v = DEFAULT_SLEEP_THR;
-    User.bat_slp_thr = v;
-    prefs.putInt("bat_slp_thr", v);
-  }
-
-  // Wake Threshold (>0)
-  {
-    int v = httpServer.arg("bat_wke_thr").toInt();
-    if (v <= 0) v = DEFAULT_WAKE_THR;
-    User.bat_wke_thr = v;
-    prefs.putInt("bat_wke_thr", v);
-  }
-
-  // AC CHARGE CONTROL (bool)
-  User.accharge = (httpServer.arg("accharge") == "on");
+  prefs.putInt("bat_slp_thr", User.bat_slp_thr);
+  prefs.putInt("bat_wke_thr", User.bat_wke_thr);
   prefs.putBool("accharge", User.accharge);
-
-  // AC Max Power (2500–12500)
-  {
-    int v = httpServer.arg("ac_max_pow").toInt();
-    if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
-    User.ac_max_pow = v;
-    prefs.putInt("ac_max_pow", v);
-  }
-
-  // Offset (-100 bis +100)
-  {
-    int v = httpServer.arg("ac_off_set").toInt();
-    if (v < -100 || v > 100) v = DEFAULT_OFFSET;
-    User.ac_off_set = v;
-    prefs.putInt("ac_off_set", v);
-  }
-
-  // Priority Control (bool)
-  User.prioctrl = (httpServer.arg("prioctrl") == "on");
+  prefs.putInt("ac_max_pow", User.ac_max_pow);
+  prefs.putInt("ac_off_set", User.ac_off_set);
   prefs.putBool("prioctrl", User.prioctrl);
-
-  // --- NEW: PTOGRID Threshold ---
-  {
-    int v = httpServer.arg("ptogrid_thr").toInt();
-    if (v <= 0) v = DEFAULT_PTOGRID_THR;   // Default analog zu deinem Code
-    User.ptogrid_thr = v;
-    prefs.putInt("ptogrid_thr", v);
-  }
-
-  // --- NEW: PTOUSER Threshold ---
-  {
-    int v = httpServer.arg("ptouser_thr").toInt();
-    if (v <= 0) v = DEFAULT_PTOUSER_THR;   // Default analog zu deinem Code
-    User.ptouser_thr = v;
-    prefs.putInt("ptouser_thr", v);
-  }
+  prefs.putInt("ptogrid_thr", User.ptogrid_thr);
+  prefs.putInt("ptouser_thr", User.ptouser_thr);
 
   prefs.end();
   httpServer.send(200, "text/plain", "Settings saved");
