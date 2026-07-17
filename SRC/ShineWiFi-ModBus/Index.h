@@ -216,11 +216,11 @@ const char MAIN_page[] PROGMEM = R"=====(
           <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
 
           <label>Power to Grid threshold (W)
-            <input type="number" name="ptogrid_thr" id="ptogrid_thr">
+            <input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1" placeholder="0">
           </label>
 
           <label>Power to User threshold (W)
-            <input type="number" name="ptouser_thr" id="ptouser_thr">
+            <input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1" placeholder="0">
           </label>
 
           <fieldset>

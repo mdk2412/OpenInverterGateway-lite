@@ -310,12 +310,15 @@ constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
 constexpr int DEFAULT_AC_MAX = 3750;
 constexpr int DEFAULT_OFFSET = -25;
+constexpr int DEFAULT_PTOGRID_THR = 125;
+constexpr int DEFAULT_PTOUSER_THR = 250;
+
 
 void loadSettingsFromPrefs() {
   Preferences prefs;
   prefs.begin("config", true);
 
-  // Battery Standby (bool)
+  // BATTERY STANDBY (bool)
   User.bat_standby = prefs.getBool("bat_standby", true);
 
   // Sleep Threshold (>0)
@@ -332,32 +335,37 @@ void loadSettingsFromPrefs() {
     User.bat_wke_thr = v;
   }
 
-  // AC Charging enabled?
+  // AC CHARGE CONTROL (bool)
   User.accharge = prefs.getBool("accharge", true);
 
-  // AC Max Power (valid range 2500–12500)
-  int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
-  if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
-  User.ac_max_pow = v;
+  // AC Max Power (2500–12500)
+  {
+    int v = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
+    if (v < 2500 || v > 12500) v = DEFAULT_AC_MAX;
+    User.ac_max_pow = v;
+  }
 
-  // Offset (valid range -100 to +100)
+  // Offset (-100 bis +100)
   {
     int v = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
     if (v < -100 || v > 100) v = DEFAULT_OFFSET;
     User.ac_off_set = v;
   }
 
-  // Priority Control enabled?
+  // Priority Control (bool)
   User.prioctrl = prefs.getBool("prioctrl", false);
 
-  // PtoGrid Threshold
+  // PTOGRID Threshold (>0)
   {
-    int v = prefs.getInt("ptogrid_thr");
+    int v = prefs.getInt("ptogrid_thr", DEFAULT_PTOGRID_THR);
+    if (v <= 0) v = DEFAULT_PTOGRID_THR;
     User.ptogrid_thr = v;
   }
-  // PtoGrid Threshold
+
+  // PTOUSER Threshold (>0)
   {
-    int v = prefs.getInt("ptouser_thr");
+    int v = prefs.getInt("ptouser_thr", DEFAULT_PTOUSER_THR);
+    if (v <= 0) v = DEFAULT_PTOUSER_THR;
     User.ptouser_thr = v;
   }
 
@@ -606,7 +614,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   // --- NEW: PTOGRID Threshold ---
   {
     int v = httpServer.arg("ptogrid_thr").toInt();
-    // if (v <= 0) v = 125;   // Default analog zu deinem Code
+    if (v <= 0) v = DEFAULT_PTOGRID_THR;   // Default analog zu deinem Code
     User.ptogrid_thr = v;
     prefs.putInt("ptogrid_thr", v);
   }
@@ -614,7 +622,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   // --- NEW: PTOUSER Threshold ---
   {
     int v = httpServer.arg("ptouser_thr").toInt();
-    // if (v <= 0) v = 250;   // Default analog zu deinem Code
+    if (v <= 0) v = DEFAULT_PTOUSER_THR;   // Default analog zu deinem Code
     User.ptouser_thr = v;
     prefs.putInt("ptouser_thr", v);
   }
