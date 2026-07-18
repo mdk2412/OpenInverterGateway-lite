@@ -157,7 +157,7 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 // -------------------------------------------------------
 void ShineMqtt::loop() {
   uint32_t now = millis();
-
+  mqttReconnect();
   // loop() mindestens alle 50ms aufrufen
   if ((uint32_t)(now - lastMqttLoop) >= 50) {
     mqttclient.loop();

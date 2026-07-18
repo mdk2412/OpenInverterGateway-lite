@@ -309,7 +309,7 @@ void setupWifiHost() {
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
 constexpr int DEFAULT_AC_MAX = 3750;
-constexpr int DEFAULT_OFFSET = -25;
+constexpr int DEFAULT_OFFSET = -19;
 constexpr int DEFAULT_PTOGRID_THR = 125;
 constexpr int DEFAULT_PTOUSER_THR = 125;
 
@@ -816,12 +816,6 @@ void sendDebug(void) {
 
 void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
 
-// #if ENABLE_MODBUS_COMMUNICATION == 1
-// void sendPostSite(void) {
-//   httpServer.send(200, F("text/html"), SendPostSite_page);
-// }
-// #endif
-
 void handlePostData() {
   char msg[256];
 
@@ -988,7 +982,7 @@ void updateStatusLEDs() {
   }
 
   // --- Fall 2: Rot blinkt ---
-  if (modbusOK && !mqttOK) {
+  if (modbusOK && !wifiOK) {
     SetLED.blink(LED_RED, 500);
     SetLED.off(LED_GREEN);
     SetLED.off(LED_BLUE);
