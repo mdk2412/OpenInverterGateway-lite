@@ -9,22 +9,16 @@ void priorityControl() {
 
   uint16_t ptogrid_threshold = User.ptogrid_thr;
   uint16_t ptouser_threshold = User.ptouser_thr;
-  // Log.print("PtoGrid: ");
-  // Log.println(ptogrid_threshold);
-  // Log.print("PtoUser: ");
-  // Log.println(ptouser_threshold);
 
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
-  int32_t soc      = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
-  int32_t p_togrid = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value / 10;
-  int32_t p_touser = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value / 10;
+  int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t p_togrid =
+      Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value / 10;
+  int32_t p_touser =
+      Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value / 10;
 
   if (avg_ptouser == 0) avg_ptouser = p_touser;
   if (avg_ptogrid == 0) avg_ptogrid = p_togrid;
-
-  // --- Gleitende Mittelwerte aktualisieren ---
-  // if (p_touser == 0) avg_ptouser = 0;
-  // if (p_togrid == 0) avg_ptogrid = 0;
 
   if (p_touser == 0) {
     avg_ptouser = 0;
@@ -38,12 +32,6 @@ void priorityControl() {
     avg_ptogrid += alpha * (p_togrid - avg_ptogrid);
   }
 
-  // Log.print("Netzbezug: ");
-  // Log.println(avg_ptouser);
-  // Log.print("Einspeisung: ");
-  // Log.println(avg_ptogrid);
-
-  // --- Bedingungen prüfen ---
   if (priority == 1 && avg_ptouser > ptouser_threshold) {
     StaticJsonDocument<128> req1, res1;
     Inverter.HandleCommand("priority/set",
