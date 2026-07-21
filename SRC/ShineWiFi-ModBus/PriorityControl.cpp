@@ -17,20 +17,8 @@ void priorityControl() {
   int32_t p_touser =
       Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value / 10;
 
-  if (avg_ptouser == 0) avg_ptouser = p_touser;
-  if (avg_ptogrid == 0) avg_ptogrid = p_togrid;
-
-  if (p_touser == 0) {
-    avg_ptouser = 0;
-  } else {
-    avg_ptouser += alpha * (p_touser - avg_ptouser);
-  }
-
-  if (p_togrid == 0) {
-    avg_ptogrid = 0;
-  } else {
-    avg_ptogrid += alpha * (p_togrid - avg_ptogrid);
-  }
+  avg_ptouser += alpha * (p_touser - avg_ptouser);
+  avg_ptogrid += alpha * (p_togrid - avg_ptogrid);
 
   if (priority == 1 && avg_ptouser > ptouser_threshold) {
     StaticJsonDocument<128> req1, res1;
