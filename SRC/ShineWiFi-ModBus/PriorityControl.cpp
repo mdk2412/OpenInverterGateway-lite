@@ -5,7 +5,7 @@
 void priorityControl() {
   static float avg_ptouser = 0;
   static float avg_ptogrid = 0;
-  const float alpha = 0.02f;  // Glättungsfaktor
+  const float alpha = 0.5f;  // Glättungsfaktor
 
   uint16_t ptogrid_threshold = User.ptogrid_thr;
   uint16_t ptouser_threshold = User.ptouser_thr;
@@ -16,9 +16,13 @@ void priorityControl() {
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value / 10;
   int32_t p_touser =
       Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value / 10;
+  int32_t p_disch =
+      Inverter._Protocol.InputRegisters[P3000_BDC_PDISCHR].value / 10;
+  int32_t p_ch =
+      Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value / 10;
 
-  avg_ptouser += alpha * (p_touser - avg_ptouser);
-  avg_ptogrid += alpha * (p_togrid - avg_ptogrid);
+  avg_ptouser += alpha * (p_touser - p_ch - avg_ptouser);
+  avg_ptogrid += alpha * (p_togrid - p_disch - avg_ptogrid);
 
   if (priority == 1 && avg_ptouser > ptouser_threshold) {
     StaticJsonDocument<128> req1, res1;

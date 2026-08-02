@@ -949,6 +949,10 @@ void handleNTPSync() {
     struct tm tm;
     time_t t = time(NULL);
     localtime_r(&t, &tm);
+    struct timeval tv;
+    tv.tv_sec = t; 
+    tv.tv_usec = 0;
+    settimeofday(&tv, NULL);
     strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
     Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req,
                            res);
