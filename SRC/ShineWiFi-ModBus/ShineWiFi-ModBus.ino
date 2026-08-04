@@ -383,7 +383,7 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
 void setup() {
   // >>> LittleFS mounten (MUSS als erstes passieren)
   LittleFS.begin();
-  httpServer.serveStatic("/pico.min.css", LittleFS, "/pico.min.css");
+  httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css");
 
   WiFiManager wm;
 

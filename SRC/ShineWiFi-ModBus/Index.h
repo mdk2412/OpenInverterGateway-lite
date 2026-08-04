@@ -7,7 +7,7 @@ const char MAIN_page[] PROGMEM = R"=====(
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Growatt MIN TL-XH</title>
-  <link rel="stylesheet" href="/pico.min.css">
+  <link rel="stylesheet" href="/pico.lime.min.css">
 </head>
 
 <style>
@@ -225,7 +225,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
           <fieldset>
             <div class="grid">
-              <button type="button" class="contrast" onclick="saveSettings()">Save Settings</button>
+              <button type="button" onclick="saveSettings()">Save Settings</button>
             </div>
           </fieldset>
 
@@ -244,7 +244,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           </label>
 
           <div class="grid">
-            <button type="submit" class="contrast">Start Update</button>
+            <button type="submit">Start Update</button>
           </div>
         </fieldset>
       </form>
