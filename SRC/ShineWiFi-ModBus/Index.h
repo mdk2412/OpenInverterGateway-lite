@@ -342,8 +342,6 @@ const char MAIN_page[] PROGMEM = R"=====(
         document.querySelectorAll('input[name="width"], input[name="type"]')
           .forEach(r => r.addEventListener("change", updateModbusUI));
 
-        updateModbusUI();
-
         // -------------------------------
         // SETTINGS LOADING
         // -------------------------------
