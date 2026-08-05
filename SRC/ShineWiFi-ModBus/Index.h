@@ -24,36 +24,36 @@ const char MAIN_page[] PROGMEM = R"=====(
     <nav>
       <ul>
         <li>
-          <button class="secondary outline tab active" data-tab="main">
+          <button class="primary outline tab active" data-tab="main">
             Dashboard
           </button>
         </li>
 
         <li>
-          <button class="secondary outline tab" data-tab="modbus">
+          <button class="primary outline tab" data-tab="modbus">
             Modbus
           </button>
         </li>
 
         <li>
-          <button class="secondary outline tab" data-tab="log">
+          <button class="primary outline tab" data-tab="log">
             Log
           </button>
         </li>
 
         <li>
-          <button class="secondary outline tab" data-tab="system">
+          <button class="primary outline tab" data-tab="system">
             System
           </button>
         </li>
 
         <li>
-          <button class="secondary outline tab" data-tab="settings">
+          <button class="primary outline tab" data-tab="settings">
             Settings
           </button>
         </li>
         <li>
-          <button class="secondary outline tab" data-tab="ota">
+          <button class="primary outline tab" data-tab="ota">
             OTA
           </button>
         </li>
@@ -153,7 +153,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           <fieldset>
             <div class="grid">
               <button type="button" onclick="submitOperation('R')">Read</button>
-              <button type="button" class="contrast" onclick="submitOperation('W')">Write</button>
+              <button type="button" id="modbusWriteButton" class="secondary" onclick="submitOperation('W')">Write</button>
             </div>
           </fieldset>
         </fieldset>
@@ -179,9 +179,9 @@ const char MAIN_page[] PROGMEM = R"=====(
 
       <fieldset>
         <div class="grid">
-          <button type="button" class="contrast"
+          <button type="button" class="secondary"
             onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
-          <button type="button" class="contrast"
+          <button type="button" class="secondary"
             onclick="if (confirm('Reboot?')) location.href='./reboot'">Reboot</button>
         </div>
       </fieldset>
@@ -323,7 +323,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         // MODBUS UI LOGIC
         // -------------------------------
         const valueInput = document.getElementById("modbusVal");
-        const writeButton = document.querySelector("#modbusForm button.contrast");
+        const writeButton = document.getElementById("modbusWriteButton");
 
         function getSelected(name) {
           return document.querySelector(`input[name="${name}"]:checked`)?.value;
@@ -341,6 +341,8 @@ const char MAIN_page[] PROGMEM = R"=====(
 
         document.querySelectorAll('input[name="width"], input[name="type"]')
           .forEach(r => r.addEventListener("change", updateModbusUI));
+
+        updateModbusUI();
 
         // -------------------------------
         // SETTINGS LOADING
