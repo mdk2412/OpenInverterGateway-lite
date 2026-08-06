@@ -30,6 +30,18 @@ const char MAIN_page[] PROGMEM = R"=====(
         </li>
 
         <li>
+          <button class="primary outline tab" data-tab="settings">
+            Settings
+          </button>
+        </li>
+
+        <li>
+          <button class="primary outline tab" data-tab="system">
+            System
+          </button>
+        </li>
+
+        <li>
           <button class="primary outline tab" data-tab="modbus">
             Modbus
           </button>
@@ -42,19 +54,8 @@ const char MAIN_page[] PROGMEM = R"=====(
         </li>
 
         <li>
-          <button class="primary outline tab" data-tab="system">
-            System
-          </button>
-        </li>
-
-        <li>
-          <button class="primary outline tab" data-tab="settings">
-            Settings
-          </button>
-        </li>
-        <li>
-          <button class="primary outline tab" data-tab="ota">
-            OTA
+          <button class="primary outline tab" data-tab="update">
+            Update
           </button>
         </li>
 
@@ -234,7 +235,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     </section>
 
-    <section id="ota" class="tab-content" hidden>
+    <section id="update" class="tab-content" hidden>
       <form method="POST" action="/update" enctype="multipart/form-data">
         <fieldset>
 
