@@ -111,16 +111,14 @@ const char MAIN_page[] PROGMEM = R"=====(
       </table>
 
       <!-- PRIORITY BUTTONS -->
-      <fieldset>
-        <div class="grid">
-          <button type="button" onclick="if (confirm('Set priority to load first?')) fetch('/loadfirst')">Load
-            First</button>
-          <button type="button" class="secondary"
-            onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst')">Battery First</button>
-          <button type="button" class="contrast"
-            onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst')">Grid First</button>
-        </div>
-      </fieldset>
+      <div class="grid">
+        <button type="button" onclick="if (confirm('Set priority to load first?')) fetch('/loadfirst')">Load
+          First</button>
+        <button type="button" class="secondary"
+          onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst')">Battery First</button>
+        <button type="button" class="contrast"
+          onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst')">Grid First</button>
+      </div>
 
     </section>
 
@@ -128,36 +126,26 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     <section id="modbus" class="tab-content" hidden>
       <form id="modbusForm">
-        <fieldset>
-          <label>
-            Register ID
-            <input type="text" name="reg">
-          </label>
+        <label>
+          Register ID
+          <input type="number" name="reg">
+        </label>
 
-          <label>
-            Register Value
-            <input type="text" name="val" id="modbusVal">
-          </label>
+        <label>
+          Register Value
+          <input type="number" name="val" id="modbusVal">
+        </label>
 
-          <fieldset>
-            Register Width
-            <label><input type="radio" name="width" value="16b" checked> 16-bit</label>
-            <label><input type="radio" name="width" value="32b"> 32-bit</label>
-          </fieldset>
-
-          <fieldset>
-            Register Type
-            <label><input type="radio" name="type" value="I"> Input</label>
-            <label><input type="radio" name="type" value="H" checked> Holding</label>
-          </fieldset>
-
-          <fieldset>
-            <div class="grid">
-              <button type="button" onclick="submitOperation('R')">Read</button>
-              <button type="button" id="modbusWriteButton" class="secondary" onclick="submitOperation('W')">Write</button>
-            </div>
-          </fieldset>
-        </fieldset>
+        Register Width
+        <label><input type="radio" name="width" value="16b" checked> 16-bit</label>
+        <label><input type="radio" name="width" value="32b"> 32-bit</label>
+        Register Type
+        <label><input type="radio" name="type" value="I"> Input</label>
+        <label><input type="radio" name="type" value="H" checked> Holding</label>
+        <div class="grid">
+          <button type="button" onclick="submitOperation('R')">Read</button>
+          <button type="button" id="modbusWriteButton" class="secondary" onclick="submitOperation('W')">Write</button>
+        </div>
       </form>
     </section>
 
@@ -170,84 +158,73 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- System -->
 
     <section id="system" class="tab-content" hidden>
-      <fieldset>
-        <div class="grid">
-          <button type="button" onclick="location.href='./status'">JSON</button>
-          <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
-          <button type="button" onclick="location.href='./metrics'">Metrics</button>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <div class="grid">
-          <button type="button" class="secondary"
-            onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
-          <button type="button" class="secondary"
-            onclick="if (confirm('Reboot?')) location.href='./reboot'">Reboot</button>
-        </div>
-      </fieldset>
+      <div class="grid">
+        <button type="button" onclick="location.href='./status'">JSON</button>
+        <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
+        <button type="button" onclick="location.href='./metrics'">Metrics</button>
+      </div>
+      <div class="grid">
+        <button type="button" class="secondary"
+          onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
+        <button type="button" class="secondary"
+          onclick="if (confirm('Reboot?')) location.href='./reboot'">Reboot</button>
+      </div>
     </section>
 
     <!-- Settings -->
 
     <section id="settings" class="tab-content" hidden>
       <form id="settingsForm">
-        <fieldset>
-          <hr>
-          <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
+        <hr>
+        <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
 
-          <label>Sleep Threshold (W)
-            <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="0">
-          </label>
+        <label>Sleep Threshold (W)
+          <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="0">
+        </label>
 
-          <label>Wake Threshold (W)
-            <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="0">
-          </label>
-          <hr>
-          <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
+        <label>Wake Threshold (W)
+          <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="0">
+        </label>
+        <hr>
+        <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
 
-          <label>Inverter Maximum Power (W)
-            <input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500" step="50" placeholder="2500">
-          </label>
+        <label>Inverter Maximum Power (W)
+          <input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500" step="50" placeholder="2500">
+        </label>
 
-          <label>Offset (W)
-            <input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1" placeholder="0">
-          </label>
-          <hr>
-          <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
+        <label>Offset (W)
+          <input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1" placeholder="0">
+        </label>
+        <hr>
+        <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
 
-          <label>Power to Grid threshold (W)
-            <input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1" placeholder="0">
-          </label>
+        <label>Power to Grid threshold (W)
+          <input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1" placeholder="0">
+        </label>
 
-          <label>Power to User threshold (W)
-            <input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1" placeholder="0">
-          </label>
+        <label>Power to User threshold (W)
+          <input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1" placeholder="0">
+        </label>
 
-          <fieldset>
-            <div class="grid">
-              <button type="button" onclick="saveSettings()">Save Settings</button>
-            </div>
-          </fieldset>
+        <div class="grid">
+          <button type="button" onclick="saveSettings()">Save Settings</button>
+        </div>
 
-        </fieldset>
       </form>
 
     </section>
 
     <section id="update" class="tab-content" hidden>
       <form method="POST" action="/update" enctype="multipart/form-data">
-        <fieldset>
 
-          <label>
-            Choose Firmware File (.bin)
-            <input type="file" name="firmware" accept=".bin" required>
-          </label>
+        <label>
+          Choose Firmware File (.bin)
+          <input type="file" name="firmware" accept=".bin" required>
+        </label>
 
-          <div class="grid">
-            <button type="submit">Start Update</button>
-          </div>
-        </fieldset>
+        <div class="grid">
+          <button type="submit">Start Update</button>
+        </div>
       </form>
     </section>
 
