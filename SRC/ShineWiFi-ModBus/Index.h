@@ -252,7 +252,18 @@ const char MAIN_page[] PROGMEM = R"=====(
 
             const data = await response.json();
 
-            const fields = {
+            // --- Generic renderer ---
+            const render = (id, arr, rateArr = null) => {
+              const el = document.getElementById(id);
+              if (!el || !Array.isArray(arr)) return;
+
+              el.textContent = rateArr
+                ? `${arr.join(" ")} (${rateArr.join(" ")})`
+                : arr.join(" ");
+            };
+
+            // --- Simple fields ---
+            const simpleFields = {
               onoffMode: data.OnOff,
               priorityMode: data.Priority,
               outputPower: data.OutputPower,
@@ -263,28 +274,13 @@ const char MAIN_page[] PROGMEM = R"=====(
               batteryTemperature: data.BDCTemperatureA
             };
 
-            // Standardfelder
-            for (const id in fields) {
-              const el = document.getElementById(id);
-              if (el && Array.isArray(fields[id])) {
-                el.textContent = fields[id].join(" ");
-              }
+            for (const id in simpleFields) {
+              render(id, simpleFields[id]);
             }
 
-            // Spezialfälle (mit Rate)
-            const chargeEl = document.getElementById("batteryCharge");
-            if (chargeEl) {
-              chargeEl.textContent =
-                `${data.BDCChargePower[0]} ${data.BDCChargePower[1]} `
-                + `(${data.BDCChargePowerRate[0]} ${data.BDCChargePowerRate[1]})`;
-            }
-
-            const dischargeEl = document.getElementById("batteryDischarge");
-            if (dischargeEl) {
-              dischargeEl.textContent =
-                `${data.BDCDischargePower[0]} ${data.BDCDischargePower[1]} `
-                + `(${data.BDCDischargePowerRate[0]} ${data.BDCDischargePowerRate[1]})`;
-            }
+            // --- Complex fields (Power + Rate) ---
+            render("batteryCharge", data.BDCChargePower, data.BDCChargePowerRate);
+            render("batteryDischarge", data.BDCDischargePower, data.BDCDischargePowerRate);
 
           } catch (e) {
             console.error("Error fetching data:", e);
