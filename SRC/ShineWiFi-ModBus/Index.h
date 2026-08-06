@@ -154,7 +154,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
         <button type="button" onclick="location.href='./metrics'">Metrics</button>
       </div>
-      <div class="grid">
+      <div class="grid">  
         <button type="button" class="secondary"
           onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
         <button type="button" class="secondary"
