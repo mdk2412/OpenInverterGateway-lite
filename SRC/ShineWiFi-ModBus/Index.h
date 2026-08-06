@@ -10,51 +10,42 @@ const char MAIN_page[] PROGMEM = R"=====(
   <link rel="stylesheet" href="/pico.lime.min.css">
 </head>
 
-<style>
-  .debug-frame {
-    width: 100%;
-    height: 75vh;
-    border: none;
-    display: block;
-  }
-</style>
-
 <body>
   <main class="container">
     <nav>
       <ul>
         <li>
-          <button class="primary outline tab active" data-tab="main">
+          <button class="outline tab active" data-tab="main">
             Dashboard
           </button>
         </li>
 
         <li>
-          <button class="primary outline tab" data-tab="settings">
+          <button class="outline tab" data-tab="settings">
             Settings
           </button>
         </li>
 
         <li>
-          <button class="primary outline tab" data-tab="system">
+          <button class="outline tab" data-tab="system">
             System
           </button>
         </li>
 
         <li>
-          <button class="primary outline tab" data-tab="modbus">
+          <button class="outline tab" data-tab="modbus">
             Modbus
           </button>
         </li>
 
         <li>
-          <button class="primary outline tab" data-tab="log">
+          <button class="outline tab" data-tab="log">
             Log
           </button>
         </li>
 
         <li>
-          <button class="primary outline tab" data-tab="update">
+          <button class="outline tab" data-tab="update">
             Update
           </button>
         </li>
@@ -152,7 +143,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- Log -->
 
     <section id="log" class="tab-content" hidden>
-      <iframe src="./debug" class="debug-frame"></iframe>
+      <iframe src="./debug" style="width:100%;height:75vh;border:none"></iframe>
     </section>
 
     <!-- System -->
@@ -260,37 +251,40 @@ const char MAIN_page[] PROGMEM = R"=====(
             if (!response.ok) return;
 
             const data = await response.json();
-            document.getElementById("onoffMode").textContent =
-              data.OnOff[0] + " " + data.OnOff[1];
 
-            document.getElementById("priorityMode").textContent =
-              data.Priority[0] + " " + data.Priority[1];
+            const fields = {
+              onoffMode: data.OnOff,
+              priorityMode: data.Priority,
+              outputPower: data.OutputPower,
+              pv2Power: data.PV2Power,
+              pv2Voltage: data.PV2Voltage,
+              inverterTemperature: data.InverterTemperature,
+              stateofCharge: data.BDCStateOfCharge,
+              batteryTemperature: data.BDCTemperatureA
+            };
 
-            document.getElementById("outputPower").textContent =
-              data.OutputPower[0] + " " + data.OutputPower[1];
+            // Standardfelder
+            for (const id in fields) {
+              const el = document.getElementById(id);
+              if (el && Array.isArray(fields[id])) {
+                el.textContent = fields[id].join(" ");
+              }
+            }
 
-            document.getElementById("pv2Power").textContent =
-              data.PV2Power[0] + " " + data.PV2Power[1];
+            // Spezialfälle (mit Rate)
+            const chargeEl = document.getElementById("batteryCharge");
+            if (chargeEl) {
+              chargeEl.textContent =
+                `${data.BDCChargePower[0]} ${data.BDCChargePower[1]} `
+                + `(${data.BDCChargePowerRate[0]} ${data.BDCChargePowerRate[1]})`;
+            }
 
-            document.getElementById("pv2Voltage").textContent =
-              data.PV2Voltage[0] + " " + data.PV2Voltage[1];
-
-            document.getElementById("inverterTemperature").textContent =
-              data.InverterTemperature[0] + " " + data.InverterTemperature[1];
-
-            document.getElementById("stateofCharge").textContent =
-              data.BDCStateOfCharge[0] + " " + data.BDCStateOfCharge[1];
-
-            document.getElementById("batteryCharge").textContent =
-              data.BDCChargePower[0] + " " + data.BDCChargePower[1] +
-              " (" + data.BDCChargePowerRate[0] + " " + data.BDCChargePowerRate[1] + ")";
-
-            document.getElementById("batteryDischarge").textContent =
-              data.BDCDischargePower[0] + " " + data.BDCDischargePower[1] +
-              " (" + data.BDCDischargePowerRate[0] + " " + data.BDCDischargePowerRate[1] + ")";
-
-            document.getElementById("batteryTemperature").textContent =
-              data.BDCTemperatureA[0] + " " + data.BDCTemperatureA[1];
+            const dischargeEl = document.getElementById("batteryDischarge");
+            if (dischargeEl) {
+              dischargeEl.textContent =
+                `${data.BDCDischargePower[0]} ${data.BDCDischargePower[1]} `
+                + `(${data.BDCDischargePowerRate[0]} ${data.BDCDischargePowerRate[1]})`;
+            }
 
           } catch (e) {
             console.error("Error fetching data:", e);
