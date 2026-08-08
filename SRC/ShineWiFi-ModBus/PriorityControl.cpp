@@ -11,7 +11,7 @@ void priorityControl() {
   uint16_t ptouser_threshold = User.ptouser_thr;
 
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
-  int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  // int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t p_togrid =
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value / 10;
   int32_t p_touser =

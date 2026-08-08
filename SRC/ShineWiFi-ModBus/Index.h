@@ -87,11 +87,11 @@ const char MAIN_page[] PROGMEM = R"=====(
             <td id="stateofCharge">Loading...</td>
           </tr>
           <tr>
-            <th>Charging Power (Limit)</th>
+            <th>Charging Power<br>(Limit)</th>
             <td id="batteryCharge">Loading...</td>
           </tr>
           <tr>
-            <th>Discharging Power (Limit)</th>
+            <th>Discharging Power<br>(Limit)</th>
             <td id="batteryDischarge">Loading...</td>
           </tr>
           <tr>
@@ -154,7 +154,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
         <button type="button" onclick="location.href='./metrics'">Metrics</button>
       </div>
-      <div class="grid">  
+      <div class="grid">
         <button type="button" class="secondary"
           onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
         <button type="button" class="secondary"
@@ -261,8 +261,8 @@ const char MAIN_page[] PROGMEM = R"=====(
               const el = document.getElementById(id);
               if (!el || !Array.isArray(arr)) return;
 
-              el.textContent = rateArr
-                ? `${arr.join(" ")} (${rateArr.join(" ")})`
+              el.innerHTML = rateArr
+                ? `${arr.join(" ")}<br>(${rateArr.join(" ")})`
                 : arr.join(" ");
             };
 
