@@ -237,6 +237,10 @@ const char MAIN_page[] PROGMEM = R"=====(
           document.querySelectorAll(".tab-content").forEach(sec =>
             sec.hidden = sec.id !== tab.dataset.tab
           );
+
+          if (tab.dataset.tab === "settings") {
+            loadSettings();
+          }
         });
 
         // -------------------------------
@@ -313,6 +317,16 @@ const char MAIN_page[] PROGMEM = R"=====(
         // -------------------------------
         // SETTINGS LOADING
         // -------------------------------
+        function parseBool(value) {
+          if (typeof value === "boolean") return value;
+          if (typeof value === "number") return value !== 0;
+          if (typeof value === "string") {
+            const normalized = value.trim().toLowerCase();
+            return normalized === "true" || normalized === "on" || normalized === "1";
+          }
+          return false;
+        }
+
         async function loadSettings() {
           try {
             const response = await fetch("/getSettings");
@@ -320,16 +334,16 @@ const char MAIN_page[] PROGMEM = R"=====(
 
             const data = await response.json();
 
-            document.querySelector('input[name="bat_standby"]').checked = !!data.bat_standby;
-            document.querySelector('input[name="accharge"]').checked = !!data.accharge;
-            document.querySelector('input[name="prioctrl"]').checked = !!data.prioctrl;
+            document.querySelector('input[name="bat_standby"]').checked = parseBool(data.bat_standby);
+            document.querySelector('input[name="accharge"]').checked = parseBool(data.accharge);
+            document.querySelector('input[name="prioctrl"]').checked = parseBool(data.prioctrl);
 
-            document.getElementById("bat_slp_thr").value = data.bat_slp_thr || "";
-            document.getElementById("bat_wke_thr").value = data.bat_wke_thr || "";
-            document.getElementById("ac_max_pow").value = data.ac_max_pow || "";
-            document.getElementById("ac_off_set").value = data.ac_off_set || "";
-            document.getElementById("ptogrid_thr").value = data.ptogrid_thr || "";
-            document.getElementById("ptouser_thr").value = data.ptouser_thr || "";
+            document.getElementById("bat_slp_thr").value = data.bat_slp_thr ?? "";
+            document.getElementById("bat_wke_thr").value = data.bat_wke_thr ?? "";
+            document.getElementById("ac_max_pow").value = data.ac_max_pow ?? "";
+            document.getElementById("ac_off_set").value = data.ac_off_set ?? "";
+            document.getElementById("ptogrid_thr").value = data.ptogrid_thr ?? "";
+            document.getElementById("ptouser_thr").value = data.ptouser_thr ?? "";
 
           } catch (e) {
             console.error("Error loading settings:", e);
