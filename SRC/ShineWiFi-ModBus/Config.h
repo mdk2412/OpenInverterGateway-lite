@@ -129,10 +129,10 @@
 #endif
 
 // Define LED pins, set to 255 for disable/not present
-#define LED_GN 0   // GPIO0
+#define LED_GN 0   // GPIO0 (2 for Wemos D1 mini)
 #define LED_RD 2   // GPIO2
 #define LED_BL 16  // GPIO16
-#define LED_GN_ACTIVE_LEVEL 1  // 1: high, 0: low
+#define LED_GN_ACTIVE_LEVEL 1  // 1: high, 0: low (0 for Wemos D1 mini)
 #define LED_RD_ACTIVE_LEVEL 1   
 #define LED_BL_ACTIVE_LEVEL 1
 
