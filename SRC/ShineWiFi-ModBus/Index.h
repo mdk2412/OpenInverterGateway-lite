@@ -287,7 +287,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             render("batteryDischarge", data.BDCDischargePower, data.BDCDischargePowerRate);
 
           } catch (e) {
-            console.error("Error fetching data:", e);
+            console.error("Error fetching Data:", e);
           }
         }
 
