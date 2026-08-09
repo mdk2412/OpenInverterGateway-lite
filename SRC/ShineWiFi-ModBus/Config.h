@@ -129,12 +129,24 @@
 #endif
 
 // Define LED pins, set to 255 for disable/not present
+#ifndef LED_GN
 #define LED_GN 0   // GPIO0 (2 for Wemos D1 mini)
+#endif
+#ifndef LED_RD
 #define LED_RD 2   // GPIO2
+#endif
+#ifndef LED_BL
 #define LED_BL 16  // GPIO16
+#endif
+#ifndef LED_GN_ACTIVE_LEVEL
 #define LED_GN_ACTIVE_LEVEL 1  // 1: high, 0: low (0 for Wemos D1 mini)
+#endif
+#ifndef LED_RD_ACTIVE_LEVEL
 #define LED_RD_ACTIVE_LEVEL 1   
+#endif
+#ifndef LED_BL_ACTIVE_LEVEL
 #define LED_BL_ACTIVE_LEVEL 1
+#endif
 
 // Add support for the AP button on the normal Shine Stick. You can
 // redefine AP_BUTTON_PRESSED to whatever condition you like for your stick.
