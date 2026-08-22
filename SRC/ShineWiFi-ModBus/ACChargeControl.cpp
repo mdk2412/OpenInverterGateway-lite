@@ -56,11 +56,10 @@ void acchargeControl() {
 
         // --- Integer-Mathematik ---
         int32_t rawRate = (delta * 10) / max_power;
-        int32_t roundedRate = rawRate;
-
+  
         // --- clamp auf 0–100 ---
         uint16_t targetpowerrate =
-            std::clamp<int32_t>(roundedRate, 0, 100);
+            std::clamp<int32_t>(rawRate, 0, 100);
 
         if (current_rate != targetpowerrate) {
             char json[64];
