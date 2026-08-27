@@ -12,6 +12,9 @@ struct UserConfig {
     bool prioctrl;
     int ptogrid_thr;
     int ptouser_thr;
+
+    bool surch;
+    int power_limit;
 };
 
 // nur Deklaration – keine Instanz!

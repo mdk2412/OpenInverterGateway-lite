@@ -25,6 +25,7 @@
 #include "BatteryStandby.h"
 #include "SetLED.h"
 #include "PriorityControl.h"
+#include "SurplusCharge.h"
 
 // -----------------------------------------------------------------------------
 //  Externe Bibliotheken
@@ -312,6 +313,7 @@ constexpr int DEFAULT_AC_MAX = 3750;
 constexpr int DEFAULT_OFFSET = -19;
 constexpr int DEFAULT_PTOGRID_THR = 150;
 constexpr int DEFAULT_PTOUSER_THR = 150;
+constexpr int DEFAULT_POWER_LIMIT = 6132;
 
 UserConfig validateUserConfig(const UserConfig& in) {
   UserConfig out = in;
@@ -342,6 +344,9 @@ UserConfig validateUserConfig(const UserConfig& in) {
   // PTOUSER (>0)
   if (out.ptouser_thr <= 0) out.ptouser_thr = DEFAULT_PTOUSER_THR;
 
+  // Power limit (>0)
+  if (out.power_limit <= 0) out.power_limit = DEFAULT_POWER_LIMIT;
+
   return out;
 }
 
@@ -360,6 +365,8 @@ void loadSettingsFromPrefs() {
   raw.prioctrl = prefs.getBool("prioctrl", false);
   raw.ptogrid_thr = prefs.getInt("ptogrid_thr", DEFAULT_PTOGRID_THR);
   raw.ptouser_thr = prefs.getInt("ptouser_thr", DEFAULT_PTOUSER_THR);
+  raw.surch = prefs.getBool("surch", false);
+  raw.power_limit = prefs.getInt("power_limit", DEFAULT_POWER_LIMIT);
 
   prefs.end();
 
@@ -551,6 +558,8 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   raw.prioctrl = (httpServer.arg("prioctrl") == "on");
   raw.ptogrid_thr = httpServer.arg("ptogrid_thr").toInt();
   raw.ptouser_thr = httpServer.arg("ptouser_thr").toInt();
+  raw.surch = (httpServer.arg("surch") == "on");
+  raw.power_limit = httpServer.arg("power_limit").toInt();
 
   User = validateUserConfig(raw);
 
@@ -563,6 +572,8 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   prefs.putBool("prioctrl", User.prioctrl);
   prefs.putInt("ptogrid_thr", User.ptogrid_thr);
   prefs.putInt("ptouser_thr", User.ptouser_thr);
+  prefs.putBool("surch", User.surch);
+  prefs.putInt("power_limit", User.power_limit);
 
   prefs.end();
   httpServer.send(200, "text/plain", "Settings saved");
@@ -588,6 +599,8 @@ void handleGetSettings(ESP8266WebServer& httpServer) {
   doc["prioctrl"] = prefs.getBool("prioctrl", User.prioctrl);
   doc["ptogrid_thr"] = prefs.getInt("ptogrid_thr", User.ptogrid_thr);
   doc["ptouser_thr"] = prefs.getInt("ptouser_thr", User.ptouser_thr);
+  doc["surch"] = prefs.getBool("surch", User.surch);
+  doc["power_limit"] = prefs.getInt("power_limit", User.power_limit);
 
   prefs.end();
   sendJson(doc);
@@ -1061,6 +1074,7 @@ void loop() {
     readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
 
     updateStatusLEDs();
+    
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
@@ -1104,6 +1118,9 @@ void loop() {
   if (User.accharge && now - ACChargeControlTimer > ACCHARGE_CONTROL_TIMER) {
     ACChargeControlTimer = now;
     acchargeControl();
+    if (User.surch) {
+      surplusCharge();
+    }
     // Log.print("ACControl active");
     if (User.prioctrl) {
       priorityControl();

@@ -196,7 +196,11 @@ const char MAIN_page[] PROGMEM = R"=====(
         <label>Power to User threshold (W)
           <input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1" placeholder="0">
         </label>
-
+        <hr>
+        <label><input name="surch" type="checkbox" role="switch"> Surplus Charging</label>
+        <label>Power Limit (W)
+          <input type="number" name="power_limit" id="power_limit" min="0" step="1" placeholder="0">
+        </label>
         <div class="grid">
           <button type="button" onclick="saveSettings()">Save Settings</button>
         </div>
@@ -337,6 +341,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             document.querySelector('input[name="bat_standby"]').checked = parseBool(data.bat_standby);
             document.querySelector('input[name="accharge"]').checked = parseBool(data.accharge);
             document.querySelector('input[name="prioctrl"]').checked = parseBool(data.prioctrl);
+            document.querySelector('input[name="surch"]').checked = parseBool(data.surch);
 
             document.getElementById("bat_slp_thr").value = data.bat_slp_thr ?? "";
             document.getElementById("bat_wke_thr").value = data.bat_wke_thr ?? "";
@@ -344,6 +349,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             document.getElementById("ac_off_set").value = data.ac_off_set ?? "";
             document.getElementById("ptogrid_thr").value = data.ptogrid_thr ?? "";
             document.getElementById("ptouser_thr").value = data.ptouser_thr ?? "";
+            document.getElementById("power_limit").value = data.power_limit ?? "";
 
           } catch (e) {
             console.error("Error loading settings:", e);
@@ -396,6 +402,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
           payload.append("accharge", form.accharge.checked ? "on" : "off");
           payload.append("prioctrl", form.prioctrl.checked ? "on" : "off");
+          payload.append("surch", form.surch.checked ? "on" : "off");
 
           payload.append("bat_slp_thr", form.bat_slp_thr.value);
           payload.append("bat_wke_thr", form.bat_wke_thr.value);
@@ -403,6 +410,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           payload.append("ac_off_set", form.ac_off_set.value);
           payload.append("ptogrid_thr", form.ptogrid_thr.value);
           payload.append("ptouser_thr", form.ptouser_thr.value);
+          payload.append("power_limit", form.power_limit.value);
 
           const oldText = btn.textContent;
           const oldClass = btn.className;
