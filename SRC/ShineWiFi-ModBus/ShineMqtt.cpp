@@ -105,25 +105,23 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   if (!mqttclient.connected()) return false;
   if (topic.isEmpty()) topic = mqttconfig.topic;
 
-  const size_t len = measureJson(doc);
-  if (len > BUFFER_SIZE) {
-    Log.println(F("MQTT JSON payload too large"));
+  // JSON in String serialisieren
+  String jsonString;
+  serializeJson(doc, jsonString);
+
+  // Länge prüfen
+  if (jsonString.length() >= BUFFER_SIZE) {
+    Log.println(F("MQTT message too long for buffer"));
     return false;
   }
 
-  String payload;
-  payload.reserve(len);
-  serializeJson(doc, payload);
+  // Stabil publishen
+  bool res = mqttclient.publish(topic.c_str(),
+                                jsonString.c_str(),
+                                true);
 
-  // Publish the exact serialized length; do not send bytes left in a buffer.
-  if (payload.length() != len) {
-    Log.println(F("MQTT JSON length mismatch"));
-    return false;
-  }
-
-  return mqttclient.publish(topic.c_str(),
-                            reinterpret_cast<const uint8_t*>(payload.c_str()),
-                            static_cast<unsigned int>(payload.length()), true);
+  Log.println(res ? "succeed" : "failed");
+  return res;
 }
 
 // -------------------------------------------------------
