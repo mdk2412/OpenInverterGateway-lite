@@ -17,8 +17,7 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
 // Sichere, gültige MQTT-Client-ID
 // -------------------------------------------------------
 String ShineMqtt::getId() {
-  uint32_t id = ESP.getChipId();
-  return "growatt-min_tl-xh-" + String(id, HEX);
+  return "growatt-min_tl-xh-" + String(ESP.getChipId(), HEX);
 }
 
 // -------------------------------------------------------
@@ -60,15 +59,12 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 // Stabile Reconnect-Logik
 // -------------------------------------------------------
 bool ShineMqtt::mqttReconnect() {
-  if (!mqttEnabled()) return false;
-  if (WiFi.status() != WL_CONNECTED) return false;
-
-  // Bereits verbunden?
+  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
   if (mqttclient.connected()) return true;
 
-  // Reconnect nur alle 5 Sekunden
-  if (millis() - previousConnectTryMillis < 5000) return false;
-  previousConnectTryMillis = millis();
+  uint32_t now = millis();
+  if (now - previousConnectTryMillis < 5000) return false;
+  previousConnectTryMillis = now;
 
   Log.print(F("MQTT Connection... "));
 
@@ -103,25 +99,15 @@ bool ShineMqtt::mqttReconnect() {
 // -------------------------------------------------------
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   if (!mqttclient.connected()) return false;
-  if (topic.isEmpty()) topic = mqttconfig.topic;
 
-  // JSON in String serialisieren
-  String jsonString;
-  serializeJson(doc, jsonString);
+  const String& t = topic.length() ? topic : mqttconfig.topic;
 
-  // Länge prüfen
-  if (jsonString.length() >= BUFFER_SIZE) {
-    Log.println(F("MQTT message too long for buffer"));
-    return false;
-  }
+  String json;
+  serializeJson(doc, json);
 
-  // Stabil publishen
-  bool res = mqttclient.publish(topic.c_str(),
-                                jsonString.c_str(),
-                                true);
-
-  Log.println(res ? "succeed" : "failed");
-  return res;
+  bool ok = mqttclient.publish(t.c_str(), json.c_str(), true);
+  Log.println(ok ? "succeed" : "failed");
+  return ok;
 }
 
 // -------------------------------------------------------
@@ -138,9 +124,7 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   // Sichere Payload-Kopie
   String messagePayload;
   messagePayload.reserve(length + 1);
-  for (unsigned int i = 0; i < length; i++) {
-    messagePayload += (char)payload[i];
-  }
+  messagePayload.concat((char*)payload, length);
   Log.println(messagePayload);
 
   String prefix = mqttconfig.topic + "/command/";
@@ -161,10 +145,10 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 
 // -------------------------------------------------------
 void ShineMqtt::loop() {
-  uint32_t now = millis();
   mqttReconnect();
-  // loop() mindestens alle 50ms aufrufen
-  if ((uint32_t)(now - lastMqttLoop) >= 50) {
+
+  uint32_t now = millis();
+  if (now - lastMqttLoop >= 50) {
     mqttclient.loop();
     lastMqttLoop = now;
   }
