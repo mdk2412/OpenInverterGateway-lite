@@ -29,7 +29,7 @@ class ShineMqtt {
   void onMqttMessage(char* topic, byte* payload, unsigned int length);
 #endif
   void loop();
-  const char* getId() const { return clientId; }
+  // const char* getId() const { return clientId; }
 
  private:
   WiFiClient& wifiClient;

@@ -71,7 +71,7 @@ bool ShineMqtt::mqttReconnect() {
 
   Log.print(F("MQTT Connection... "));
 
-  bool ok = mqttclient.connect(getId(), mqttconfig.user.c_str(),
+  bool ok = mqttclient.connect(clientId, mqttconfig.user.c_str(),
                                mqttconfig.pwd.c_str(), mqttconfig.topic.c_str(),
                                1, true, "{\"InverterStatus\": -1}");
 
