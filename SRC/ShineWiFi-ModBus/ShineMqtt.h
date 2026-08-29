@@ -39,6 +39,6 @@ class ShineMqtt {
   Growatt& inverter;
   // Optimierung 4: loop()-Taktung
   uint32_t lastMqttLoop = 0;
-  static String getId();
+  static void getId(char* buffer, size_t buflen);
 };
 #endif

@@ -16,8 +16,9 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
 // -------------------------------------------------------
 // Sichere, gültige MQTT-Client-ID
 // -------------------------------------------------------
-String ShineMqtt::getId() {
-  return "growatt-min_tl-xh-" + String(ESP.getChipId(), HEX);
+void ShineMqtt::getId(char* buffer, size_t buflen) {
+  snprintf(buffer, buflen, "growatt-min_tl-xh-%08X",
+           (uint32_t)ESP.getChipId());
 }
 
 // -------------------------------------------------------
@@ -68,7 +69,10 @@ bool ShineMqtt::mqttReconnect() {
 
   Log.print(F("MQTT Connection... "));
 
-  bool ok = mqttclient.connect(getId().c_str(), mqttconfig.user.c_str(),
+  char clientId[32];
+  getId(clientId, sizeof(clientId));
+
+  bool ok = mqttclient.connect(clientId, mqttconfig.user.c_str(),
                                mqttconfig.pwd.c_str(), mqttconfig.topic.c_str(),
                                1, true, "{\"InverterStatus\": -1}");
 
@@ -81,8 +85,10 @@ bool ShineMqtt::mqttReconnect() {
   Log.println(F("succeeded"));
 
 #if MQTT_COMMANDS == 1
-  String commandTopic = mqttconfig.topic + "/command/#";
-  if (mqttclient.subscribe(commandTopic.c_str(), 1)) {
+  char commandTopic[128];
+  snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
+           mqttconfig.topic.c_str());
+  if (mqttclient.subscribe(commandTopic, 1)) {
     Log.print(F("Subscribed: "));
     Log.println(commandTopic);
   } else {
@@ -100,12 +106,14 @@ bool ShineMqtt::mqttReconnect() {
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   if (!mqttclient.connected()) return false;
 
-  const String& t = topic.length() ? topic : mqttconfig.topic;
+  const char* topicName = topic.length() ? topic.c_str() : mqttconfig.topic.c_str();
 
-  String json;
-  serializeJson(doc, json);
+  char jsonBuffer[JSON_DOCUMENT_SIZE];
+  size_t jsonLength = serializeJson(doc, jsonBuffer, sizeof(jsonBuffer));
+  if (jsonLength == 0) return false;
 
-  bool ok = mqttclient.publish(t.c_str(), json.c_str(), true);
+  bool ok = mqttclient.publish(topicName, (const uint8_t*)jsonBuffer, jsonLength,
+                              true);
   //Log.println(ok ? "succeed" : "failed");
   return ok;
 }
@@ -121,23 +129,30 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   Log.print(strTopic);
   Log.print(F("] "));
 
-  // Sichere Payload-Kopie
-  String messagePayload;
-  messagePayload.reserve(length + 1);
-  messagePayload.concat((char*)payload, length);
-  Log.println(messagePayload);
+  // Copy payload into a fixed buffer to avoid repeated heap churn on small
+  // receive buffers.
+  char payloadBuffer[256];
+  size_t payloadLen = length < sizeof(payloadBuffer) - 1u
+                          ? length
+                          : sizeof(payloadBuffer) - 1u;
+  if (payloadLen > 0) {
+    memcpy(payloadBuffer, payload, payloadLen);
+  }
+  payloadBuffer[payloadLen] = '\0';
+  Log.println(payloadBuffer);
 
-  String prefix = mqttconfig.topic + "/command/";
-  if (!strTopic.startsWith(prefix)) return;
+  char prefix[128];
+  snprintf(prefix, sizeof(prefix), "%s/command/", mqttconfig.topic.c_str());
+  if (strncmp(topic, prefix, strlen(prefix)) != 0) return;
 
-  String command = strTopic.substring(prefix.length());
+  String command = String(topic + strlen(prefix));
   if (command.isEmpty()) return;
 
   StaticJsonDocument<1024> req;
   StaticJsonDocument<1024> res;
 
-  inverter.HandleCommand(command, (byte*)messagePayload.c_str(),
-                         messagePayload.length(), req, res);
+  inverter.HandleCommand(command, (const byte*)payloadBuffer, payloadLen, req,
+                        res);
 
   mqttPublish(res, mqttconfig.topic + "/result");
 }
