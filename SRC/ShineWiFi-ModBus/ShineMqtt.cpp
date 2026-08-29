@@ -62,9 +62,8 @@ bool ShineMqtt::mqttReconnect() {
   if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
   if (mqttclient.connected()) return true;
 
-  uint32_t now = millis();
-  if (now - previousConnectTryMillis < 5000) return false;
-  previousConnectTryMillis = now;
+  if (millis() - previousConnectTryMillis < 5000) return false;
+  previousConnectTryMillis = millis();
 
   Log.print(F("MQTT Connection... "));
 
