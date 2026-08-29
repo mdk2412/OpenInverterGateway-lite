@@ -477,29 +477,30 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   if (!Hostname.isEmpty()) {
     doc["Hostname"] = Hostname;
   }
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++)
-    doc[_Protocol.InputRegisters[i].name] =
-        getRegValue(&_Protocol.InputRegisters[i]);
+  for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
+    doc[_Protocol.InputRegisters[i].name] = getRegValue(&_Protocol.InputRegisters[i]);
+  }
 
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++)
-    doc[_Protocol.HoldingRegisters[i].name] =
-        getRegValue(&_Protocol.HoldingRegisters[i]);
+  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+    doc[_Protocol.HoldingRegisters[i].name] = getRegValue(&_Protocol.HoldingRegisters[i]);
+  }
+
   doc["Mac"] = MacAddress;
   doc["Cnt"] = _PacketCnt;
   doc["CntFailed"] = _PacketCntFailed;
   doc["Uptime"] = millis() / 1000;
   doc["WifiRSSI"] = WiFi.RSSI();
   doc["HeapFree"] = ESP.getFreeHeap();
+  
   static uint32_t heap_min_free = ESP.getFreeHeap();
-  heap_min_free = min(ESP.getFreeHeap(), heap_min_free);
+  heap_min_free = (std::min)(ESP.getFreeHeap(), heap_min_free);
+  
   doc["HeapMaxAlloc"] = ESP.getMaxFreeBlockSize();
   doc["HeapMinFree"] = heap_min_free;
   doc["HeapFragmentation"] = ESP.getHeapFragmentation();
 
   if (doc.overflowed()) {
-    Log.println(
-        F("CreateJson: JsonDocument overflowed! Output will be "
-          "truncated."));
+    Log.println(F("CreateJson: JsonDocument overflowed! Output will be truncated."));
   }
 }
 
@@ -509,69 +510,67 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
 
   const char* statusStr[] = {"(Waiting)", "(Normal Operation)", "", "(Error)"};
   const int statusStrLength = sizeof(statusStr) / sizeof(char*);
-  const char* onoffStr[] = {"(Inverter Off)", "(Inverter On)", "(BDC Off)",
-                            "(BDC On)"};
+  const char* onoffStr[] = {"(Inverter Off)", "(Inverter On)", "(BDC Off)", "(BDC On)"};
   const int onoffStrLength = sizeof(onoffStr) / sizeof(char*);
-  const char* priorityStr[] = {"(Load First)", "(Battery First)",
-                               "(Grid First)"};
+  const char* priorityStr[] = {"(Load First)", "(Battery First)", "(Grid First)"};
   const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
   const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
   if (!Hostname.isEmpty()) {
-    JsonArray arr = doc.createNestedArray("Hostname");
+    // ArduinoJson v7 Syntax: .to<JsonArray>() statt .createNestedArray()
+    JsonArray arr = doc["Hostname"].to<JsonArray>();
     arr.add(Hostname);
     arr.add("");
   }
 
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    if (_Protocol.InputRegisters[i].frontend == true) {
-      JsonArray arr = doc.createNestedArray(_Protocol.InputRegisters[i].name);
+    if (_Protocol.InputRegisters[i].frontend) {
+      // ArduinoJson v7 Syntax:
+      JsonArray arr = doc[_Protocol.InputRegisters[i].name].to<JsonArray>();
 
-      // value
+      // Value
       arr.add(getRegValue(&_Protocol.InputRegisters[i]));
 
-      if ((String(_Protocol.InputRegisters[i].name) == F("InverterStatus") ||
-           String(_Protocol.InputRegisters[i].name) == F("BDCSysState")) &&
-          _Protocol.InputRegisters[i].value < statusStrLength) {
-        arr.add(statusStr[_Protocol.InputRegisters[i].value]);  // use unit for
-                                                                // status
-      } else if (String(_Protocol.InputRegisters[i].name) == F("BDCSysMode") &&
-                 _Protocol.InputRegisters[i].value < bdcModeStrLength) {
-        arr.add(bdcModeStr[_Protocol.InputRegisters[i].value]);
-      } else if (String(_Protocol.InputRegisters[i].name) == F("Priority") &&
-                 _Protocol.InputRegisters[i].value < priorityStrLength) {
-        arr.add(priorityStr[_Protocol.InputRegisters[i].value]);
+      const auto regVal = _Protocol.InputRegisters[i].value;
+      const String regName = _Protocol.InputRegisters[i].name;
+
+      if ((regName == F("InverterStatus") || regName == F("BDCSysState")) &&
+          regVal < statusStrLength) {
+        arr.add(statusStr[regVal]);
+      } else if (regName == F("BDCSysMode") && regVal < bdcModeStrLength) {
+        arr.add(bdcModeStr[regVal]);
+      } else if (regName == F("Priority") && regVal < priorityStrLength) {
+        arr.add(priorityStr[regVal]);
       } else {
-        arr.add(unitStr[_Protocol.InputRegisters[i].unit]);  // unit
+        arr.add(unitStr[_Protocol.InputRegisters[i].unit]);
       }
     }
   }
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    if (_Protocol.HoldingRegisters[i].frontend == true) {
-      JsonArray arr = doc.createNestedArray(_Protocol.HoldingRegisters[i].name);
 
-      // value
+  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
+    if (_Protocol.HoldingRegisters[i].frontend) {
+      // ArduinoJson v7 Syntax:
+      JsonArray arr = doc[_Protocol.HoldingRegisters[i].name].to<JsonArray>();
+
+      // Value
       arr.add(getRegValue(&_Protocol.HoldingRegisters[i]));
 
-      if (String(_Protocol.HoldingRegisters[i].name) == F("InverterStatus") &&
-          _Protocol.HoldingRegisters[i].value < statusStrLength) {
-        arr.add(statusStr[_Protocol.HoldingRegisters[i].value]);
+      const auto regVal = _Protocol.HoldingRegisters[i].value;
+      const String regName = _Protocol.HoldingRegisters[i].name;
 
-      } else if (String(_Protocol.HoldingRegisters[i].name) == F("OnOff") &&
-                 _Protocol.HoldingRegisters[i].value < onoffStrLength) {
-        arr.add(onoffStr[_Protocol.HoldingRegisters[i].value]);
-
+      if (regName == F("InverterStatus") && regVal < statusStrLength) {
+        arr.add(statusStr[regVal]);
+      } else if (regName == F("OnOff") && regVal < onoffStrLength) {
+        arr.add(onoffStr[regVal]);
       } else {
-        arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);  // unit
+        arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);
       }
     }
   }
 
   if (doc.overflowed()) {
-    Log.println(
-        F("CreateUIJson: JsonDocument overflowed! Output will be "
-          "truncated."));
+    Log.println(F("CreateUIJson: JsonDocument overflowed! Output will be truncated."));
   }
 }
 
@@ -648,8 +647,9 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
-  if (!req.containsKey("text")) {
-    return std::make_tuple(false, "'Text' Field is required");
+  // v7 Syntax
+  if (!req["text"].is<String>()) {
+    return std::make_tuple(false, "'text' Field is required and must be a String");
   }
   String text = req["text"].as<String>();
   res["text"] = "Echo: " + text;
@@ -659,116 +659,105 @@ std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
 std::tuple<bool, String> Growatt::handleCommandList(const JsonDocument& req,
                                                     JsonDocument& res,
                                                     Growatt& inverter) {
-  JsonArray commands = res.createNestedArray("commands");
-  for (auto it = handlers.begin(); it != handlers.end(); ++it) {
-    commands.add(it->first);
+  // v7 Syntax
+  JsonArray commands = res["commands"].to<JsonArray>();
+  for (const auto& pair : handlers) {
+    commands.add(pair.first);
   }
   return std::make_tuple(true, "");
 }
 
-// std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
-//                                                   JsonDocument& res,
-//                                                   Growatt& inverter) {
-//   if (!req.containsKey("reg")) {
-//     return std::make_tuple(false, "'Register ID' Field is required");
-//   }
+std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
+                                                  JsonDocument& res,
+                                                  Growatt& inverter) {
+  // 1. Parameter prüfen (Existenz & Typ-Prüfung nach v7 Standard)
+  if (!req["reg"].is<uint16_t>()) {
+    return std::make_tuple(false, "'Register ID' Field is required and must be an integer");
+  }
+  uint16_t reg = req["reg"].as<uint16_t>();
 
-//   uint16_t reg = req["reg"].as<uint16_t>();
+  if (!req["width"].is<String>()) {
+    return std::make_tuple(false, "'Register Width' Field is required and must be a string");
+  }
+  String width = req["width"].as<String>();
 
-//   if (!req.containsKey("width")) {
-//     return std::make_tuple(false, "'Register Width' Field is required");
-//   }
+  if (width != "16b" && width != "32b") {
+    return std::make_tuple(false, "'Register Width' must be '16b' or '32b'");
+  }
 
-//   String width = req["width"].as<String>();
+  if (!req["type"].is<String>()) {
+    return std::make_tuple(false, "'Register Type' Field is required and must be a string");
+  }
+  String type = req["type"].as<String>();
 
-//   if (width != "16b" && width != "32b") {
-//     return std::make_tuple(false, "'Register Width' must be '16b' or '32b'");
-//   }
+  if (type != "H" && type != "I") {
+    return std::make_tuple(false, "'Register Type' must be 'H' (Holding) or 'I' (Input)");
+  }
 
-//   if (!req.containsKey("type")) {
-//     return std::make_tuple(false, "'Register Type' Field is required");
-//   }
+  // 2. Modbus Lesen
+  if (width == "16b") {
+    uint16_t value = 0;
+    bool ok = (type == "H") ? inverter.ReadHoldingReg(reg, &value)
+                            : inverter.ReadInputReg(reg, &value);
+    if (!ok) {
+      return std::make_tuple(false, "Failed to read 16-bit Register!");
+    }
+    res["value"] = value;
+  } else { // 32b
+    uint32_t value = 0;
+    bool ok = (type == "H") ? inverter.ReadHoldingReg(reg, &value)
+                            : inverter.ReadInputReg(reg, &value);
+    if (!ok) {
+      return std::make_tuple(false, "Failed to read 32-bit Register!");
+    }
+    res["value"] = value;
+  }
 
-//   String type = req["type"].as<String>();
+  return std::make_tuple(true, "success");
+}
 
-//   if (type != "H" && type != "I") {
-//     return std::make_tuple(
-//         false, "'Register Type' must be 'H' (Holding) or 'I' (Input)");
-//   }
+std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
+                                                  JsonDocument& res,
+                                                  Growatt& inverter) {
+  // --- Parameter prüfen ---
+  if (!req["reg"].is<uint16_t>()) {
+    return std::make_tuple(false, "'Register ID' Field is required and must be an integer");
+  }
+  uint16_t reg = req["reg"].as<uint16_t>();
 
-//   if (width == "16b") {
-//     uint16_t value;
-//     if (type == "H") {
-//       if (!inverter.ReadHoldingReg(reg, &value)) {
-//         return std::make_tuple(false, "Failed to read Holding Register!");
-//       }
-//     } else {
-//       if (!inverter.ReadInputReg(reg, &value)) {
-//         return std::make_tuple(false, "Failed to read Input Register!");
-//       }
-//     }
-//     res["value"] = value;
-//   } else {
-//     uint32_t value;
-//     if (type == "H") {
-//       if (!inverter.ReadHoldingReg(reg, &value)) {
-//         return std::make_tuple(false, "Failed to read Holding Register!");
-//       }
-//     } else {
-//       if (!inverter.ReadInputReg(reg, &value)) {
-//         return std::make_tuple(false, "Failed to read Input Register!");
-//       }
-//     }
-//     res["value"] = value;
-//   }
+  if (!req["width"].is<String>()) {
+    return std::make_tuple(false, "'Register Width' Field is required and must be a string");
+  }
+  String width = req["width"].as<String>();
 
-//   return std::make_tuple(true, "success");
-// }
+  if (width == "32b") {
+    return std::make_tuple(false, "Writing to double (32b) Registers is not supported");
+  }
+  if (width != "16b") {
+    return std::make_tuple(false, "'Width' must be '16b'");
+  }
 
-// std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
-//                                                   JsonDocument& res,
-//                                                   Growatt& inverter) {
-//   // --- Parameter prüfen ---
-//   if (!req.containsKey("reg")) {
-//     return std::make_tuple(false, "'Register ID' Field is required");
-//   }
-//   uint16_t reg = req["reg"].as<uint16_t>();
+  if (!req["type"].is<String>()) {
+    return std::make_tuple(false, "'Register Type' Field is required and must be a string");
+  }
+  String type = req["type"].as<String>();
 
-//   if (!req.containsKey("width")) {
-//     return std::make_tuple(false, "'Register Width' Field is required");
-//   }
-//   String width = req["width"].as<String>();
+  if (type == "I") {
+    return std::make_tuple(false, "It is not possible to write into Input Registers");
+  }
+  if (type != "H") {
+    return std::make_tuple(false, "'Register Type' must be 'H' (holding)");
+  }
 
-//   if (width == "32b") {
-//     return std::make_tuple(
-//         false, "Writing to double (32b) Registers is not supported");
-//   }
-//   if (width != "16b") {
-//     return std::make_tuple(false, "'Width' must be '16b'");
-//   }
+  if (!req["val"].is<uint16_t>()) {
+    return std::make_tuple(false, "'Register Value' Field is required and must be an integer");
+  }
+  uint16_t val = req["val"].as<uint16_t>();
 
-//   if (!req.containsKey("type")) {
-//     return std::make_tuple(false, "'Register Type' Field is required");
-//   }
-//   String type = req["type"].as<String>();
+  // --- Write ---
+  if (!inverter.WriteHoldingReg(reg, val)) {
+    return std::make_tuple(false, "Failed to write into Holding Register!");
+  }
 
-//   if (type == "I") {
-//     return std::make_tuple(false,
-//                            "It is not possible to write into Input Registers");
-//   }
-//   if (type != "H") {
-//     return std::make_tuple(false, "'Register Type' must be 'H' (holding)");
-//   }
-
-//   if (!req.containsKey("val")) {
-//     return std::make_tuple(false, "'Register Value' Field is required");
-//   }
-//   uint16_t val = req["val"].as<uint16_t>();
-
-//   // --- Write ---
-//   if (!inverter.WriteHoldingReg(reg, val)) {
-//     return std::make_tuple(false, "Failed to write into Holding Register!");
-//   }
-
-//   return std::make_tuple(true, "success");
-// }
+  return std::make_tuple(true, "success");
+}

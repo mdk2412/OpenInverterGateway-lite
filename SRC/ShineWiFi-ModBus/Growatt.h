@@ -53,12 +53,12 @@ class Growatt {
   std::tuple<bool, String> handleCommandList(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter);
-//   std::tuple<bool, String> handleModbusGet(const JsonDocument& req,
-//                                            JsonDocument& res,
-//                                            Growatt& inverter);
-//   std::tuple<bool, String> handleModbusSet(const JsonDocument& req,
-//                                            JsonDocument& res,
-//                                            Growatt& inverter);
+  std::tuple<bool, String> handleModbusGet(const JsonDocument& req,
+                                           JsonDocument& res,
+                                           Growatt& inverter);
+  std::tuple<bool, String> handleModbusSet(const JsonDocument& req,
+                                           JsonDocument& res,
+                                           Growatt& inverter);
 };
 
 extern Growatt Inverter;
