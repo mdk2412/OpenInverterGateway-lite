@@ -583,54 +583,61 @@ void Growatt::RegisterCommand(const String& command,
 void Growatt::HandleCommand(const String& command, const byte* payload,
                             const unsigned int length, JsonDocument& req,
                             JsonDocument& res) {
-  // Standard: keine Retries
-  uint8_t retries = 0;
+  req.clear();
+  res.clear();
 
+  // 1. JSON einmalig deserialisieren
+  DeserializationError deserializationErr = deserializeJson(req, payload, length);
+
+  if (deserializationErr) {
+    String errMsg = "Failed to parse JSON Request in Command '" + command +
+                    "': " + String(deserializationErr.c_str());
+    Log.println(errMsg);
+    res["command"] = command;
+    res["success"] = false;
+    res["message"] = errMsg;
+    return;
+  }
+
+  // 2. Metadaten auslesen
+  uint8_t retries = 0;
+  if (req["retry"].is<uint8_t>()) {
+    retries = req["retry"].as<uint8_t>();
+  }
+
+  if (req["correlationId"].is<String>()) {
+    res["correlationId"] = req["correlationId"].as<String>();
+  }
+
+  // 3. Command-Handler suchen
+  auto it = handlers.find(command);
+  if (it == handlers.end()) {
+    Log.println("Unknown Command: " + command);
+    res["command"] = command;
+    res["success"] = false;
+    res["message"] = "Unknown Command: " + command;
+    return;
+  }
+
+  // 4. Execution Loop mit korrekter Retry-Logik
   bool success = false;
   String message = "";
 
   for (uint8_t attempt = 0; attempt <= retries; attempt++) {
-    req.clear();
-    res.clear();
-
-    DeserializationError deserializationErr =
-        deserializeJson(req, payload, length);
-
-    if (deserializationErr) {
-      Log.println("Failed to parse JSON Request in Command '" + command +
-                  "': " + String(deserializationErr.c_str()));
-      success = false;
-      message =
-          "Failed to parse JSON Request: " + String(deserializationErr.c_str());
-    } else {
-      // Retry-Wert aus JSON lesen (falls vorhanden)
-      if (req.containsKey("retry")) {
-        retries = req["retry"].as<uint8_t>();
-      }
-
-      if (req.containsKey("correlationId")) {
-        res["correlationId"] = String(req["correlationId"].as<String>());
-      }
-
-      auto it = handlers.find(command.c_str());
-      if (it != handlers.end()) {
-        Log.println("Handling Command: " + command);
-        std::tie(success, message) = it->second(req, res, *this);
-      } else {
-        Log.println("Unknown Command: " + command);
-        success = false;
-        message = "Unknown Command: " + command;
-      }
+    if (attempt > 0) {
+      Log.printf("Retrying Command '%s' (Attempt %d/%d)...\n", command.c_str(), attempt, retries);
+      delay(50); // Kleines Delay vor dem erneuten Modbus-Zugriff
     }
 
-    // Erfolg → abbrechen
+    // Handler ausführen
+    std::tie(success, message) = it->second(req, res, *this);
+
     if (success) {
-      break;
+      break; // Erfolg -> Schleife sofort verlassen
     }
-
-    delay(1);
   }
 
+  // 5. Status im Response-JSON setzen
   res["command"] = command;
   res["success"] = success;
   res["message"] = message;
