@@ -145,12 +145,7 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 // -------------------------------------------------------
 void ShineMqtt::loop() {
   mqttReconnect();
-
-  uint32_t now = millis();
-  if (now - lastMqttLoop >= 50) {
-    mqttclient.loop();
-    lastMqttLoop = now;
-  }
+  mqttclient.loop();
 }
 
 #endif
