@@ -97,10 +97,9 @@ bool ShineMqtt::mqttReconnect() {
 // -------------------------------------------------------
 // Publish JSON-Dokument
 // -------------------------------------------------------
-boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
+boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   if (!mqttclient.connected()) return false;
-
-  const String& t = topic.length() ? topic : mqttconfig.topic;
+  const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
   size_t len = measureJson(doc);
   bool ok = mqttclient.beginPublish(t.c_str(), len, true);
