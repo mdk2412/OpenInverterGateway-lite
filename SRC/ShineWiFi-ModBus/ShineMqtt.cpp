@@ -11,7 +11,8 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
   mqttclient.setBufferSize(BUFFER_SIZE);
   // Optimierung 2: schnelleres Timeout
   mqttclient.setSocketTimeout(2);
-  snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x", (uint32_t)ESP.getChipId());
+  snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
+           (uint32_t)ESP.getChipId());
 }
 
 // -------------------------------------------------------
@@ -83,8 +84,10 @@ bool ShineMqtt::mqttReconnect() {
   Log.println(F("succeeded"));
 
 #if MQTT_COMMANDS == 1
-  String commandTopic = mqttconfig.topic + "/command/#";
-  if (mqttclient.subscribe(commandTopic.c_str(), 1)) {
+  char commandTopic[128];
+  snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
+           mqttconfig.topic.c_str());
+  if (mqttclient.subscribe(commandTopic, 1)) {
     Log.print(F("Subscribed: "));
     Log.println(commandTopic);
   } else {
@@ -109,7 +112,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
     serializeJson(doc, mqttclient);
     ok = mqttclient.endPublish();
   }
-  //Log.println(ok ? "succeed" : "failed");
+  // Log.println(ok ? "succeed" : "failed");
   return ok;
 }
 
