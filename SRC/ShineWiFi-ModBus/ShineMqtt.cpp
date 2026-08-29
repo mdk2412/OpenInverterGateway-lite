@@ -101,10 +101,12 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
 
   const String& t = topic.length() ? topic : mqttconfig.topic;
 
-  String json;
-  serializeJson(doc, json);
-
-  bool ok = mqttclient.publish(t.c_str(), json.c_str(), true);
+  size_t len = measureJson(doc);
+  bool ok = mqttclient.beginPublish(t.c_str(), len, true);
+  if (ok) {
+    serializeJson(doc, mqttclient);
+    ok = mqttclient.endPublish();
+  }
   //Log.println(ok ? "succeed" : "failed");
   return ok;
 }
