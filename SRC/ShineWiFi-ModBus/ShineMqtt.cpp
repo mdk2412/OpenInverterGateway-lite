@@ -106,7 +106,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
   serializeJson(doc, json);
 
   bool ok = mqttclient.publish(t.c_str(), json.c_str(), true);
-  Log.println(ok ? "succeed" : "failed");
+  //Log.println(ok ? "succeed" : "failed");
   return ok;
 }
 
