@@ -29,6 +29,7 @@ class ShineMqtt {
   void onMqttMessage(char* topic, byte* payload, unsigned int length);
 #endif
   void loop();
+  const char* getId() const { return clientId; }
 
  private:
   WiFiClient& wifiClient;
@@ -38,6 +39,6 @@ class ShineMqtt {
   Growatt& inverter;
   // Optimierung 4: loop()-Taktung
   uint32_t lastMqttLoop = 0;
-  static String getId();
+  char clientId[32];
 };
 #endif

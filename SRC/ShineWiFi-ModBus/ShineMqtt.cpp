@@ -11,14 +11,15 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
   mqttclient.setBufferSize(BUFFER_SIZE);
   // Optimierung 2: schnelleres Timeout
   mqttclient.setSocketTimeout(2);
+  snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x", (uint32_t)ESP.getChipId());
 }
 
 // -------------------------------------------------------
 // Sichere, gültige MQTT-Client-ID
 // -------------------------------------------------------
-String ShineMqtt::getId() {
-  return "growatt-min_tl-xh-" + String(ESP.getChipId(), HEX);
-}
+// String ShineMqtt::getId() {
+//   return "growatt-min_tl-xh-" + String(ESP.getChipId(), HEX);
+// }
 
 // -------------------------------------------------------
 boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
@@ -67,7 +68,7 @@ bool ShineMqtt::mqttReconnect() {
 
   Log.print(F("MQTT Connection... "));
 
-  bool ok = mqttclient.connect(getId().c_str(), mqttconfig.user.c_str(),
+  bool ok = mqttclient.connect(getId(), mqttconfig.user.c_str(),
                                mqttconfig.pwd.c_str(), mqttconfig.topic.c_str(),
                                1, true, "{\"InverterStatus\": -1}");
 
@@ -116,17 +117,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, String topic) {
 // -------------------------------------------------------
 #if MQTT_COMMANDS == 1
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  String strTopic(topic);
-
-  Log.print(F("MQTT Message: ["));
-  Log.print(strTopic);
-  Log.print(F("] "));
-
-  // Sichere Payload-Kopie
-  String messagePayload;
-  messagePayload.reserve(length + 1);
-  messagePayload.concat((char*)payload, length);
-  Log.println(messagePayload);
+  String strTopic(topic);  // Optional: Topic-Matching lässt sich auch ohne
+                           // String machen, ist hier aber meist kurz
 
   String prefix = mqttconfig.topic + "/command/";
   if (!strTopic.startsWith(prefix)) return;
@@ -137,8 +129,9 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   StaticJsonDocument<1024> req;
   StaticJsonDocument<1024> res;
 
-  inverter.HandleCommand(command, (byte*)messagePayload.c_str(),
-                         messagePayload.length(), req, res);
+  // Direkte Übergabe des empfangenen Bytes-Puffers ohne Umweg über String
+  // messagePayload:
+  inverter.HandleCommand(command, payload, length, req, res);
 
   mqttPublish(res, mqttconfig.topic + "/result");
 }
