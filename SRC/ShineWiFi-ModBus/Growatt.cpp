@@ -575,62 +575,6 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   }
 }
 
-void Growatt::camelCaseToSnakeCase(const String& input, char* output) {
-  int outputIndex = 0;
-  for (uint i = 0; input[i] != '\0'; i++) {
-    if (i > 0 && isUpperCase(input[i]) &&
-        (isLowerCase(input[i - 1]) ||
-         (i < input.length() - 1 && isLowerCase(input[i + 1])))) {
-      output[outputIndex++] = '_';
-    }
-    output[outputIndex++] = toLowerCase(input[i]);
-  }
-  output[outputIndex] = '\0';
-}
-
-void Growatt::metricsAddValue(const String& name, const double& value,
-                              const float& resolution, String& metrics,
-                              const String& labels) {
-  const String svalue =
-      (resolution == 1) ? String((int32_t)value) : String(value);
-  char nameSnakeCase[name.length() + 10];
-  camelCaseToSnakeCase(name, nameSnakeCase);
-  metrics +=
-      "growatt_" + String(nameSnakeCase) + "{" + labels + "} " + svalue + "\n";
-}
-
-void Growatt::CreateMetrics(String& metrics, const String& MacAddress,
-                            const String& Hostname) {
-  String labels;
-  if (Hostname == DEFAULT_HOSTNAME) {
-    labels = "mac=\"" + MacAddress + "\"";
-  } else {
-    labels = "mac=\"" + MacAddress + "\",name=\"" + Hostname + "\"";
-  }
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++)
-    metricsAddValue(_Protocol.InputRegisters[i].name,
-                    getRegValue(&_Protocol.InputRegisters[i]),
-                    _Protocol.InputRegisters[i].resolution, metrics, labels);
-
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++)
-    metricsAddValue(_Protocol.HoldingRegisters[i].name,
-                    getRegValue(&_Protocol.HoldingRegisters[i]),
-                    _Protocol.HoldingRegisters[i].resolution, metrics, labels);
-  metricsAddValue("Cnt", _PacketCnt, 1, metrics, labels);
-  metricsAddValue("CntFailed", _PacketCntFailed, 1, metrics, labels);
-  metricsAddValue("Uptime", millis() / 1000, 1, metrics, labels);
-  metricsAddValue("WifiRSSI", WiFi.RSSI(), 1, metrics, labels);
-
-  metricsAddValue("HeapFree", ESP.getFreeHeap(), 1, metrics, labels);
-  static uint32_t heap_min_free = ESP.getFreeHeap();
-  heap_min_free = min(ESP.getFreeHeap(), heap_min_free);
-  metricsAddValue("HeapMaxAlloc", ESP.getMaxFreeBlockSize(), 1, metrics,
-                  labels);
-  metricsAddValue("HeapMinFree", heap_min_free, 1, metrics, labels);
-  metricsAddValue("HeapFragmentation", ESP.getHeapFragmentation(), 1, metrics,
-                  labels);
-}
-
 void Growatt::RegisterCommand(const String& command,
                               CommandHandlerFunc handler) {
   handlers[command] = handler;

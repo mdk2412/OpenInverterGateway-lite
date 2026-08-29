@@ -498,7 +498,6 @@ void setup() {
 
   httpServer.on("/status", sendJsonSite);
   httpServer.on("/uiStatus", sendUiJsonSite);
-  httpServer.on("/metrics", sendMetrics);
   httpServer.on("/startAp", startConfigAccessPoint);
   httpServer.on("/reboot", rebootESP);
   httpServer.on("/loadfirst", loadFirst);
@@ -732,29 +731,6 @@ void sendUiJsonSite(void) {
   Inverter.CreateUIJson(doc, Wifi.hostname);
 
   sendJson(doc);
-}
-
-void sendMetrics(void) {
-  if (!readoutSucceeded) {
-    httpServer.send(503, F("text/plain"), F("Service Unavailable"));
-    return;
-  }
-  static unsigned maxMetricsSize = 0;
-  String metrics;
-  if (maxMetricsSize) {
-    metrics.reserve(maxMetricsSize);
-  }
-
-  Inverter.CreateMetrics(metrics, WiFi.macAddress(), Wifi.hostname);
-
-  httpServer.setContentLength(metrics.length());
-  httpServer.send(200, "text/plain", "");
-  WiFiClient client = httpServer.client();
-  for (uint16_t i = 0; i < metrics.length(); i += TCP_MSS) {
-    int len = min(TCP_MSS, (int)metrics.length() - i);
-    client.write(metrics.c_str() + i, len);
-  }
-  maxMetricsSize = max(maxMetricsSize, metrics.length());
 }
 
 #if MQTT_SUPPORTED == 1

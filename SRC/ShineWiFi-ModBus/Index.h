@@ -152,7 +152,6 @@ const char MAIN_page[] PROGMEM = R"=====(
       <div class="grid">
         <button type="button" onclick="location.href='./status'">JSON</button>
         <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
-        <button type="button" onclick="location.href='./metrics'">Metrics</button>
       </div>
       <div class="grid">
         <button type="button" class="secondary"
