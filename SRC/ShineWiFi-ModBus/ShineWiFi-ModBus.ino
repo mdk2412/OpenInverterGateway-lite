@@ -179,16 +179,13 @@ void WiFi_Reconnect() {
     return;
   }
 
-  if (wasConnecting) {
+if (wasConnecting) {
     wasConnecting = false;
 
     WiFi.printDiag(Serial);
-    Log.print(F("Local IP: "));
-    Log.println(WiFi.localIP());
-    Log.print(F("Hostname: "));
-    Log.println(Wifi.hostname);
-
-    Log.println(F("WiFi reconnected"));
+    Log.printf("WiFi reconnected | Local IP: %s | Hostname: %s\n",
+               WiFi.localIP().toString().c_str(),
+               WiFi.hostname().c_str());
   }
 }
 
@@ -290,8 +287,7 @@ void configureLogging() {
     const std::shared_ptr<LOGBase> syslogStreamPtr =
         std::make_shared<SyslogStream>(syslogStream);
     Log.addPrintStream(syslogStreamPtr);
-    Log.print(F("Syslog Server IP: "));
-    Log.println(Wifi.syslog_ip);
+    Log.printf("Syslog Server IP: %s\n", Wifi.syslog_ip.c_str());
   }
 }
 
@@ -302,8 +298,7 @@ void setupWifiHost() {
 #if OTA_SUPPORTED == 0
   MDNS.begin(Wifi.hostname);
 #endif
-  Log.print(F("setupWifiHost: hostname "));
-  Log.println(Wifi.hostname);
+  Log.printf("setupWifiHost: hostname %s\n", Wifi.hostname.c_str());
 }
 
 // --- Zentrale Defaults
@@ -400,13 +395,12 @@ void setup() {
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 #endif
 
-  prefs.begin("ShineWiFi");
+prefs.begin("ShineWiFi");
   loadConfig();
   loadSettingsFromPrefs();
   configureLogging();
+  Log.begin();       // <-- MUSS direkt nach configureLogging() stehen!
   setupWifiHost();
-
-  Log.begin();
 
   setupWifiManagerConfigMenu(wm);
 
@@ -418,12 +412,11 @@ void setup() {
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
-  Log.print(F("force_ap: "));
-  Log.println(Wifi.force_ap);
+Log.printf("force_ap: %s\n", Wifi.force_ap ? "true" : "false");
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {
-    Log.println(F("AP Button pressed during power up"));
+Log.printf("AP Button pressed during power up -> force_ap set to true\n");
     Wifi.force_ap = true;
   }
 #endif
@@ -436,7 +429,7 @@ void setup() {
   if (Wifi.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
-    Log.println(F("GrowattConfig finished"));
+    Log.printf("GrowattConfig finished\n");
     SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();
@@ -449,14 +442,11 @@ void setup() {
     netmask.fromString(Wifi.static_netmask);
     gateway.fromString(Wifi.static_gateway);
     dns.fromString(Wifi.static_dns);
-    Log.print(F("static ip: "));
-    Log.println(Wifi.static_ip);
-    Log.print(F("static netmask: "));
-    Log.println(Wifi.static_netmask);
-    Log.print(F("static gateway: "));
-    Log.println(Wifi.static_gateway);
-    Log.print(F("static dns: "));
-    Log.println(Wifi.static_dns);
+Log.printf("Static IP Configuration:\n  IP:      %s\n  Netmask: %s\n  Gateway: %s\n  DNS:     %s\n",
+             Wifi.static_ip.c_str(),
+             Wifi.static_netmask.c_str(),
+             Wifi.static_gateway.c_str(),
+             Wifi.static_dns.c_str());
     if (!Wifi.static_dns.isEmpty()) {
       wm.setSTAStaticIPConfig(ip, gateway, netmask, dns);
     } else {
@@ -472,13 +462,13 @@ void setup() {
   bool res = wm.autoConnect("GrowattConfig", APPassword);
 
   if (!res) {
-    Log.println(F("Failed to connect WiFi!"));
+Log.printf("Failed to connect WiFi!\n");
     SetLED.on(LED_RED);
     ESP.restart();
   }
 
   SetLED.off(LED_BLUE);
-  Log.println(F("WiFi connected"));
+Log.println(F("WiFi connected"));
 
 #if OTA_SUPPORTED == 1
 #if !defined(OTA_PASSWORD)
@@ -837,32 +827,43 @@ void handlePostData() {
       return;
     }
 
+    const char* typeName = isInput ? "Input" : "Holding";
+
     if (is16) {
-      uint16_t val;
+      uint16_t val = 0;
       bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
                         : Inverter.ReadHoldingReg(reg, &val);
 
-      snprintf_P(
-          msg, sizeof(msg),
-          ok ? PSTR("Reading Value %u from 16-bit %s Register %u succeeded")
-             : PSTR("Reading from 16-bit %s Register %u failed!"),
-          val, isInput ? "Input" : "Holding", reg);
+      if (ok) {
+        snprintf_P(msg, sizeof(msg),
+                   PSTR("Reading Value %u from 16-bit %s Register %u succeeded"),
+                   val, typeName, reg);
+      } else {
+        snprintf_P(msg, sizeof(msg),
+                   PSTR("Reading from 16-bit %s Register %u failed!"),
+                   typeName, reg);
+      }
 
     } else if (widthStr == "32b") {
-      uint32_t val;
+      uint32_t val = 0;
       bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
                         : Inverter.ReadHoldingReg(reg, &val);
 
-      snprintf_P(
-          msg, sizeof(msg),
-          ok ? PSTR("Reading Value %lu from 32-bit %s Register %u succeeded")
-             : PSTR("Reading from 32-bit %s Register %u failed!"),
-          val, isInput ? "Input" : "Holding", reg);
+      if (ok) {
+        snprintf_P(msg, sizeof(msg),
+                   PSTR("Reading Value %lu from 32-bit %s Register %u succeeded"),
+                   val, typeName, reg);
+      } else {
+        snprintf_P(msg, sizeof(msg),
+                   PSTR("Reading from 32-bit %s Register %u failed!"),
+                   typeName, reg);
+      }
 
     } else {
       snprintf_P(msg, sizeof(msg), PSTR("Unknown type (expected 16b or 32b)"));
     }
 
+    Log.printf("Modbus Read: %s\n", msg);
     httpServer.send(200, F("text/plain"), msg);
     return;
   }
@@ -886,11 +887,17 @@ void handlePostData() {
     uint16_t val = valStr.toInt();
     bool ok = Inverter.WriteHoldingReg(reg, val);
 
-    snprintf_P(msg, sizeof(msg),
-               ok ? PSTR("Writing Value %u to Holding Register %u succeeded")
-                  : PSTR("Writing Value %u to Holding Register %u failed!"),
-               val, reg);
+    if (ok) {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing Value %u to Holding Register %u succeeded"),
+                 val, reg);
+    } else {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing Value %u to Holding Register %u failed!"),
+                 val, reg);
+    }
 
+    Log.printf("Modbus Write: %s\n", msg);
     httpServer.send(200, F("text/plain"), msg);
     return;
   }
@@ -927,10 +934,8 @@ void handleNotFound() {
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 void handleNTPSync() {
   int reachable = sntp_getreachability(0);
-  Log.print(F("NTP Server: "));
-  Log.print(DEFAULT_NTP_SERVER);
-  Log.print(F(" reachable "));
-  Log.println(reachable & 1);
+  Log.printf("NTP Server: %s reachable %d\n", DEFAULT_NTP_SERVER,
+             reachable & 1);
 
   if (reachable & 1) {
     StaticJsonDocument<128> req, res;
@@ -1013,13 +1018,15 @@ void loop() {
   if (now - ButtonTimer > BUTTON_TIMER) {
     ButtonTimer = now;
     if (AP_BUTTON_PRESSED) {
-      if (++btnPressed > 5) {
+      btnPressed++;
+      Log.printf("Button pressed (%d/5)\n", btnPressed);
+      if (btnPressed > 5) {
         Log.println(F("Handle press"));
         StartedConfigAfterBoot = true;
       }
-      Log.println(F("Button pressed"));
-    } else
+    } else {
       btnPressed = 0;
+    }
   }
 #endif
 
@@ -1050,7 +1057,7 @@ void loop() {
     readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
 
     updateStatusLEDs();
-    
+
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
