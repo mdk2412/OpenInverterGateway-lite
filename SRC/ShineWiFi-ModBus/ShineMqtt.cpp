@@ -130,6 +130,10 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   String prefix = mqttconfig.topic + "/command/";
   if (!strTopic.startsWith(prefix)) return;
 
+  Log.print(F("MQTT command received: ["));
+  Log.print(strTopic);
+  Log.print(F("] "));
+
   String command = strTopic.substring(prefix.length());
   if (command.isEmpty()) return;
 
