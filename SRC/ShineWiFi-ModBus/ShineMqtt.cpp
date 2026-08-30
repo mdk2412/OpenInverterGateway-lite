@@ -61,8 +61,7 @@ bool ShineMqtt::mqttReconnect() {
                                1, true, "{\"InverterStatus\": -1}");
 
   if (!ok) {
-    Log.print(F("failed, rc="));
-    Log.println(mqttclient.state());
+    Log.printf("failed, rc=%d\n", mqttclient.state());
     return false;
   }
 
@@ -72,13 +71,10 @@ bool ShineMqtt::mqttReconnect() {
   char commandTopic[128];
   snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
            mqttconfig.topic.c_str());
-  if (mqttclient.subscribe(commandTopic, 1)) {
-    Log.print(F("Subscribed: "));
-    Log.println(commandTopic);
-  } else {
-    Log.print(F("Subscribe failed: "));
-    Log.println(commandTopic);
-  }
+
+  bool success = mqttclient.subscribe(commandTopic, 1);
+  Log.printf("%s: %s\n", success ? "Subscribed" : "Subscribe failed",
+             commandTopic);
 #endif
 
   return true;
@@ -116,8 +112,8 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   if (command.isEmpty()) return;
 
   // %.*s erwartet zuerst die Länge als int und dann den Zeiger char*
-  Log.printf("Received Command via MQTT: %s %.*s\n", command.c_str(), (int)length,
-             (char*)payload);
+  Log.printf("Received Command via MQTT: %s %.*s\n", command.c_str(),
+             (int)length, (char*)payload);
 
   StaticJsonDocument<1024> req;
   StaticJsonDocument<1024> res;
