@@ -650,6 +650,8 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
     return;
   }
 
+  Log.println("Handling command: " + command);
+
   // 4. Execution Loop mit korrekter Retry-Logik
   bool success = false;
   String message = "";
