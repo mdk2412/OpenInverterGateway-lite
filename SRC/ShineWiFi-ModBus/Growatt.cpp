@@ -477,14 +477,32 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   if (!Hostname.isEmpty()) {
     doc["Hostname"] = Hostname;
   }
+
+  // Input Registers verarbeiten
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    doc[_Protocol.InputRegisters[i].name] = getRegValue(&_Protocol.InputRegisters[i]);
+    const auto regName = _Protocol.InputRegisters[i].name;
+    if (regName) {
+      double val = getRegValue(&_Protocol.InputRegisters[i]);
+      // Nur ins JSON schreiben, wenn der Wert GUELTIG (nicht NaN) ist
+      if (!isnan(val)) {
+        doc[regName] = val;
+      }
+    }
   }
 
+  // Holding Registers verarbeiten
   for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    doc[_Protocol.HoldingRegisters[i].name] = getRegValue(&_Protocol.HoldingRegisters[i]);
+    const auto regName = _Protocol.HoldingRegisters[i].name;
+    if (regName) {
+      double val = getRegValue(&_Protocol.HoldingRegisters[i]);
+      // Nur ins JSON schreiben, wenn der Wert GUELTIG (nicht NaN) ist
+      if (!isnan(val)) {
+        doc[regName] = val;
+      }
+    }
   }
 
+  // System-Informationen
   doc["Mac"] = MacAddress;
   doc["Cnt"] = _PacketCnt;
   doc["CntFailed"] = _PacketCntFailed;
@@ -499,6 +517,7 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   doc["HeapMinFree"] = heap_min_free;
   doc["HeapFragmentation"] = ESP.getHeapFragmentation();
 
+  // Prüfen, ob der Speicher für das JSON ausgereicht hat
   if (doc.overflowed()) {
     Log.println(F("CreateJson: JsonDocument overflowed! Output will be truncated."));
   }

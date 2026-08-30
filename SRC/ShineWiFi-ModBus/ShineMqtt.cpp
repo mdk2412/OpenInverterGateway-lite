@@ -106,13 +106,16 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   if (!mqttclient.connected()) return false;
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  size_t len = measureJson(doc);
-  bool ok = mqttclient.beginPublish(t.c_str(), len, true);
+  // JSON zuerst vollständig in einen String serialisieren
+  String output;
+  serializeJson(doc, output);
+
+  // Exakte Länge des fertigen Strings nutzen
+  bool ok = mqttclient.beginPublish(t.c_str(), output.length(), true);
   if (ok) {
-    serializeJson(doc, mqttclient);
+    mqttclient.print(output);
     ok = mqttclient.endPublish();
   }
-  // Log.println(ok ? "succeed" : "failed");
   return ok;
 }
 
