@@ -115,13 +115,15 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   String strTopic(topic);
   String prefix = mqttconfig.topic + "/command/";
-  
+
   if (!strTopic.startsWith(prefix)) return;
 
   String command = strTopic.substring(prefix.length());
   if (command.isEmpty()) return;
 
-  Log.printf("MQTT command received: [%s] -> %s\n", topic, command.c_str());
+  // %.*s erwartet zuerst die Länge als int und dann den Zeiger char*
+  Log.printf("MQTT command received: %s %.*s\n", command.c_str(), (int)length,
+             (char*)payload);
 
   StaticJsonDocument<1024> req;
   StaticJsonDocument<1024> res;
