@@ -122,7 +122,7 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   if (command.isEmpty()) return;
 
   // %.*s erwartet zuerst die Länge als int und dann den Zeiger char*
-  Log.printf("MQTT command received: %s %.*s\n", command.c_str(), (int)length,
+  Log.printf("Received Command via MQTT: %s %.*s\n", command.c_str(), (int)length,
              (char*)payload);
 
   StaticJsonDocument<1024> req;
