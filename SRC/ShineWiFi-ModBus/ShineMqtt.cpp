@@ -3,26 +3,17 @@
 
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
-
 #include <PubSubClient.h>
 
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
     : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {
   mqttclient.setBufferSize(BUFFER_SIZE);
-  // Optimierung 2: schnelleres Timeout
+  // Schnelleres Timeout
   mqttclient.setSocketTimeout(2);
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
            (uint32_t)ESP.getChipId());
 }
 
-// -------------------------------------------------------
-// Sichere, gültige MQTT-Client-ID
-// -------------------------------------------------------
-// String ShineMqtt::getId() {
-//   return "growatt-min_tl-xh-" + String(ESP.getChipId(), HEX);
-// }
-
-// -------------------------------------------------------
 boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
 boolean ShineMqtt::mqttConnected() { return mqttclient.connected(); }
 
@@ -64,7 +55,7 @@ bool ShineMqtt::mqttReconnect() {
   if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
   if (mqttclient.connected()) return true;
 
-  // Intervall prüfen
+  // Intervall prüfen (5 Sekunden)
   uint32_t now = millis();
   if (now - previousConnectTryMillis < 5000) return false;
   previousConnectTryMillis = now;
@@ -106,11 +97,9 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   if (!mqttclient.connected()) return false;
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  // JSON zuerst vollständig in einen String serialisieren
   String output;
   serializeJson(doc, output);
 
-  // Exakte Länge des fertigen Strings nutzen
   bool ok = mqttclient.beginPublish(t.c_str(), output.length(), true);
   if (ok) {
     mqttclient.print(output);
@@ -124,24 +113,20 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
 // -------------------------------------------------------
 #if MQTT_COMMANDS == 1
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  String strTopic(topic);  // Optional: Topic-Matching lässt sich auch ohne
-                           // String machen, ist hier aber meist kurz
-
+  String strTopic(topic);
   String prefix = mqttconfig.topic + "/command/";
+  
   if (!strTopic.startsWith(prefix)) return;
-
-  Log.print(F("MQTT command received: ["));
-  Log.print(strTopic);
-  Log.print(F("] "));
 
   String command = strTopic.substring(prefix.length());
   if (command.isEmpty()) return;
 
+  Log.printf("MQTT command received: [%s] -> %s\n", topic, command.c_str());
+
   StaticJsonDocument<1024> req;
   StaticJsonDocument<1024> res;
 
-  // Direkte Übergabe des empfangenen Bytes-Puffers ohne Umweg über String
-  // messagePayload:
+  // Übergabe des empfangenen Puffers an den Handler
   inverter.HandleCommand(command, payload, length, req, res);
 
   mqttPublish(res, mqttconfig.topic + "/result");
