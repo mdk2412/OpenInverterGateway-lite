@@ -621,7 +621,7 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   DeserializationError deserializationErr = deserializeJson(req, payload, length);
 
   if (deserializationErr) {
-    Log.printf("Failed to parse JSON Request in Command %s: %s\n",
+    Log.printf("Failed to parse JSON Request in Command '%s': %s\n",
                command.c_str(), deserializationErr.c_str());
 
     res["command"] = command;
@@ -651,7 +651,7 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
     return;
   }
 
-  Log.printf("Handling command: %s\n", command.c_str());
+  Log.printf("Handling Command: %s\n", command.c_str());
 
   // 4. Execution Loop mit korrekter Retry-Logik
   bool success = false;
