@@ -537,53 +537,66 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
   if (!Hostname.isEmpty()) {
-    // ArduinoJson v7 Syntax: .to<JsonArray>() statt .createNestedArray()
     JsonArray arr = doc["Hostname"].to<JsonArray>();
     arr.add(Hostname);
     arr.add("");
   }
 
+  // Input Registers verarbeiten
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
     if (_Protocol.InputRegisters[i].frontend) {
-      // ArduinoJson v7 Syntax:
-      JsonArray arr = doc[_Protocol.InputRegisters[i].name].to<JsonArray>();
+      double val = getRegValue(&_Protocol.InputRegisters[i]);
 
-      // Value
-      arr.add(getRegValue(&_Protocol.InputRegisters[i]));
+      // Nur verarbeiten, wenn der Wert GUELTIG (nicht NaN) ist
+      if (!isnan(val)) {
+        const auto regName = _Protocol.InputRegisters[i].name;
+        if (regName) {
+          JsonArray arr = doc[regName].to<JsonArray>();
 
-      const auto regVal = _Protocol.InputRegisters[i].value;
-      const String regName = _Protocol.InputRegisters[i].name;
+          // Value hinzufügen
+          arr.add(val);
 
-      if ((regName == F("InverterStatus") || regName == F("BDCSysState")) &&
-          regVal < statusStrLength) {
-        arr.add(statusStr[regVal]);
-      } else if (regName == F("BDCSysMode") && regVal < bdcModeStrLength) {
-        arr.add(bdcModeStr[regVal]);
-      } else if (regName == F("Priority") && regVal < priorityStrLength) {
-        arr.add(priorityStr[regVal]);
-      } else {
-        arr.add(unitStr[_Protocol.InputRegisters[i].unit]);
+          const auto regVal = _Protocol.InputRegisters[i].value;
+
+          if ((String(regName) == F("InverterStatus") || String(regName) == F("BDCSysState")) &&
+              regVal < statusStrLength) {
+            arr.add(statusStr[regVal]);
+          } else if (String(regName) == F("BDCSysMode") && regVal < bdcModeStrLength) {
+            arr.add(bdcModeStr[regVal]);
+          } else if (String(regName) == F("Priority") && regVal < priorityStrLength) {
+            arr.add(priorityStr[regVal]);
+          } else {
+            arr.add(unitStr[_Protocol.InputRegisters[i].unit]);
+          }
+        }
       }
     }
   }
 
+  // Holding Registers verarbeiten
   for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
     if (_Protocol.HoldingRegisters[i].frontend) {
-      // ArduinoJson v7 Syntax:
-      JsonArray arr = doc[_Protocol.HoldingRegisters[i].name].to<JsonArray>();
+      double val = getRegValue(&_Protocol.HoldingRegisters[i]);
 
-      // Value
-      arr.add(getRegValue(&_Protocol.HoldingRegisters[i]));
+      // Nur verarbeiten, wenn der Wert GUELTIG (nicht NaN) ist
+      if (!isnan(val)) {
+        const auto regName = _Protocol.HoldingRegisters[i].name;
+        if (regName) {
+          JsonArray arr = doc[regName].to<JsonArray>();
 
-      const auto regVal = _Protocol.HoldingRegisters[i].value;
-      const String regName = _Protocol.HoldingRegisters[i].name;
+          // Value hinzufügen
+          arr.add(val);
 
-      if (regName == F("InverterStatus") && regVal < statusStrLength) {
-        arr.add(statusStr[regVal]);
-      } else if (regName == F("OnOff") && regVal < onoffStrLength) {
-        arr.add(onoffStr[regVal]);
-      } else {
-        arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);
+          const auto regVal = _Protocol.HoldingRegisters[i].value;
+
+          if (String(regName) == F("InverterStatus") && regVal < statusStrLength) {
+            arr.add(statusStr[regVal]);
+          } else if (String(regName) == F("OnOff") && regVal < onoffStrLength) {
+            arr.add(onoffStr[regVal]);
+          } else {
+            arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);
+          }
+        }
       }
     }
   }
