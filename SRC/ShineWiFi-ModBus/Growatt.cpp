@@ -621,12 +621,13 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   DeserializationError deserializationErr = deserializeJson(req, payload, length);
 
   if (deserializationErr) {
-    String errMsg = "Failed to parse JSON Request in Command '" + command +
-                    "': " + String(deserializationErr.c_str());
-    Log.println(errMsg);
+    Log.printf("Failed to parse JSON Request in Command '%s': %s\n",
+               command.c_str(), deserializationErr.c_str());
+
     res["command"] = command;
     res["success"] = false;
-    res["message"] = errMsg;
+    res["message"] =
+        "Failed to parse JSON Request: " + String(deserializationErr.c_str());
     return;
   }
 
@@ -643,14 +644,14 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   // 3. Command-Handler suchen
   auto it = handlers.find(command);
   if (it == handlers.end()) {
-    Log.println("Unknown Command: " + command);
+    Log.printf("Unknown Command: %s\n", command.c_str());
     res["command"] = command;
     res["success"] = false;
     res["message"] = "Unknown Command: " + command;
     return;
   }
 
-  Log.println("Handling command: " + command);
+  Log.printf("Handling command: %s\n", command.c_str());
 
   // 4. Execution Loop mit korrekter Retry-Logik
   bool success = false;
@@ -675,7 +676,10 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   res["success"] = success;
   res["message"] = message;
 
-  Log.println(res["message"].as<String>());
+  const char* msg = res["message"].as<const char*>();
+  if (msg && msg[0] != '\0') {
+    Log.println(msg);
+  }
 }
 
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
