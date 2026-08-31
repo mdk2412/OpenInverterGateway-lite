@@ -25,16 +25,16 @@ void acchargeControl() {
     // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
       StaticJsonDocument<128> req1, res1;
-      const char* payload1 = "{\"mode\":0,\"retry\":2}";
+      const char* json1 = "{\"mode\":0,\"retry\":2}";
 
-      Inverter.HandleCommand("priority/set", (const byte*)payload1,
-                             strlen(payload1), req1, res1);
+      Inverter.HandleCommand("priority/set", (const byte*)json1,
+                             strlen(json1), req1, res1);
 
       StaticJsonDocument<128> req2, res2;
-      const char* payload2 = "{\"value\":100,\"retry\":2}";
+      const char* json2 = "{\"value\":100,\"retry\":2}";
 
-      Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload2,
-                             strlen(payload2), req2, res2);
+      Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json2,
+                             strlen(json2), req2, res2);
 
       return;
     }

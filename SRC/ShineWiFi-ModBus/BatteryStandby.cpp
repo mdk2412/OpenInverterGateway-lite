@@ -25,10 +25,10 @@ void batteryStandby() {
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
       StaticJsonDocument<128> req, res;
-      const char* payload = "{\"value\":0,\"retry\":2}";
+      const char* json = "{\"value\":0,\"retry\":2}";
 
-      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)payload,
-                             strlen(payload), req, res);
+      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)json,
+                             strlen(json), req, res);
 
       if (res["success"] == true) {
         Log.println(F("Battery discharging deactivated"));
@@ -42,10 +42,10 @@ void batteryStandby() {
   else if (soc >= (discharge_stop + 5)) {
     if (discharge_rate != 100) {
       StaticJsonDocument<128> req, res;
-      const char* payload = "{\"value\":100,\"retry\":2}";
+      const char* json = "{\"value\":100,\"retry\":2}";
 
-      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)payload,
-                             strlen(payload), req, res);
+      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)json,
+                             strlen(json), req, res);
 
       if (res["success"] == true) {
         Log.println(F("Battery discharging activated"));
@@ -58,10 +58,8 @@ void batteryStandby() {
   // --- Battery OFF → wake ---
   if (sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
-      char json[64];
-      snprintf(json, sizeof(json), "{\"value\":3,\"retry\":2}");
-
-      StaticJsonDocument<256> req, res;
+      StaticJsonDocument<128> req, res;
+      const char* json = "{\"value\":3,\"retry\":2}";
 
       Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
                              res);
@@ -72,10 +70,8 @@ void batteryStandby() {
   else if (sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
-      char json[64];
-      snprintf(json, sizeof(json), "{\"value\":2,\"retry\":2}");
-
-      StaticJsonDocument<256> req, res;
+      StaticJsonDocument<128> req, res;
+      const char* json = "{\"value\":2,\"retry\":2}";
 
       Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
                              res);
