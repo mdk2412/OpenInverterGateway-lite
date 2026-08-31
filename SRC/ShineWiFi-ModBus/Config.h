@@ -6,7 +6,7 @@
 // ---------------------------------------------------------------
 
 // added for ModbusTCP support
-#define MODBUS_TCP_SUPPORTED 1
+#define MODBUS_TCP_SUPPORTED 0
 #define MODBUS_TCP_PORT 502
 
 // Define used modbus version used by your inverter here. Currently
