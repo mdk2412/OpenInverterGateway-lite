@@ -9,7 +9,7 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
     : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {
   mqttclient.setBufferSize(BUFFER_SIZE);
   // Schnelleres Timeout
-  mqttclient.setSocketTimeout(2);
+  mqttclient.setSocketTimeout(15);
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
            (uint32_t)ESP.getChipId());
 }
@@ -90,12 +90,12 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   String output;
   serializeJson(doc, output);
 
-  bool ok = mqttclient.beginPublish(t.c_str(), output.length(), true);
-  if (ok) {
-    mqttclient.print(output);
-    ok = mqttclient.endPublish();
+  if (output.length() > BUFFER_SIZE) {
+    Log.printf("MQTT Error: Payload Size (%u) > BUFFER_SIZE (%u)\n", output.length(), BUFFER_SIZE);
+    return false;
   }
-  return ok;
+
+  return mqttclient.publish(t.c_str(), (const uint8_t*)output.c_str(), output.length(), true);
 }
 
 // -------------------------------------------------------
