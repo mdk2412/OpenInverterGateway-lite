@@ -8,7 +8,7 @@ void surplusCharge() {
   uint64_t power_limit = User.power_limit * 10;
 
   // --- Register EINMAL auslesen ---
-  //int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  // int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
   int32_t p_togrid =
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
@@ -42,10 +42,10 @@ void surplusCharge() {
   uint16_t targetpowerrate = std::clamp(rate, 0, 100);
 
   if (current_rate < targetpowerrate) {
-    char json[64];
-    snprintf(json, sizeof(json), "{\"value\":%d,\"retry\":2}", targetpowerrate);
+    char json[32];
+    snprintf(json, sizeof(json), "{\"value\":%u,\"retry\":2}", targetpowerrate);
 
-    StaticJsonDocument<256> req, res;
+    StaticJsonDocument<128> req, res;
     Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
                            strlen(json), req, res);
   }
