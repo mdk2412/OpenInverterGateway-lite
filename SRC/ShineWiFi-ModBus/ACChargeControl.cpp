@@ -59,7 +59,7 @@ void acchargeControl() {
         if (current_rate != targetpowerrate) {
             char json[64];
             snprintf(json, sizeof(json),
-                     "{\"value\":%d,\"retry\":2}", targetpowerrate);
+                     "{\"value\":%u,\"retry\":2}", targetpowerrate);
 
             StaticJsonDocument<256> req, res;
             Inverter.HandleCommand(
