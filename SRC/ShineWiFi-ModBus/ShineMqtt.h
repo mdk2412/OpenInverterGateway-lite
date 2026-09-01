@@ -6,7 +6,7 @@
 #include <Arduino.h>
 #include "ShineWifi.h"
 #include "Growatt.h"
-#include <PubSubClient.h>
+#include <PicoMQTT.h>
 #include <stdbool.h>
 
 typedef struct {
@@ -35,7 +35,7 @@ class ShineMqtt {
   WiFiClient& wifiClient;
   unsigned long previousConnectTryMillis = 0;
   MqttConfig mqttconfig;
-  PubSubClient mqttclient;
+  PicoMQTT::Client* mqttclient;
   Growatt& inverter;
   // Optimierung 4: loop()-Taktung
   uint32_t lastMqttLoop = 0;

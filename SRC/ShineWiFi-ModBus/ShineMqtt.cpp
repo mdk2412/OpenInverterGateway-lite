@@ -3,19 +3,16 @@
 
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
-#include <PubSubClient.h>
+#include <PicoMQTT.h>
 
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
-    : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {
-  mqttclient.setBufferSize(BUFFER_SIZE);
-  // Schnelleres Timeout
-  mqttclient.setSocketTimeout(15);
+    : wifiClient(wc), mqttclient(nullptr), inverter(inverter) {
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
            (uint32_t)ESP.getChipId());
 }
 
 boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
-boolean ShineMqtt::mqttConnected() { return mqttclient.connected(); }
+boolean ShineMqtt::mqttConnected() { return mqttclient && mqttclient->connected(); }
 
 // -------------------------------------------------------
 // Setup
@@ -32,14 +29,31 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
       mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
       mqttconfig.topic.c_str());
 
-  mqttclient.setServer(mqttconfig.server.c_str(), port);
+  // Initialize PicoMQTT client with broker hostname
+  if (mqttclient != nullptr) {
+    delete mqttclient;
+  }
+  mqttclient = new PicoMQTT::Client(mqttconfig.server.c_str());
+  mqttclient->port = port;
+  mqttclient->client_id = clientId;
+
+  // Set credentials if provided
+  if (!mqttconfig.user.isEmpty()) {
+    mqttclient->username = mqttconfig.user.c_str();
+    mqttclient->password = mqttconfig.pwd.c_str();
+  }
 
 #if MQTT_COMMANDS == 1
-  mqttclient.setCallback(
-      [this](char* topic, byte* payload, unsigned int length) {
-        this->onMqttMessage(topic, payload, length);
-      });
+  char commandTopic[128];
+  snprintf(commandTopic, sizeof(commandTopic), "%s/command/+",
+           mqttconfig.topic.c_str());
+  
+  mqttclient->subscribe(commandTopic, [this](const char* topic, const char* payload) {
+    this->onMqttMessage((char*)topic, (byte*)payload, strlen(payload));
+  });
 #endif
+
+  mqttclient->begin();
 }
 
 // -------------------------------------------------------
@@ -47,44 +61,18 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 // -------------------------------------------------------
 bool ShineMqtt::mqttReconnect() {
   if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
-  if (mqttclient.connected()) return true;
+  if (mqttclient && mqttclient->connected()) return true;
 
-  // Intervall prüfen (5 Sekunden)
-  uint32_t now = millis();
-  if (now - previousConnectTryMillis < 5000) return false;
-  previousConnectTryMillis = now;
-
-  Log.print(F("MQTT Connection... "));
-
-  bool ok = mqttclient.connect(clientId, mqttconfig.user.c_str(),
-                               mqttconfig.pwd.c_str(), mqttconfig.topic.c_str(),
-                               1, true, "{\"InverterStatus\": -1}");
-
-  if (!ok) {
-    Log.printf("failed, rc=%d\n", mqttclient.state());
-    return false;
-  }
-
-  Log.println(F("succeeded"));
-
-#if MQTT_COMMANDS == 1
-  char commandTopic[128];
-  snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
-           mqttconfig.topic.c_str());
-
-  bool success = mqttclient.subscribe(commandTopic, 1);
-  Log.printf("%s: %s\n", success ? "Subscribed" : "Subscribe failed",
-             commandTopic);
-#endif
-
-  return true;
+  // PicoMQTT handles reconnection automatically in loop()
+  // This function just ensures we have a client instance
+  return mqttclient != nullptr;
 }
 
 // -------------------------------------------------------
 // Publish JSON-Dokument
 // -------------------------------------------------------
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
-  if (!mqttclient.connected()) return false;
+  if (!mqttclient || !mqttclient->connected()) return false;
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
   // 1. Exakte Länge berechnen, BEVOR gesendet wird
@@ -95,20 +83,20 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
     return false;
   }
 
-  // 2. PubSubClient mitteilen, dass ein Paket der genauen Länge 'len' folgt
-  if (!mqttclient.beginPublish(t.c_str(), len, true)) {
-    Log.println(F("MQTT Error: beginPublish failed"));
+  // 2. JSON in einen Puffer serialisieren
+  char buffer[BUFFER_SIZE];
+  size_t bytesWritten = serializeJson(doc, buffer, sizeof(buffer));
+
+  if (bytesWritten == 0 || bytesWritten != len) {
+    Log.printf("MQTT Error: Serialization failed (%u/%u bytes)\n", (unsigned int)bytesWritten, (unsigned int)len);
     return false;
   }
 
-  // 3. ArduinoJson schreibt direkt blockweise in den Netzwerk-Socket (ohne Heap-String!)
-  size_t bytesWritten = serializeJson(doc, mqttclient);
+  // 3. Mit PicoMQTT publishen
+  bool success = mqttclient->publish(t.c_str(), buffer);
 
-  // 4. Paket abschließen
-  bool success = mqttclient.endPublish();
-
-  if (!success || bytesWritten != len) {
-    Log.printf("MQTT Error: Publish incomplete (%u/%u bytes)\n", (unsigned int)bytesWritten, (unsigned int)len);
+  if (!success) {
+    Log.println(F("MQTT Error: Publish failed"));
     return false;
   }
 
@@ -145,7 +133,8 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 // -------------------------------------------------------
 void ShineMqtt::loop() {
   mqttReconnect();
-  mqttclient.loop();
+  if (mqttclient)
+    mqttclient->loop();
 }
 
 #endif

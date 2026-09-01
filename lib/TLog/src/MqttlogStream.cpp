@@ -21,7 +21,7 @@
 #include "MqttlogStream.h"
 
 #if (defined(ESP32) || defined(ESP8266))
-#include <PubSubClient.h>
+#include <PicoMQTT.h>
 
 void MqttStream::begin() {
     if (!_mqtt) {
@@ -31,13 +31,13 @@ void MqttStream::begin() {
             return;
         }
         
-        PubSubClient * psc = new PubSubClient(*_client);
-        psc->setServer(_mqttServer, _mqttPort);
-        psc->setBufferSize(sizeof(logbuff)+9+strlen(_mqttTopic));
+        PicoMQTT::Client * psc = new PicoMQTT::Client(_mqttServer);
+        psc->port = _mqttPort;
+        psc->client_id = _identifier;
         
         Log.printf("Opened log on mqtt:://%s:%d/%s\n", _mqttServer, _mqttPort, _mqttTopic);
         _mqtt = psc;
-        _mqtt->connect(_identifier);
+        _mqtt->begin();
     } else {
         if (!_mqttTopic) {
             Log.printf("Missing topic for MQTT Logging\n");
@@ -50,11 +50,12 @@ void MqttStream::begin() {
 }
 
 void MqttStream::reconnect() {
-    if (_mqtt->connect(_mqttTopic)) {
+    // PicoMQTT handles reconnection automatically
+    if (_mqtt && _mqtt->connected()) {
         Log.println("Log:: (re)connected to MQTT");
-        return;
-    };
-    Log.println("Log:: MQTT (re)connection failed. Will retry");
+    } else {
+        Log.println("Log:: MQTT disconnected or not initialized. Will retry");
+    }
 }
 
 void MqttStream::loop() {
