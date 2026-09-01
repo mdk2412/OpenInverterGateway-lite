@@ -102,12 +102,11 @@ const char MAIN_page[] PROGMEM = R"=====(
       </table>
 
       <!-- PRIORITY BUTTONS -->
-      <div class="grid">
-        <button type="button" onclick="if (confirm('Set priority to load first?')) fetch('/loadfirst')">Load
+      <div class="grid" id="priorityButtons">
+        <button type="button" id="btn-loadfirst" onclick="fetch('/loadfirst')">Load First</button>
+        <button type="button" id="btn-batteryfirst" class="secondary" onclick="fetch('/batteryfirst')">Battery
           First</button>
-        <button type="button" class="secondary"
-          onclick="if (confirm('Set priority to battery first?')) fetch('/batteryfirst')">Battery First</button>
-        <button type="button" class="contrast"
+        <button type="button" id="btn-gridfirst" class="contrast"
           onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst')">Grid First</button>
       </div>
 
@@ -226,8 +225,42 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-
         // -------------------------------
+        // PRIORITY BUTTON HIGHLIGHTING
+        // -------------------------------
+        window.setActivePriority = function (clickedBtn) {
+          const container = document.getElementById("priorityButtons");
+          if (!container) return;
+
+          container.querySelectorAll("button").forEach(btn => {
+            if (btn === clickedBtn) {
+              btn.classList.add("outline");
+            } else {
+              btn.classList.remove("outline");
+            }
+          });
+        };
+        // -------------------------------
+        // UPDATE PRIORITY BUTTON STATES
+        // -------------------------------
+        function updatePriorityButtons(currentPriority) {
+          if (!currentPriority || !Array.isArray(currentPriority)) return;
+
+          const prioText = currentPriority.join(" ").toLowerCase();
+
+          const btnLoad = document.getElementById("btn-loadfirst");
+          const btnBat = document.getElementById("btn-batteryfirst");
+          const btnGrid = document.getElementById("btn-gridfirst");
+
+          if (!btnLoad || !btnBat || !btnGrid) return;
+
+          // Umgekehrte Logik: 
+          // Ist der Modus AKTIV -> KEIN .outline (ausgefüllter Button)
+          // Ist der Modus INAKTIV -> MIT .outline (nur Umrandung)
+          btnLoad.classList.toggle("outline", !prioText.includes("load"));
+          btnBat.classList.toggle("outline", !prioText.includes("battery"));
+          btnGrid.classList.toggle("outline", !prioText.includes("grid"));
+        }        // -------------------------------
         // TAB SWITCHING
         // -------------------------------
         document.addEventListener("click", e => {
@@ -258,7 +291,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             if (!response.ok) return;
 
             const data = await response.json();
-
+            updatePriorityButtons(data.Priority);
             // --- Generic renderer ---
             const render = (id, arr, rateArr = null) => {
               const el = document.getElementById(id);
