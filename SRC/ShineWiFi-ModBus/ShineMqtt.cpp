@@ -83,8 +83,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
     return false;
   }
 
-  // 2. JSON in einen Puffer serialisieren
-  char buffer[BUFFER_SIZE];
+  // 2. JSON in einen statischen Puffer serialisieren (nicht auf dem Stack!)
+  static char buffer[BUFFER_SIZE];
   size_t bytesWritten = serializeJson(doc, buffer, sizeof(buffer));
 
   if (bytesWritten == 0 || bytesWritten != len) {
@@ -120,8 +120,13 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   Log.printf("Received Command via MQTT: %s %.*s\n", command.c_str(),
              (int)length, (char*)payload);
 
-  StaticJsonDocument<1024> req;
-  StaticJsonDocument<1024> res;
+  // Use static allocation to avoid stack overflow
+  static StaticJsonDocument<1024> req;
+  static StaticJsonDocument<1024> res;
+  
+  // Clear previous contents
+  req.clear();
+  res.clear();
 
   // Übergabe des empfangenen Puffers an den Handler
   inverter.HandleCommand(command, payload, length, req, res);
