@@ -87,15 +87,32 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   if (!mqttclient.connected()) return false;
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  String output;
-  serializeJson(doc, output);
+  // 1. Exakte Länge berechnen, BEVOR gesendet wird
+  size_t len = measureJson(doc);
 
-  if (output.length() > BUFFER_SIZE) {
-    Log.printf("MQTT Error: Payload Size (%u) > BUFFER_SIZE (%u)\n", output.length(), BUFFER_SIZE);
+  if (len > BUFFER_SIZE) {
+    Log.printf("MQTT Error: Payload Size (%u) > BUFFER_SIZE (%u)\n", (unsigned int)len, BUFFER_SIZE);
     return false;
   }
 
-  return mqttclient.publish(t.c_str(), (const uint8_t*)output.c_str(), output.length(), true);
+  // 2. PubSubClient mitteilen, dass ein Paket der genauen Länge 'len' folgt
+  if (!mqttclient.beginPublish(t.c_str(), len, true)) {
+    Log.println(F("MQTT Error: beginPublish failed"));
+    return false;
+  }
+
+  // 3. ArduinoJson schreibt direkt blockweise in den Netzwerk-Socket (ohne Heap-String!)
+  size_t bytesWritten = serializeJson(doc, mqttclient);
+
+  // 4. Paket abschließen
+  bool success = mqttclient.endPublish();
+
+  if (!success || bytesWritten != len) {
+    Log.printf("MQTT Error: Publish incomplete (%u/%u bytes)\n", (unsigned int)bytesWritten, (unsigned int)len);
+    return false;
+  }
+
+  return true;
 }
 
 // -------------------------------------------------------
