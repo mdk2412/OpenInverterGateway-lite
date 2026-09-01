@@ -25,7 +25,7 @@
 
 #include <Print.h>
 #if (defined(ESP32) || defined(ESP8266))
-#include <PubSubClient.h>
+#include <MQTT.h>
 #include <list>
 
 #ifndef MAX_MQTT_QUEUE
@@ -39,7 +39,7 @@ class MqttStream : public LOGBase {
       if (mqttServer) _mqttServer = strdup(mqttServer);
       if (mqttTopic) _mqttTopic = strdup(mqttTopic);
     };
-    MqttStream(PubSubClient * pubsub, char * mqttTopic = NULL) :
+    MqttStream(MQTTClient * pubsub, char * mqttTopic = NULL) :
       _mqtt(pubsub) {
       if (mqttTopic) _mqttTopic = strdup(mqttTopic);
       _client = NULL; // used to detect the case where we're not resposible for the connection.
@@ -66,7 +66,7 @@ class MqttStream : public LOGBase {
 
   private:
     Client * _client = NULL;
-    PubSubClient * _mqtt = NULL;
+    MQTTClient * _mqtt = NULL;
     const char * _mqttServer = NULL, * _mqttTopic = NULL;
     uint16_t _mqttPort = 0;
     char logbuff[300];

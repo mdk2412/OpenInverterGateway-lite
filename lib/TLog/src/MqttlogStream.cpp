@@ -21,7 +21,7 @@
 #include "MqttlogStream.h"
 
 #if (defined(ESP32) || defined(ESP8266))
-#include <PubSubClient.h>
+#include <MQTT.h>
 
 void MqttStream::begin() {
     if (!_mqtt) {
@@ -31,13 +31,17 @@ void MqttStream::begin() {
             return;
         }
         
-        PubSubClient * psc = new PubSubClient(*_client);
-        psc->setServer(_mqttServer, _mqttPort);
-        psc->setBufferSize(sizeof(logbuff)+9+strlen(_mqttTopic));
+        if (!_client) {
+            Log.printf("Missing WiFiClient for MQTT Logging\n");
+            return;
+        }
+        
+        MQTTClient * psc = new MQTTClient(1024);
+        psc->begin(*_client);
+        psc->setHost(_mqttServer, _mqttPort);
         
         Log.printf("Opened log on mqtt:://%s:%d/%s\n", _mqttServer, _mqttPort, _mqttTopic);
         _mqtt = psc;
-        _mqtt->connect(_identifier);
     } else {
         if (!_mqttTopic) {
             Log.printf("Missing topic for MQTT Logging\n");
@@ -50,10 +54,14 @@ void MqttStream::begin() {
 }
 
 void MqttStream::reconnect() {
-    if (_mqtt->connect(_mqttTopic)) {
+    if (_mqtt && _mqtt->connected()) {
         Log.println("Log:: (re)connected to MQTT");
         return;
     };
+    if (_mqtt && _mqtt->connect("TLogClient")) {
+        Log.println("Log:: (re)connected to MQTT");
+        return;
+    }
     Log.println("Log:: MQTT (re)connection failed. Will retry");
 }
 
@@ -66,7 +74,7 @@ void MqttStream::loop() {
     if (_mqtt->connected()) {
         auto it = queue.begin();
         while (it != queue.end()) {
-            _mqtt->publish(_mqttTopic ? _mqttTopic : "debug", it->c_str());
+            _mqtt->publish(_mqttTopic ? _mqttTopic : "debug", *it);
             queue.erase(it++);
         };
         return;

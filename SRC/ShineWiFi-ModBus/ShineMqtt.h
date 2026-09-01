@@ -6,8 +6,9 @@
 #include <Arduino.h>
 #include "ShineWifi.h"
 #include "Growatt.h"
-#include <PubSubClient.h>
+#include <MQTT.h>
 #include <stdbool.h>
+#include <functional>
 
 typedef struct {
   String server;
@@ -35,10 +36,11 @@ class ShineMqtt {
   WiFiClient& wifiClient;
   unsigned long previousConnectTryMillis = 0;
   MqttConfig mqttconfig;
-  PubSubClient mqttclient;
+  MQTTClient mqttclient;
   Growatt& inverter;
   // Optimierung 4: loop()-Taktung
   uint32_t lastMqttLoop = 0;
   char clientId[32];
+  bool mqttConfigured = false;
 };
 #endif

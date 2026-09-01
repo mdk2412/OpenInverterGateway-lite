@@ -3,15 +3,22 @@
 
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
-#include <PubSubClient.h>
+#include <MQTT.h>
 
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
-    : wifiClient(wc), mqttclient(wifiClient), inverter(inverter) {
-  mqttclient.setBufferSize(BUFFER_SIZE);
-  // Schnelleres Timeout
-  mqttclient.setSocketTimeout(15);
+    : wifiClient(wc), inverter(inverter), mqttclient(1024) {
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
            (uint32_t)ESP.getChipId());
+  
+  // Initialize MQTT client with WiFi connection
+  mqttclient.begin(wifiClient);
+  
+#if MQTT_COMMANDS == 1
+  // Set up message callback for the MQTT library
+  mqttclient.onMessage([this](String &topic, String &payload) {
+    this->onMqttMessage((char*)topic.c_str(), (byte*)payload.c_str(), payload.length());
+  });
+#endif
 }
 
 boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
@@ -32,36 +39,40 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
       mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
       mqttconfig.topic.c_str());
 
-  mqttclient.setServer(mqttconfig.server.c_str(), port);
-
-#if MQTT_COMMANDS == 1
-  mqttclient.setCallback(
-      [this](char* topic, byte* payload, unsigned int length) {
-        this->onMqttMessage(topic, payload, length);
-      });
-#endif
+  // Configure MQTT connection parameters
+  mqttclient.setHost(mqttconfig.server.c_str(), port);
+  mqttclient.setCleanSession(true);
+  
+  mqttConfigured = true;
 }
 
 // -------------------------------------------------------
 // Stabile Reconnect-Logik
 // -------------------------------------------------------
 bool ShineMqtt::mqttReconnect() {
-  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
-  if (mqttclient.connected()) return true;
+  if (!mqttEnabled() || !mqttConfigured || WiFi.status() != WL_CONNECTED) 
+    return false;
+  if (mqttclient.connected()) 
+    return true;
 
   // Intervall prüfen (5 Sekunden)
   uint32_t now = millis();
-  if (now - previousConnectTryMillis < 5000) return false;
+  if (now - previousConnectTryMillis < 5000) 
+    return false;
   previousConnectTryMillis = now;
 
   Log.print(F("MQTT Connection... "));
 
-  bool ok = mqttclient.connect(clientId, mqttconfig.user.c_str(),
-                               mqttconfig.pwd.c_str(), mqttconfig.topic.c_str(),
-                               1, true, "{\"InverterStatus\": -1}");
+  // Connect using the 256dpi/arduino-mqtt API
+  bool ok;
+  if (!mqttconfig.user.isEmpty()) {
+    ok = mqttclient.connect(clientId, mqttconfig.user.c_str(), mqttconfig.pwd.c_str());
+  } else {
+    ok = mqttclient.connect(clientId);
+  }
 
   if (!ok) {
-    Log.printf("failed, rc=%d\n", mqttclient.state());
+    Log.println(F("failed"));
     return false;
   }
 
@@ -71,8 +82,8 @@ bool ShineMqtt::mqttReconnect() {
   char commandTopic[128];
   snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
            mqttconfig.topic.c_str());
-
-  bool success = mqttclient.subscribe(commandTopic, 1);
+  
+  bool success = mqttclient.subscribe(commandTopic);
   Log.printf("%s: %s\n", success ? "Subscribed" : "Subscribe failed",
              commandTopic);
 #endif
@@ -84,31 +95,20 @@ bool ShineMqtt::mqttReconnect() {
 // Publish JSON-Dokument
 // -------------------------------------------------------
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
-  if (!mqttclient.connected()) return false;
+  if (!mqttclient.connected()) 
+    return false;
+  
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  // 1. Exakte Länge berechnen, BEVOR gesendet wird
-  size_t len = measureJson(doc);
+  // Serialize JSON to a String buffer
+  String payload;
+  serializeJson(doc, payload);
 
-  if (len > BUFFER_SIZE) {
-    Log.printf("MQTT Error: Payload Size (%u) > BUFFER_SIZE (%u)\n", (unsigned int)len, BUFFER_SIZE);
-    return false;
-  }
+  // Publish with retained flag set
+  bool success = mqttclient.publish(t, payload, true, 1);
 
-  // 2. PubSubClient mitteilen, dass ein Paket der genauen Länge 'len' folgt
-  if (!mqttclient.beginPublish(t.c_str(), len, true)) {
-    Log.println(F("MQTT Error: beginPublish failed"));
-    return false;
-  }
-
-  // 3. ArduinoJson schreibt direkt blockweise in den Netzwerk-Socket (ohne Heap-String!)
-  size_t bytesWritten = serializeJson(doc, mqttclient);
-
-  // 4. Paket abschließen
-  bool success = mqttclient.endPublish();
-
-  if (!success || bytesWritten != len) {
-    Log.printf("MQTT Error: Publish incomplete (%u/%u bytes)\n", (unsigned int)bytesWritten, (unsigned int)len);
+  if (!success) {
+    Log.printf("MQTT Error: Publish to %s failed\n", t.c_str());
     return false;
   }
 
@@ -123,10 +123,12 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   String strTopic(topic);
   String prefix = mqttconfig.topic + "/command/";
 
-  if (!strTopic.startsWith(prefix)) return;
+  if (!strTopic.startsWith(prefix)) 
+    return;
 
   String command = strTopic.substring(prefix.length());
-  if (command.isEmpty()) return;
+  if (command.isEmpty()) 
+    return;
 
   // %.*s erwartet zuerst die Länge als int und dann den Zeiger char*
   Log.printf("Received Command via MQTT: %s %.*s\n", command.c_str(),
@@ -147,5 +149,7 @@ void ShineMqtt::loop() {
   mqttReconnect();
   mqttclient.loop();
 }
+
+
 
 #endif
