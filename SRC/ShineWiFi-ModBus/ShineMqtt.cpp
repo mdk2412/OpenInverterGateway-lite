@@ -97,7 +97,7 @@ void ShineMqtt::loop() {
 
   // Statuswechsel erkennen: Von disconnected -> connected
   if (currentlyConnected && !lastConnectedState) {
-    Log.printf("MQTT (Re)connected! Subscribing to Topics...\n");
+    Log.printf("MQTT (Re)connected\n");
     subscribeTopics();
   }
 
