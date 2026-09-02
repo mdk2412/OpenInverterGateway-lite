@@ -81,18 +81,21 @@ bool ShineMqtt::mqttReconnect() {
 // -------------------------------------------------------
 // Publish JSON-Dokument
 // -------------------------------------------------------
-boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
+// ShineMqtt.cpp
+// ShineMqtt.cpp
+boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
+                               uint8_t qos, bool retain) {
   if (!mqttclient || !mqttclient->connected()) return false;
+
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  // 1. Exakte Länge des JSON berechnen
+  // 1. Exakte JSON-Länge berechnen
   size_t len = measureJson(doc);
 
-  // 2. Stream-Publish bei PicoMQTT starten (übermittelt Topic & Content-Length)
-  auto publish_stream = mqttclient->begin_publish(t.c_str(), len);
+  // 2. Stream-Publish mit dynamischem QoS (0, 1, 2) und Retain-Flag
+  auto publish_stream = mqttclient->begin_publish(t.c_str(), len, qos, retain);
 
-  // 3. Directly Stream: ArduinoJson schreibt direkt in den PicoMQTT-Socket!
-  // Es wird KEIN lokaler/statischer char-Puffer mehr benötigt!
+  // 3. Directly serialize into the TCP stream (Zero-Buffer)
   size_t bytesWritten = serializeJson(doc, publish_stream);
 
   if (bytesWritten != len) {
@@ -101,7 +104,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
     return false;
   }
 
-  // 4. Stream leeren/abschließen (flush hat void als Rückgabe)
+  // 4. Stream leeren & TCP-Pakete absenden
   publish_stream.flush();
 
   return true;

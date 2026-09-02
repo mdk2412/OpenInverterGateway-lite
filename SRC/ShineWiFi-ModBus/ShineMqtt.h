@@ -22,8 +22,7 @@ class ShineMqtt {
   ShineMqtt(WiFiClient& wc, Growatt& inverter);
   void mqttSetup(const MqttConfig& config);
   bool mqttReconnect();
-  boolean mqttPublish(JsonDocument& doc, const String& topic = "");
-  boolean mqttEnabled();
+  boolean mqttPublish(JsonDocument& doc, const String& topic = "", uint8_t qos = 0, bool retain = false);  boolean mqttEnabled();
   boolean mqttConnected();
 #if MQTT_COMMANDS == 1
   void onMqttMessage(char* topic, byte* payload, unsigned int length);
