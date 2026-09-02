@@ -6,7 +6,7 @@
 #include <MQTT.h>
 
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
-    : wifiClient(wc), inverter(inverter), mqttclient(1024) {
+    : wifiClient(wc), inverter(inverter), mqttclient(4096) {
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
            (uint32_t)ESP.getChipId());
   
@@ -52,6 +52,7 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 bool ShineMqtt::mqttReconnect() {
   if (!mqttEnabled() || !mqttConfigured || WiFi.status() != WL_CONNECTED) 
     return false;
+  
   if (mqttclient.connected()) 
     return true;
 
@@ -63,7 +64,9 @@ bool ShineMqtt::mqttReconnect() {
 
   Log.print(F("MQTT Connection... "));
 
-  // Connect using the 256dpi/arduino-mqtt API
+  // Sicherstellen, dass alte Zustände aufgeräumt sind
+  mqttclient.disconnect();
+
   bool ok;
   if (!mqttconfig.user.isEmpty()) {
     ok = mqttclient.connect(clientId, mqttconfig.user.c_str(), mqttconfig.pwd.c_str());
@@ -100,18 +103,24 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
+  // Puffer verarbeiten vor dem Erstellen des Payloads
+  mqttclient.loop();
+
   // Serialize JSON to a String buffer
   String payload;
   serializeJson(doc, payload);
 
-  // Publish with retained flag set
-  bool success = mqttclient.publish(t, payload, true, 1);
+  // QoS 0 (Standard) und Retain=true verwenden
+  bool success = mqttclient.publish(t, payload, true, 0);
 
   if (!success) {
     Log.printf("MQTT Error: Publish to %s failed\n", t.c_str());
+    // Verbindung trennen, um sauberen Reconnect im nächsten Cycle zu erzwingen
+    mqttclient.disconnect();
     return false;
   }
 
+  mqttclient.loop();
   return true;
 }
 
