@@ -46,18 +46,21 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   }
 
 #if MQTT_COMMANDS == 1
-  static char commandTopic[128];
-  snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
-           mqttconfig.topic.c_str());
+  // Explicit als String übergeben
+  String commandTopic = mqttconfig.topic + "/command/#";
 
-  Log.printf("MQTT Subscribing to topic pattern: %s\n", commandTopic);
+  Log.printf("MQTT Subscribing to topic pattern: %s\n", commandTopic.c_str());
 
-  // ZWEI Parameter: topic und payload
+  // Subscribe registrieren
   mqttclient->subscribe(
       commandTopic, [this](const char* topic, const char* payload) {
-        this->onMqttMessage((char*)topic, (byte*)payload, strlen(payload));
+        Log.printf("MQTT Command received on topic: %s\n", topic);
+        this->onMqttMessage((char*)topic, (byte*)payload,
+                            (unsigned int)strlen(payload));
       });
 #endif
+
+  // erst DANACH connecten oder loop() starten!
 
   // Erst NACH allen subscribe()-Aufrufen begin() starten!
   mqttclient->begin();
@@ -109,36 +112,36 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
 // -------------------------------------------------------
 #if MQTT_COMMANDS == 1
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  // 1. Zero-Copy Topic-Prüfung ohne String-Instanziierung
   const char* baseTopic = mqttconfig.topic.c_str();
   size_t baseLen = strlen(baseTopic);
   const char* commandSuffix = "/command/";
   size_t suffixLen = strlen(commandSuffix);
 
-  // Sicherstellen, dass das Topic mit "<mqttconfig.topic>/command/" beginnt
+  // 1. Zero-Copy Topic-Match
   if (strncmp(topic, baseTopic, baseLen) != 0 ||
       strncmp(topic + baseLen, commandSuffix, suffixLen) != 0) {
     return;
   }
 
-  // Der Command-Name beginnt direkt nach "/command/" (Zero-Copy-Pointer)
-  const char* command = topic + baseLen + suffixLen;
+  // 2. Zeiger-Arithmetik statt String.substring()
+  char* command = topic + baseLen + suffixLen;
   if (*command == '\0') return;
 
-  Log.printf("Received Command via MQTT: %s %.*s\n", command, (int)length,
-             (char*)payload);
-
-  // Static JSON Docs wiederverwenden
   static StaticJsonDocument<1024> req;
   static StaticJsonDocument<1024> res;
   req.clear();
   res.clear();
 
-  // Übergabe ohne Umkopieren
+  // 3. Übergabe der rohen Zeiger an den Inverter
   inverter.HandleCommand(command, payload, length, req, res);
 
-  // Ergebnis per Stream publishen
-  mqttPublish(res, mqttconfig.topic + "/result");
+  // 4. Zero-Copy Antwort-Topic zusammenbauen (OHNE String-Verknüpfung)
+  char resultTopic[128];
+  snprintf(resultTopic, sizeof(resultTopic), "%s/result",
+           mqttconfig.topic.c_str());
+
+  // Publish nutzt unser Zero-Buffer Streaming!
+  mqttPublish(res, resultTopic);
 }
 #endif
 
