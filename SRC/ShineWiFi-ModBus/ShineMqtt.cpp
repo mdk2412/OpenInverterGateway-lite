@@ -1,21 +1,31 @@
 #include "ShineMqtt.h"
-#include "Growatt.h"
 
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
-#include <PicoMQTT.h>
 
 // -------------------------------------------------------
-// Konstruktor
+// Konstruktor & Destruktor
 // -------------------------------------------------------
 ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
-    : wifiClient(wc), mqttclient(nullptr), inverter(inverter) {
+    : wifiClient(wc),
+      previousConnectTryMillis(0),
+      mqttclient(nullptr),
+      inverter(inverter),
+      lastMqttLoop(0),
+      lastConnectedState(false) {
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
            (uint32_t)ESP.getChipId());
 }
 
+ShineMqtt::~ShineMqtt() {
+  if (mqttclient != nullptr) {
+    delete mqttclient;
+    mqttclient = nullptr;
+  }
+}
+
 // -------------------------------------------------------
-// Status-Abfragen
+// Status-Abfragen & Validierung
 // -------------------------------------------------------
 boolean ShineMqtt::mqttEnabled() { 
   return !mqttconfig.server.isEmpty(); 
@@ -25,6 +35,11 @@ boolean ShineMqtt::mqttConnected() {
   return mqttclient && mqttclient->connected();
 }
 
+bool ShineMqtt::mqttReconnect() {
+  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
+  return mqttclient != nullptr;
+}
+
 // -------------------------------------------------------
 // Helper: Subscriptions registrieren
 // -------------------------------------------------------
@@ -32,14 +47,18 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  String commandTopic = mqttconfig.topic + "/command/#";
+  String commandTopic;
+  commandTopic.reserve(mqttconfig.topic.length() + 12);
+  commandTopic = mqttconfig.topic + "/command/#";
+
   Log.printf("MQTT Subscribing to Topic Pattern: %s\n", commandTopic.c_str());
 
   mqttclient->subscribe(
       commandTopic, [this](const char* topic, const char* payload) {
         Log.printf("MQTT Command received on topic: %s\n", topic);
+        size_t payloadLen = payload ? strlen(payload) : 0;
         this->onMqttMessage((char*)topic, (byte*)payload,
-                            (unsigned int)strlen(payload));
+                            (unsigned int)payloadLen);
       });
 #endif
 }
@@ -59,9 +78,12 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
       mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
       mqttconfig.topic.c_str());
 
+  // Vorherige Instanz löschen, falls re-initialisiert wird
   if (mqttclient != nullptr) {
     delete mqttclient;
+    mqttclient = nullptr;
   }
+
   mqttclient = new PicoMQTT::Client(mqttconfig.server.c_str());
   mqttclient->port = port;
   mqttclient->client_id = clientId;
@@ -71,36 +93,35 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
     mqttclient->password = mqttconfig.pwd.c_str();
   }
 
-  // Verbindungsaufbau starten
+  // Subscriptions direkt beim Setup einmalig anlegen
+#if MQTT_COMMANDS == 1
+  subscribeTopics();
+#endif
+
   mqttclient->begin();
 }
 
 // -------------------------------------------------------
-// Reconnect-Prüfung
-// -------------------------------------------------------
-bool ShineMqtt::mqttReconnect() {
-  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
-  return mqttclient != nullptr;
-}
-
-// -------------------------------------------------------
-// Loop mit automatischer Re-Subscription bei Reconnect
+// Loop
 // -------------------------------------------------------
 void ShineMqtt::loop() {
-  if (!mqttReconnect()) return;
+  if (!mqttReconnect()) {
+    lastConnectedState = false;
+    return;
+  }
 
-  static bool lastConnectedState = false;
   bool currentlyConnected = mqttclient->connected();
 
-  // Statuswechsel erkennen: Von disconnected -> connected
+  // Statuswechsel protokollieren
   if (currentlyConnected && !lastConnectedState) {
-    Log.printf("MQTT (Re)connected\n");
-    subscribeTopics();
+    Log.printf("MQTT Connected\n");
+  } else if (!currentlyConnected && lastConnectedState) {
+    Log.printf("MQTT Disconnected\n");
   }
 
   lastConnectedState = currentlyConnected;
 
-  // PicoMQTT verarbeitet Netzwerk und automatische TCP-Reconnects
+  // PicoMQTT kümmert sich intern um die Netzwerkausführung
   mqttclient->loop();
 }
 
@@ -116,7 +137,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
   // 1. Exakte JSON-Länge berechnen
   size_t len = measureJson(doc);
 
-  // 2. Stream-Publish mit dynamischem QoS und Retain-Flag
+  // 2. Stream-Publish starten
   auto publish_stream = mqttclient->begin_publish(t.c_str(), len, qos, retain);
 
   // 3. Direkt in den TCP-Stream serialisieren
@@ -128,7 +149,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
     return false;
   }
 
-  // 4. Stream leeren & TCP-Pakete absenden
+  // 4. Stream leeren & TCP-Pakete senden
   publish_stream.flush();
 
   return true;
@@ -150,26 +171,26 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  // 2. Zeiger-Arithmetik statt String.substring()
+  // 2. Zeiger-Arithmetik
   char* command = topic + baseLen + suffixLen;
   if (*command == '\0') return;
 
-  // ArduinoJson v7: Dynamisch verwaltetes JsonDocument ohne Feste Speichergröße
-  static JsonDocument req;
-  static JsonDocument res;
-  req.clear();
-  res.clear();
+  // 3. Lokale Dokumente (RAM-Freigabe sofort nach Funktionsende)
+  JsonDocument req;
+  JsonDocument res;
 
-  // 3. Übergabe der rohen Zeiger an den Inverter
+  // 4. Übergabe der Daten an den Inverter
   inverter.HandleCommand(command, payload, length, req, res);
 
-  // 4. Zero-Copy Antwort-Topic zusammenbauen
+  // 5. Antwort-Topic mit Pufferprüfung zusammenbauen
   char resultTopic[128];
-  snprintf(resultTopic, sizeof(resultTopic), "%s/result",
-           mqttconfig.topic.c_str());
+  int ret = snprintf(resultTopic, sizeof(resultTopic), "%s/result", baseTopic);
 
-  // Publish nutzt Zero-Buffer Streaming
-  mqttPublish(res, resultTopic);
+  if (ret > 0 && ret < (int)sizeof(resultTopic)) {
+    mqttPublish(res, resultTopic);
+  } else {
+    Log.printf("MQTT Error: Result topic truncated/overflowed\n");
+  }
 }
 #endif
 

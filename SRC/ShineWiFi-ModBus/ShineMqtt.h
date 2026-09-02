@@ -20,27 +20,31 @@ typedef struct {
 class ShineMqtt {
  public:
   ShineMqtt(WiFiClient& wc, Growatt& inverter);
+  ~ShineMqtt();
+
   void mqttSetup(const MqttConfig& config);
   bool mqttReconnect();
   boolean mqttPublish(JsonDocument& doc, const String& topic = "", uint8_t qos = 0, bool retain = false);
   boolean mqttEnabled();
   boolean mqttConnected();
+
 #if MQTT_COMMANDS == 1
   void onMqttMessage(char* topic, byte* payload, unsigned int length);
 #endif
+
   void loop();
-  // const char* getId() const { return clientId; }
 
  private:
-  void subscribeTopics(); // Hilfsmethode für (Re-)Subscriptions
+  void subscribeTopics(); // Hilfsmethode für Subscriptions
 
   WiFiClient& wifiClient;
   unsigned long previousConnectTryMillis = 0;
   MqttConfig mqttconfig;
-  PicoMQTT::Client* mqttclient;
+  PicoMQTT::Client* mqttclient = nullptr;
   Growatt& inverter;
-  // Optimierung 4: loop()-Taktung
+
   uint32_t lastMqttLoop = 0;
   char clientId[32];
+  bool lastConnectedState = false; // Member für saubere Zustandsverfolgung in loop()
 };
 #endif
