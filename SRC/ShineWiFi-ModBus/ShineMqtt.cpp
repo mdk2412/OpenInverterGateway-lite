@@ -71,9 +71,6 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
     mqttclient->password = mqttconfig.pwd.c_str();
   }
 
-  // Erst-Subscriptions vor dem Start registrieren
-  subscribeTopics();
-
   // Verbindungsaufbau starten
   mqttclient->begin();
 }
