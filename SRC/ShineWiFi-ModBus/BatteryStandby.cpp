@@ -24,7 +24,7 @@ void batteryStandby() {
   // --- Disable discharging ---
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
-      StaticJsonDocument<128> req, res;
+      JsonDocument req, res;
       const char* json = "{\"value\":0,\"retry\":2}";
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)json,
@@ -41,7 +41,7 @@ void batteryStandby() {
   // --- Enable discharging with offset 5 ---
   else if (soc >= (discharge_stop + 5)) {
     if (discharge_rate != 100) {
-      StaticJsonDocument<128> req, res;
+      JsonDocument req, res;
       const char* json = "{\"value\":100,\"retry\":2}";
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)json,
@@ -58,7 +58,7 @@ void batteryStandby() {
   // --- Battery OFF → wake ---
   if (sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
-      StaticJsonDocument<128> req, res;
+      JsonDocument req, res;
       const char* json = "{\"value\":3,\"retry\":2}";
 
       Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
@@ -70,7 +70,7 @@ void batteryStandby() {
   else if (sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
-      StaticJsonDocument<128> req, res;
+      JsonDocument req, res;
       const char* json = "{\"value\":2,\"retry\":2}";
 
       Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,

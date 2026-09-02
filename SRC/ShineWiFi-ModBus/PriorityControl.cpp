@@ -24,19 +24,19 @@ void priorityControl() {
   avg_ptogrid += alpha * (p_togrid - p_disch - avg_ptogrid);
 
   if (priority == 1 && avg_ptouser > ptouser_threshold) {
-    StaticJsonDocument<128> req1, res1;
+    JsonDocument req1, res1;
     const char* json1 = "{\"mode\":0,\"retry\":2}";
     Inverter.HandleCommand("priority/set", (const byte*)json1,
                            strlen(json1), req1, res1);
 
-    StaticJsonDocument<128> req2, res2;
+    JsonDocument req2, res2;
     const char* json2 = "{\"value\":100,\"retry\":2}";
     Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json2,
                            strlen(json2), req2, res2);
   }
 
   if (priority == 0 && avg_ptogrid > ptogrid_threshold && soc < 95) {
-    StaticJsonDocument<128> req1, res1;
+    JsonDocument req1, res1;
     const char* payload = "{\"mode\":1,\"retry\":2}";
     Inverter.HandleCommand("priority/set", (const byte*)payload,
                            strlen(payload), req1, res1);

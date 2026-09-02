@@ -8,7 +8,6 @@ void surplusCharge() {
   uint64_t power_limit = User.power_limit * 10;
 
   // --- Register EINMAL auslesen ---
-  // int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
   int32_t p_togrid =
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
@@ -19,24 +18,12 @@ void surplusCharge() {
 
   // --- Delta berechnen ---
   int64_t delta = p_chr + p_togrid - p_touser - power_limit;
-  // Log.print("p_togrid: ");
-  // Log.println(p_togrid);
-  // Log.print("p_touser: ");
-  // Log.println(p_touser);
-  // Log.print("power_limit: ");
-  // Log.println(power_limit);
-  // Log.print("p_chr: ");
-  // Log.println(p_chr);
-  // Log.print("Delta: ");
-  // Log.println(delta);
 
   // clamp Delta auf >= 0
   delta = std::max<int64_t>(delta, 0);
 
   // Rate berechnen
   int32_t rate = (delta * 10) / max_power;
-  // Log.print("rate: ");
-  // Log.println(rate);
 
   // clamp auf 0–100
   uint16_t targetpowerrate = std::clamp(rate, 0, 100);
@@ -45,7 +32,8 @@ void surplusCharge() {
     char json[32];
     snprintf(json, sizeof(json), "{\"value\":%u,\"retry\":2}", targetpowerrate);
 
-    StaticJsonDocument<128> req, res;
+    // ArduinoJson v7: Einfach JsonDocument nutzen (keine Größenangabe <128> nötig)
+    JsonDocument req, res;
     Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
                            strlen(json), req, res);
   }

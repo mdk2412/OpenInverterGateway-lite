@@ -138,7 +138,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
 }
 
 // -------------------------------------------------------
-// MQTT Command Handler
+// MQTT Command Handler (ArduinoJson v7)
 // -------------------------------------------------------
 #if MQTT_COMMANDS == 1
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
@@ -157,8 +157,9 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
   char* command = topic + baseLen + suffixLen;
   if (*command == '\0') return;
 
-  static StaticJsonDocument<1024> req;
-  static StaticJsonDocument<1024> res;
+  // ArduinoJson v7: Dynamisch verwaltetes JsonDocument ohne Feste Speichergröße
+  static JsonDocument req;
+  static JsonDocument res;
   req.clear();
   res.clear();
 
