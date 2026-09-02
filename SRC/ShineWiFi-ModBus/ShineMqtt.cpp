@@ -12,7 +12,9 @@ ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
 }
 
 boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
-boolean ShineMqtt::mqttConnected() { return mqttclient && mqttclient->connected(); }
+boolean ShineMqtt::mqttConnected() {
+  return mqttclient && mqttclient->connected();
+}
 
 // -------------------------------------------------------
 // Setup
@@ -51,9 +53,10 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 
   Log.printf("MQTT Subscribing to topic pattern: %s\n", commandTopic);
 
-  mqttclient->subscribe(commandTopic, [this](const char* topic, const char* payload) {
-    this->onMqttMessage((char*)topic, (byte*)payload, strlen(payload));
-  });
+  mqttclient->subscribe(
+      commandTopic, [this](const char* topic, const char* payload) {
+        this->onMqttMessage((char*)topic, (byte*)payload, strlen(payload));
+      });
 #endif
 
   // Erst NACH allen subscribe()-Aufrufen begin() starten!
@@ -79,30 +82,24 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
   if (!mqttclient || !mqttclient->connected()) return false;
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  // 1. Exakte Länge berechnen, BEVOR gesendet wird
+  // 1. Exakte Länge des JSON berechnen
   size_t len = measureJson(doc);
 
-  if (len > BUFFER_SIZE) {
-    Log.printf("MQTT Error: Payload Size (%u) > BUFFER_SIZE (%u)\n", (unsigned int)len, BUFFER_SIZE);
+  // 2. Stream-Publish bei PicoMQTT starten (übermittelt Topic & Content-Length)
+  auto publish_stream = mqttclient->begin_publish(t.c_str(), len);
+
+  // 3. Directly Stream: ArduinoJson schreibt direkt in den PicoMQTT-Socket!
+  // Es wird KEIN lokaler/statischer char-Puffer mehr benötigt!
+  size_t bytesWritten = serializeJson(doc, publish_stream);
+
+  if (bytesWritten != len) {
+    Log.printf("MQTT Error: Serialization incomplete (%u/%u bytes)\n",
+               (unsigned int)bytesWritten, (unsigned int)len);
     return false;
   }
 
-  // 2. JSON in einen statischen Puffer serialisieren (nicht auf dem Stack!)
-  static char buffer[BUFFER_SIZE];
-  size_t bytesWritten = serializeJson(doc, buffer, sizeof(buffer));
-
-  if (bytesWritten == 0 || bytesWritten != len) {
-    Log.printf("MQTT Error: Serialization failed (%u/%u bytes)\n", (unsigned int)bytesWritten, (unsigned int)len);
-    return false;
-  }
-
-  // 3. Mit PicoMQTT publishen
-  bool success = mqttclient->publish(t.c_str(), buffer);
-
-  if (!success) {
-    Log.println(F("MQTT Error: Publish failed"));
-    return false;
-  }
+  // 4. Stream leeren/abschließen (flush hat void als Rückgabe)
+  publish_stream.flush();
 
   return true;
 }
@@ -112,29 +109,35 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic) {
 // -------------------------------------------------------
 #if MQTT_COMMANDS == 1
 void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  String strTopic(topic);
-  String prefix = mqttconfig.topic + "/command/";
+  // 1. Zero-Copy Topic-Prüfung ohne String-Instanziierung
+  const char* baseTopic = mqttconfig.topic.c_str();
+  size_t baseLen = strlen(baseTopic);
+  const char* commandSuffix = "/command/";
+  size_t suffixLen = strlen(commandSuffix);
 
-  if (!strTopic.startsWith(prefix)) return;
+  // Sicherstellen, dass das Topic mit "<mqttconfig.topic>/command/" beginnt
+  if (strncmp(topic, baseTopic, baseLen) != 0 ||
+      strncmp(topic + baseLen, commandSuffix, suffixLen) != 0) {
+    return;
+  }
 
-  String command = strTopic.substring(prefix.length());
-  if (command.isEmpty()) return;
+  // Der Command-Name beginnt direkt nach "/command/" (Zero-Copy-Pointer)
+  const char* command = topic + baseLen + suffixLen;
+  if (*command == '\0') return;
 
-  // %.*s erwartet zuerst die Länge als int und dann den Zeiger char*
-  Log.printf("Received Command via MQTT: %s %.*s\n", command.c_str(),
-             (int)length, (char*)payload);
+  Log.printf("Received Command via MQTT: %s %.*s\n", command, (int)length,
+             (char*)payload);
 
-  // Use static allocation to avoid stack overflow
+  // Static JSON Docs wiederverwenden
   static StaticJsonDocument<1024> req;
   static StaticJsonDocument<1024> res;
-  
-  // Clear previous contents
   req.clear();
   res.clear();
 
-  // Übergabe des empfangenen Puffers an den Handler
+  // Übergabe ohne Umkopieren
   inverter.HandleCommand(command, payload, length, req, res);
 
+  // Ergebnis per Stream publishen
   mqttPublish(res, mqttconfig.topic + "/result");
 }
 #endif
@@ -142,8 +145,7 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 // -------------------------------------------------------
 void ShineMqtt::loop() {
   mqttReconnect();
-  if (mqttclient)
-    mqttclient->loop();
+  if (mqttclient) mqttclient->loop();
 }
 
 #endif
