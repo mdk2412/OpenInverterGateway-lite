@@ -33,7 +33,7 @@ void ShineMqtt::subscribeTopics() {
   if (!mqttclient) return;
 
   String commandTopic = mqttconfig.topic + "/command/#";
-  Log.printf("MQTT Subscribing to topic pattern: %s\n", commandTopic.c_str());
+  Log.printf("MQTT Subscribing to Topic Pattern: %s\n", commandTopic.c_str());
 
   mqttclient->subscribe(
       commandTopic, [this](const char* topic, const char* payload) {
