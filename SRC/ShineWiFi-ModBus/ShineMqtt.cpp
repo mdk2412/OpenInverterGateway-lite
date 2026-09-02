@@ -47,12 +47,12 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 
 #if MQTT_COMMANDS == 1
   static char commandTopic[128];
-  // Verwende '#' statt '+'
   snprintf(commandTopic, sizeof(commandTopic), "%s/command/#",
            mqttconfig.topic.c_str());
 
   Log.printf("MQTT Subscribing to topic pattern: %s\n", commandTopic);
 
+  // ZWEI Parameter: topic und payload
   mqttclient->subscribe(
       commandTopic, [this](const char* topic, const char* payload) {
         this->onMqttMessage((char*)topic, (byte*)payload, strlen(payload));
