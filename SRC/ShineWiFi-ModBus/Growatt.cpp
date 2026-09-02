@@ -264,7 +264,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   _GotData = inputOk && holdingOk;
 
   if (!_GotData) {
-    Log.println(F("Reading Modbus Data not successful!"));
+    // Log.println(F("Reading Modbus Data not successful!"));
   }
 
   return _GotData;
