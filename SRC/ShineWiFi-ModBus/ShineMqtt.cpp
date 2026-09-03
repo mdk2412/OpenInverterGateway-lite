@@ -53,9 +53,11 @@ void ShineMqtt::subscribeTopics() {
       commandTopicPattern.c_str(),
       [this](const char* topic, const char* payload) {
         // 2. Präfix-Länge berechnen (<baseTopic>/command/)
-        const size_t prefixLen = mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
+        const size_t prefixLen =
+            mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
 
-        // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist (z.B. exakt ".../command")
+        // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist (z.B.
+        // exakt ".../command")
         if (strlen(topic) < prefixLen) return;
 
         // 4. Befehl isolieren (Zero-Copy)
@@ -74,12 +76,14 @@ void ShineMqtt::subscribeTopics() {
         inverter.HandleCommand(command, (const byte*)safePayload, payloadLen,
                                req, res);
 
-        // 8. Senden: `!res.isNull()` erfasst nun auch primitive Antworten (Strings, Zahlen, Booleans)
+        // 8. Senden: `!res.isNull()` erfasst nun auch primitive Antworten
+        // (Strings, Zahlen, Booleans)
         if (!res.isNull()) {
           String resultTopic = mqttconfig.topic + "/result";
 
           String responsePayload;
-          // Reserviert im Voraus Speicher, um Re-Allokationen beim Serialisieren zu vermeiden
+          // Reserviert im Voraus Speicher, um Re-Allokationen beim
+          // Serialisieren zu vermeiden
           responsePayload.reserve(measureJson(res) + 1);
           serializeJson(res, responsePayload);
 
