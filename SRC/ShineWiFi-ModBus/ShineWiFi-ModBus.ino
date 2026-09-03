@@ -83,13 +83,9 @@ Preferences prefs;
 Growatt Inverter;
 bool StartedConfigAfterBoot = false;
 
+// NEU:
 #if MQTT_SUPPORTED == 1
-#if defined(MQTTS_ENABLED)
-WiFiClientSecure espClient;
-#else
-WiFiClient espClient;
-#endif
-ShineMqtt shineMqtt(espClient, Inverter);
+ShineMqtt shineMqtt(Inverter);
 #endif
 
 #if MODBUS_TCP_SUPPORTED == 1
@@ -572,7 +568,7 @@ void handleGetSettings(ESP8266WebServer& httpServer) {
   Preferences prefs;
   prefs.begin("config", true);
 
-  DynamicJsonDocument doc(512);
+  JsonDocument doc;
 
   // Battery Standby
   doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
@@ -710,14 +706,14 @@ void sendJsonSite(void) {
     return;
   }
 
-  DynamicJsonDocument doc(JSON_DOCUMENT_SIZE);
+  JsonDocument doc;
   Inverter.CreateJson(doc, WiFi.macAddress(), Wifi.hostname);
 
   sendJson(doc);
 }
 
 void sendUiJsonSite(void) {
-  DynamicJsonDocument doc(JSON_DOCUMENT_SIZE);
+  JsonDocument doc;
   Inverter.CreateUIJson(doc, Wifi.hostname);
 
   sendJson(doc);
@@ -725,7 +721,7 @@ void sendUiJsonSite(void) {
 
 #if MQTT_SUPPORTED == 1
 boolean sendMqttJson(void) {
-  DynamicJsonDocument doc(JSON_DOCUMENT_SIZE);
+  JsonDocument doc;
 
   Inverter.CreateJson(doc, WiFi.macAddress(), "");
   return shineMqtt.mqttPublish(doc);
@@ -758,12 +754,12 @@ void rebootESP(void) {
 void loadFirst(void) {
   httpServer.send(200, F("text/plain"), F("Load First"));
 
-  StaticJsonDocument<128> req1, res1;
+  JsonDocument req1, res1;
   const char* payload1 = "{\"mode\": 0, \"retry\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload1,
                          strlen(payload1), req1, res1);
 
-  StaticJsonDocument<128> req2, res2;
+  JsonDocument req2, res2;
   const char* payload2 = "{\"value\": 100, \"retry\": 2}";
   Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload2,
                          strlen(payload2), req2, res2);
@@ -771,7 +767,7 @@ void loadFirst(void) {
 
 void batteryFirst(void) {
   httpServer.send(200, F("text/plain"), F("Battery First"));
-  StaticJsonDocument<128> req, res;
+  JsonDocument req, res;
   const char* payload = "{\"mode\": 1, \"retry\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
@@ -779,7 +775,7 @@ void batteryFirst(void) {
 
 void gridFirst(void) {
   httpServer.send(200, F("text/plain"), F("Grid First"));
-  StaticJsonDocument<128> req, res;
+  JsonDocument req, res;
   const char* payload = "{\"mode\": 2, \"retry\": 2}";
   Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
                          req, res);
@@ -938,7 +934,7 @@ void handleNTPSync() {
              reachable & 1);
 
   if (reachable & 1) {
-    StaticJsonDocument<128> req, res;
+    JsonDocument req, res;
     char buff[32];
     struct tm tm;
     time_t t = time(NULL);
@@ -1062,7 +1058,7 @@ void loop() {
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
     } else {
-      StaticJsonDocument<64> doc;
+      JsonDocument doc;
       doc["InverterStatus"] = -1;
       shineMqtt.mqttPublish(doc);
     }

@@ -6,9 +6,8 @@
 // -------------------------------------------------------
 // Konstruktor & Destruktor
 // -------------------------------------------------------
-ShineMqtt::ShineMqtt(WiFiClient& wc, Growatt& inverter)
-    : wifiClient(wc),
-      previousConnectTryMillis(0),
+ShineMqtt::ShineMqtt(Growatt& inverter)
+    : previousConnectTryMillis(0),
       mqttclient(nullptr),
       inverter(inverter),
       lastMqttLoop(0),
@@ -53,34 +52,34 @@ void ShineMqtt::subscribeTopics() {
   mqttclient->subscribe(
       commandTopicPattern.c_str(),
       [this](const char* topic, const char* payload) {
-        // 2. Präfix-Länge dynamisch berechnen (<baseTopic>/command/)
-        const size_t prefixLen =
-            mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
+        // 2. Präfix-Länge berechnen (<baseTopic>/command/)
+        const size_t prefixLen = mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
 
-        // 3. Befehl isolieren (Zero-Copy)
-        const char* command =
-            (strlen(topic) >= prefixLen) ? (topic + prefixLen) : topic;
+        // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist (z.B. exakt ".../command")
+        if (strlen(topic) < prefixLen) return;
+
+        // 4. Befehl isolieren (Zero-Copy)
+        const char* command = topic + prefixLen;
         const char* safePayload = payload ? payload : "";
 
-        // 4. Wunschausgabe
+        // 5. Wunschausgabe
         Log.printf("Received Command: %s %s\n", command, safePayload);
 
-        // 5. ArduinoJson v7: Automatische RAM-Verwaltung auf dem Stack (RAII)
+        // 6. ArduinoJson v7: Automatische RAM-Verwaltung auf dem Stack (RAII)
         JsonDocument req;
         JsonDocument res;
 
-        // 6. Übergabe an bestehenden Handler (unveränderte Schnittstelle)
+        // 7. Übergabe an bestehenden Handler (unveränderte Schnittstelle)
         const unsigned int payloadLen = strlen(safePayload);
         inverter.HandleCommand(command, (const byte*)safePayload, payloadLen,
                                req, res);
 
-        // 7. Effizientes Senden ohne dynamisches Re-Allokieren
-        if (!res.isNull() && res.size() > 0) {
+        // 8. Senden: `!res.isNull()` erfasst nun auch primitive Antworten (Strings, Zahlen, Booleans)
+        if (!res.isNull()) {
           String resultTopic = mqttconfig.topic + "/result";
 
           String responsePayload;
-          // Reserviert im Voraus Speicher, um Re-Allokationen beim
-          // Serialisieren zu vermeiden
+          // Reserviert im Voraus Speicher, um Re-Allokationen beim Serialisieren zu vermeiden
           responsePayload.reserve(measureJson(res) + 1);
           serializeJson(res, responsePayload);
 
@@ -181,44 +180,5 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
 
   return true;
 }
-
-// -------------------------------------------------------
-// MQTT Command Handler (ArduinoJson v7)
-// -------------------------------------------------------
-#if MQTT_COMMANDS == 1
-void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  const char* baseTopic = mqttconfig.topic.c_str();
-  size_t baseLen = strlen(baseTopic);
-  const char* commandSuffix = "/command/";
-  size_t suffixLen = strlen(commandSuffix);
-
-  // 1. Zero-Copy Topic-Match
-  if (strncmp(topic, baseTopic, baseLen) != 0 ||
-      strncmp(topic + baseLen, commandSuffix, suffixLen) != 0) {
-    return;
-  }
-
-  // 2. Zeiger-Arithmetik
-  char* command = topic + baseLen + suffixLen;
-  if (*command == '\0') return;
-
-  // 3. Lokale Dokumente (RAM-Freigabe sofort nach Funktionsende)
-  JsonDocument req;
-  JsonDocument res;
-
-  // 4. Übergabe der Daten an den Inverter
-  inverter.HandleCommand(command, payload, length, req, res);
-
-  // 5. Antwort-Topic mit Pufferprüfung zusammenbauen
-  char resultTopic[128];
-  int ret = snprintf(resultTopic, sizeof(resultTopic), "%s/result", baseTopic);
-
-  if (ret > 0 && ret < (int)sizeof(resultTopic)) {
-    mqttPublish(res, resultTopic);
-  } else {
-    Log.printf("MQTT Error: Result topic truncated/overflowed\n");
-  }
-}
-#endif
 
 #endif  // MQTT_SUPPORTED == 1
