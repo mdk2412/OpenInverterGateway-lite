@@ -27,9 +27,7 @@ ShineMqtt::~ShineMqtt() {
 // -------------------------------------------------------
 // Status-Abfragen & Validierung
 // -------------------------------------------------------
-boolean ShineMqtt::mqttEnabled() { 
-  return !mqttconfig.server.isEmpty(); 
-}
+boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
 
 boolean ShineMqtt::mqttConnected() {
   return mqttclient && mqttclient->connected();
@@ -47,41 +45,45 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  // Standart-MQTT Wildcard (#) für Unterpfade nutzen
+  // 1. Topic-Muster für Subskription
   String commandTopicPattern = mqttconfig.topic + "/command/#";
 
-  Log.printf("MQTT Subscribing to Topic Pattern: %s\n", commandTopicPattern.c_str());
+  Log.printf("MQTT Subscribing to Topic: %s\n", commandTopicPattern.c_str());
 
   mqttclient->subscribe(
       commandTopicPattern.c_str(),
       [this](const char* topic, const char* payload) {
-        // 1. Basispfad-Länge ermitteln (<mqttconfig.topic>/command/)
-        size_t baseLen = mqttconfig.topic.length();
-        const char* commandSuffix = "/command/";
-        size_t suffixLen = strlen(commandSuffix);
-        size_t prefixLen = baseLen + suffixLen;
+        // 2. Präfix-Länge dynamisch berechnen (<baseTopic>/command/)
+        const size_t prefixLen =
+            mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
 
-        // 2. Den eigentlichen Befehl aus dem Topic isolieren
-        const char* command = (strlen(topic) >= prefixLen) ? (topic + prefixLen) : topic;
+        // 3. Befehl isolieren (Zero-Copy)
+        const char* command =
+            (strlen(topic) >= prefixLen) ? (topic + prefixLen) : topic;
         const char* safePayload = payload ? payload : "";
 
-        // 3. Exakt gewünschte Log-Ausgabe: "Received Command: datetime/set {...}"
+        // 4. Wunschausgabe
         Log.printf("Received Command: %s %s\n", command, safePayload);
 
-        // 4. Lokale JSON-Dokumente für ArduinoJson v7
+        // 5. ArduinoJson v7: Automatische RAM-Verwaltung auf dem Stack (RAII)
         JsonDocument req;
         JsonDocument res;
 
-        // 5. Aufruf mit allen 5 Parametern passend für Growatt::HandleCommand
-        size_t payloadLen = strlen(safePayload);
-        inverter.HandleCommand(command, (const byte*)safePayload, (unsigned int)payloadLen, req, res);
+        // 6. Übergabe an bestehenden Handler (unveränderte Schnittstelle)
+        const unsigned int payloadLen = strlen(safePayload);
+        inverter.HandleCommand(command, (const byte*)safePayload, payloadLen,
+                               req, res);
 
-        // 6. Antwort senden
-        String resultTopic = mqttconfig.topic + "/result";
-        String responsePayload;
-        serializeJson(res, responsePayload);
+        // 7. Effizientes Senden ohne dynamisches Re-Allokieren
+        if (!res.isNull() && res.size() > 0) {
+          String resultTopic = mqttconfig.topic + "/result";
 
-        if (responsePayload.length() > 0) {
+          String responsePayload;
+          // Reserviert im Voraus Speicher, um Re-Allokationen beim
+          // Serialisieren zu vermeiden
+          responsePayload.reserve(measureJson(res) + 1);
+          serializeJson(res, responsePayload);
+
           mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
         }
       });
@@ -219,4 +221,4 @@ void ShineMqtt::onMqttMessage(char* topic, byte* payload, unsigned int length) {
 }
 #endif
 
-#endif // MQTT_SUPPORTED == 1
+#endif  // MQTT_SUPPORTED == 1
