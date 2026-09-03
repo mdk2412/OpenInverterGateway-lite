@@ -3,9 +3,9 @@
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
 
-// -------------------------------------------------------
-// Konstruktor & Destruktor
-// -------------------------------------------------------
+// =======================================================
+// 1. LEBENSZYKLUS (Konstruktor & Destruktor)
+// =======================================================
 ShineMqtt::ShineMqtt(Growatt& inverter)
     : previousConnectTryMillis(0),
       mqttclient(nullptr),
@@ -23,79 +23,9 @@ ShineMqtt::~ShineMqtt() {
   }
 }
 
-// -------------------------------------------------------
-// Status-Abfragen & Validierung
-// -------------------------------------------------------
-boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
-
-boolean ShineMqtt::mqttConnected() {
-  return mqttclient && mqttclient->connected();
-}
-
-bool ShineMqtt::mqttReconnect() {
-  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
-  return mqttclient != nullptr;
-}
-
-// -------------------------------------------------------
-// Helper: Subscriptions registrieren
-// -------------------------------------------------------
-void ShineMqtt::subscribeTopics() {
-#if MQTT_COMMANDS == 1
-  if (!mqttclient) return;
-
-  // 1. Topic-Muster für Subskription
-  String commandTopicPattern = mqttconfig.topic + "/command/#";
-
-  Log.printf("MQTT Subscribing to Topic: %s\n", commandTopicPattern.c_str());
-
-  mqttclient->subscribe(
-      commandTopicPattern.c_str(),
-      [this](const char* topic, const char* payload) {
-        // 2. Präfix-Länge berechnen (<baseTopic>/command/)
-        const size_t prefixLen =
-            mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
-
-        // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist (z.B.
-        // exakt ".../command")
-        if (strlen(topic) < prefixLen) return;
-
-        // 4. Befehl isolieren (Zero-Copy)
-        const char* command = topic + prefixLen;
-        const char* safePayload = payload ? payload : "";
-
-        // 5. Wunschausgabe
-        Log.printf("Received Command: %s %s\n", command, safePayload);
-
-        // 6. ArduinoJson v7: Automatische RAM-Verwaltung auf dem Stack (RAII)
-        JsonDocument req;
-        JsonDocument res;
-
-        // 7. Übergabe an bestehenden Handler (unveränderte Schnittstelle)
-        const unsigned int payloadLen = strlen(safePayload);
-        inverter.HandleCommand(command, (const byte*)safePayload, payloadLen,
-                               req, res);
-
-        // 8. Senden: `!res.isNull()` erfasst nun auch primitive Antworten
-        // (Strings, Zahlen, Booleans)
-        if (!res.isNull()) {
-          String resultTopic = mqttconfig.topic + "/result";
-
-          String responsePayload;
-          // Reserviert im Voraus Speicher, um Re-Allokationen beim
-          // Serialisieren zu vermeiden
-          responsePayload.reserve(measureJson(res) + 1);
-          serializeJson(res, responsePayload);
-
-          mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
-        }
-      });
-#endif
-}
-
-// -------------------------------------------------------
-// Setup / Initialisierung
-// -------------------------------------------------------
+// =======================================================
+// 2. INITIALISIERUNG & SETUP
+// =======================================================
 void ShineMqtt::mqttSetup(const MqttConfig& config) {
   mqttconfig = config;
 
@@ -131,9 +61,9 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   mqttclient->begin();
 }
 
-// -------------------------------------------------------
-// Loop
-// -------------------------------------------------------
+// =======================================================
+// 3. LAUFZEIT-SCHLEIFE (Main Loop)
+// =======================================================
 void ShineMqtt::loop() {
   if (!mqttReconnect()) {
     lastConnectedState = false;
@@ -155,9 +85,9 @@ void ShineMqtt::loop() {
   mqttclient->loop();
 }
 
-// -------------------------------------------------------
-// Publish JSON-Dokument (Zero-Buffer Streaming)
-// -------------------------------------------------------
+// =======================================================
+// 4. ÖFFENTLICHE API (Senden / Empfangen / Interaktion)
+// =======================================================
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
                                uint8_t qos, bool retain) {
   if (!mqttclient || !mqttclient->connected()) return false;
@@ -183,6 +113,72 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
   publish_stream.flush();
 
   return true;
+}
+
+// =======================================================
+// 5. STATUS-ABFRAGEN & PRÜFUNGEN
+// =======================================================
+boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
+
+boolean ShineMqtt::mqttConnected() {
+  return mqttclient && mqttclient->connected();
+}
+
+bool ShineMqtt::mqttReconnect() {
+  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
+  return mqttclient != nullptr;
+}
+
+// =======================================================
+// 6. INTERNE HELPER (Private Subscriptions / Handler)
+// =======================================================
+void ShineMqtt::subscribeTopics() {
+#if MQTT_COMMANDS == 1
+  if (!mqttclient) return;
+
+  // 1. Topic-Muster für Subskription
+  String commandTopicPattern = mqttconfig.topic + "/command/#";
+
+  Log.printf("MQTT Subscribing to Topic: %s\n", commandTopicPattern.c_str());
+
+  mqttclient->subscribe(
+      commandTopicPattern.c_str(),
+      [this](const char* topic, const char* payload) {
+        // 2. Präfix-Länge berechnen (<baseTopic>/command/)
+        const size_t prefixLen =
+            mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
+
+        // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist
+        if (strlen(topic) < prefixLen) return;
+
+        // 4. Befehl isolieren (Zero-Copy)
+        const char* command = topic + prefixLen;
+        const char* safePayload = payload ? payload : "";
+
+        // 5. Wunschausgabe
+        Log.printf("Received Command: %s %s\n", command, safePayload);
+
+        // 6. ArduinoJson v7: Automatische RAM-Verwaltung auf dem Stack (RAII)
+        JsonDocument req;
+        JsonDocument res;
+
+        // 7. Übergabe an bestehenden Handler
+        const unsigned int payloadLen = strlen(safePayload);
+        inverter.HandleCommand(command, (const byte*)safePayload, payloadLen,
+                               req, res);
+
+        // 8. Senden
+        if (!res.isNull()) {
+          String resultTopic = mqttconfig.topic + "/result";
+
+          String responsePayload;
+          responsePayload.reserve(measureJson(res) + 1);
+          serializeJson(res, responsePayload);
+
+          mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+        }
+      });
+#endif
 }
 
 #endif  // MQTT_SUPPORTED == 1
