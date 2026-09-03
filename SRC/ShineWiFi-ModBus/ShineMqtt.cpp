@@ -47,18 +47,37 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  String commandTopic;
-  commandTopic.reserve(mqttconfig.topic.length() + 12);
-  commandTopic = mqttconfig.topic + "/command/#";
+  // Pattern mit {command}-Placeholder für PicoMQTT
+  String topicPattern = mqttconfig.topic + "/command/{command}";
 
-  Log.printf("MQTT Subscribing to Topic Pattern: %s\n", commandTopic.c_str());
+  Log.printf("MQTT Subscribing to Pattern: %s\n", topicPattern.c_str());
 
   mqttclient->subscribe(
-      commandTopic, [this](const char* topic, const char* payload) {
-        Log.printf("MQTT Command received on topic: %s\n", topic);
-        size_t payloadLen = payload ? strlen(payload) : 0;
-        this->onMqttMessage((char*)topic, (byte*)payload,
-                            (unsigned int)payloadLen);
+      topicPattern.c_str(),
+      [this](const char* command, const char* payload) {
+        const char* safePayload = payload ? payload : "";
+
+        // Gewünschte Log-Ausgabe: "Received Command: bdc/set/chargepowerrate {"value": 75, "retry": 2}"
+        Log.printf("Received Command: %s %s\n", command, safePayload);
+
+        // Lokale JSON-Dokumente für ArduinoJson v7
+        JsonDocument req;
+        JsonDocument res;
+
+        // 5-Argument-Aufruf passend zur Growatt::HandleCommand-Signatur
+        size_t payloadLen = strlen(safePayload);
+        inverter.HandleCommand(command, (const byte*)safePayload, (unsigned int)payloadLen, req, res);
+
+        // Antwort-Topic zusammenbauen
+        String resultTopic = mqttconfig.topic + "/result";
+
+        // JSON-Ergebnis in String serialisieren und über PicoMQTT senden
+        String responsePayload;
+        serializeJson(res, responsePayload);
+
+        if (responsePayload.length() > 0) {
+          mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+        }
       });
 #endif
 }
@@ -114,9 +133,9 @@ void ShineMqtt::loop() {
 
   // Statuswechsel protokollieren
   if (currentlyConnected && !lastConnectedState) {
-    Log.printf("MQTT Connected\n");
+    Log.printf("MQTT connected\n");
   } else if (!currentlyConnected && lastConnectedState) {
-    Log.printf("MQTT Disconnected\n");
+    Log.printf("MQTT disconnected\n");
   }
 
   lastConnectedState = currentlyConnected;
