@@ -47,31 +47,37 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  // Pattern mit {command}-Placeholder für PicoMQTT
-  String topicPattern = mqttconfig.topic + "/command/{command}";
+  // Standart-MQTT Wildcard (#) für Unterpfade nutzen
+  String commandTopicPattern = mqttconfig.topic + "/command/#";
 
-  Log.printf("MQTT Subscribing to Pattern: %s\n", topicPattern.c_str());
+  Log.printf("MQTT Subscribing to Topic Pattern: %s\n", commandTopicPattern.c_str());
 
   mqttclient->subscribe(
-      topicPattern.c_str(),
-      [this](const char* command, const char* payload) {
+      commandTopicPattern.c_str(),
+      [this](const char* topic, const char* payload) {
+        // 1. Basispfad-Länge ermitteln (<mqttconfig.topic>/command/)
+        size_t baseLen = mqttconfig.topic.length();
+        const char* commandSuffix = "/command/";
+        size_t suffixLen = strlen(commandSuffix);
+        size_t prefixLen = baseLen + suffixLen;
+
+        // 2. Den eigentlichen Befehl aus dem Topic isolieren
+        const char* command = (strlen(topic) >= prefixLen) ? (topic + prefixLen) : topic;
         const char* safePayload = payload ? payload : "";
 
-        // Gewünschte Log-Ausgabe: "Received Command: bdc/set/chargepowerrate {"value": 75, "retry": 2}"
+        // 3. Exakt gewünschte Log-Ausgabe: "Received Command: datetime/set {...}"
         Log.printf("Received Command: %s %s\n", command, safePayload);
 
-        // Lokale JSON-Dokumente für ArduinoJson v7
+        // 4. Lokale JSON-Dokumente für ArduinoJson v7
         JsonDocument req;
         JsonDocument res;
 
-        // 5-Argument-Aufruf passend zur Growatt::HandleCommand-Signatur
+        // 5. Aufruf mit allen 5 Parametern passend für Growatt::HandleCommand
         size_t payloadLen = strlen(safePayload);
         inverter.HandleCommand(command, (const byte*)safePayload, (unsigned int)payloadLen, req, res);
 
-        // Antwort-Topic zusammenbauen
+        // 6. Antwort senden
         String resultTopic = mqttconfig.topic + "/result";
-
-        // JSON-Ergebnis in String serialisieren und über PicoMQTT senden
         String responsePayload;
         serializeJson(res, responsePayload);
 
