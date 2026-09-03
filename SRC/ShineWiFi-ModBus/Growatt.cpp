@@ -264,7 +264,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   _GotData = inputOk && holdingOk;
 
   if (!_GotData) {
-    // Log.println(F("Reading Modbus Data not successful!"));
+    Log.println(F("Reading Modbus Data not successful!"));
   }
 
   return _GotData;
@@ -519,7 +519,7 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 
   // Prüfen, ob der Speicher für das JSON ausgereicht hat
   if (doc.overflowed()) {
-    Log.println(F("CreateJson: JsonDocument overflowed! Output will be truncated."));
+    Log.println(F("CreateJson: JsonDocument overflowed! Output will be truncated"));
   }
 }
 
@@ -602,7 +602,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
   }
 
   if (doc.overflowed()) {
-    Log.println(F("CreateUIJson: JsonDocument overflowed! Output will be truncated."));
+    Log.println(F("CreateUIJson: JsonDocument overflowed! Output will be truncated"));
   }
 }
 
