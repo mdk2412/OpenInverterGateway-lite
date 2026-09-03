@@ -20,7 +20,7 @@ typedef struct {
 class ShineMqtt {
  public:
   // DIESE ZEILE MUSS EXAKT SO IM HEADER STEHEN:
-  ShineMqtt(Growatt& inverter); 
+  ShineMqtt(Growatt& inverter);
   ~ShineMqtt();
 
   void mqttSetup(const MqttConfig& config);
@@ -38,7 +38,7 @@ class ShineMqtt {
   uint32_t previousConnectTryMillis;
   PicoMQTT::Client* mqttclient;
   Growatt& inverter;
-  
+
   MqttConfig mqttconfig;
   char clientId[32];
   uint32_t lastMqttLoop;
