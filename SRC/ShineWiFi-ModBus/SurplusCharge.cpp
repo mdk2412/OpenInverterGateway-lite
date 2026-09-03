@@ -1,6 +1,7 @@
 #include "SurplusCharge.h"
 #include <ArduinoJson.h>
 #include <TLog.h>
+#include <algorithm> // std::clamp, std::max
 
 void surplusCharge() {
   // --- User-Parameter laden ---
@@ -29,12 +30,18 @@ void surplusCharge() {
   uint16_t targetpowerrate = std::clamp(rate, 0, 100);
 
   if (current_rate < targetpowerrate) {
-    char json[32];
-    snprintf(json, sizeof(json), "{\"value\":%u,\"retry\":2}", targetpowerrate);
+    // 1. Dokument strukturiert befüllen
+    JsonDocument payloadDoc;
+    payloadDoc["value"] = targetpowerrate;
+    payloadDoc["retry"] = 2;
 
-    // ArduinoJson v7: Einfach JsonDocument nutzen (keine Größenangabe <128> nötig)
+    // 2. Ohne snprintf in Puffer serialisieren
+    char jsonBuf[32];
+    size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
+
+    // 3. HandleCommand liest den Puffer ein
     JsonDocument req, res;
-    Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json,
-                           strlen(json), req, res);
+    Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)jsonBuf,
+                           len, req, res);
   }
 }

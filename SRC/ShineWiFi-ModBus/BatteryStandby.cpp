@@ -24,11 +24,16 @@ void batteryStandby() {
   // --- Disable discharging ---
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
-      JsonDocument req, res;
-      const char* json = "{\"value\":0,\"retry\":2}";
+      JsonDocument payloadDoc;
+      payloadDoc["value"] = 0;
+      payloadDoc["retry"] = 2;
 
-      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)json,
-                             strlen(json), req, res);
+      char jsonBuf[32];
+      size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
+
+      JsonDocument req, res;
+      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)jsonBuf,
+                             len, req, res);
 
       if (res["success"] == true) {
         Log.println(F("Battery discharging deactivated"));
@@ -41,11 +46,16 @@ void batteryStandby() {
   // --- Enable discharging with offset 5 ---
   else if (soc >= (discharge_stop + 5)) {
     if (discharge_rate != 100) {
-      JsonDocument req, res;
-      const char* json = "{\"value\":100,\"retry\":2}";
+      JsonDocument payloadDoc;
+      payloadDoc["value"] = 100;
+      payloadDoc["retry"] = 2;
 
-      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)json,
-                             strlen(json), req, res);
+      char jsonBuf[32];
+      size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
+
+      JsonDocument req, res;
+      Inverter.HandleCommand("bdc/set/dischargepowerrate", (const byte*)jsonBuf,
+                             len, req, res);
 
       if (res["success"] == true) {
         Log.println(F("Battery discharging activated"));
@@ -58,11 +68,15 @@ void batteryStandby() {
   // --- Battery OFF → wake ---
   if (sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
-      JsonDocument req, res;
-      const char* json = "{\"value\":3,\"retry\":2}";
+      JsonDocument payloadDoc;
+      payloadDoc["value"] = 3;
+      payloadDoc["retry"] = 2;
 
-      Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
-                             res);
+      char jsonBuf[32];
+      size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
+
+      JsonDocument req, res;
+      Inverter.HandleCommand("onoff/set", (const byte*)jsonBuf, len, req, res);
     }
   }
 
@@ -70,11 +84,15 @@ void batteryStandby() {
   else if (sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
-      JsonDocument req, res;
-      const char* json = "{\"value\":2,\"retry\":2}";
+      JsonDocument payloadDoc;
+      payloadDoc["value"] = 2;
+      payloadDoc["retry"] = 2;
 
-      Inverter.HandleCommand("onoff/set", (const byte*)json, strlen(json), req,
-                             res);
+      char jsonBuf[32];
+      size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
+
+      JsonDocument req, res;
+      Inverter.HandleCommand("onoff/set", (const byte*)jsonBuf, len, req, res);
     }
   }
 }
