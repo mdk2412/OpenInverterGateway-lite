@@ -175,13 +175,12 @@ void WiFi_Reconnect() {
     return;
   }
 
-if (wasConnecting) {
+  if (wasConnecting) {
     wasConnecting = false;
 
     WiFi.printDiag(Serial);
     Log.printf("WiFi reconnected | Local IP: %s | Hostname: %s\n",
-               WiFi.localIP().toString().c_str(),
-               WiFi.hostname().c_str());
+               WiFi.localIP().toString().c_str(), WiFi.hostname().c_str());
   }
 }
 
@@ -301,8 +300,8 @@ void setupWifiHost() {
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
 constexpr int DEFAULT_AC_MAX = 3750;
-constexpr int DEFAULT_OFFSET = -19;
-constexpr int DEFAULT_PTOGRID_THR = 150;
+constexpr int DEFAULT_OFFSET = 0;
+constexpr int DEFAULT_PTOGRID_THR = 100;
 constexpr int DEFAULT_PTOUSER_THR = 150;
 constexpr int DEFAULT_POWER_LIMIT = 6132;
 
@@ -391,11 +390,11 @@ void setup() {
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 #endif
 
-prefs.begin("ShineWiFi");
+  prefs.begin("ShineWiFi");
   loadConfig();
   loadSettingsFromPrefs();
   configureLogging();
-  Log.begin();       // <-- MUSS direkt nach configureLogging() stehen!
+  Log.begin();  // <-- MUSS direkt nach configureLogging() stehen!
   setupWifiHost();
 
   setupWifiManagerConfigMenu(wm);
@@ -408,11 +407,11 @@ prefs.begin("ShineWiFi");
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
-Log.printf("Force AP: %s\n", Wifi.force_ap ? "true" : "false");
+  Log.printf("Force AP: %s\n", Wifi.force_ap ? "true" : "false");
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {
-Log.printf("AP Button pressed during power up -> force_ap set to true\n");
+    Log.printf("AP Button pressed during power up -> force_ap set to true\n");
     Wifi.force_ap = true;
   }
 #endif
@@ -438,11 +437,12 @@ Log.printf("AP Button pressed during power up -> force_ap set to true\n");
     netmask.fromString(Wifi.static_netmask);
     gateway.fromString(Wifi.static_gateway);
     dns.fromString(Wifi.static_dns);
-Log.printf("Static IP Configuration:\n  IP:      %s\n  Netmask: %s\n  Gateway: %s\n  DNS:     %s\n",
-             Wifi.static_ip.c_str(),
-             Wifi.static_netmask.c_str(),
-             Wifi.static_gateway.c_str(),
-             Wifi.static_dns.c_str());
+    Log.printf(
+        "Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
+        "Gateway: "
+        "%s\n    DNS:     %s\n",
+        Wifi.static_ip.c_str(), Wifi.static_netmask.c_str(),
+        Wifi.static_gateway.c_str(), Wifi.static_dns.c_str());
     if (!Wifi.static_dns.isEmpty()) {
       wm.setSTAStaticIPConfig(ip, gateway, netmask, dns);
     } else {
@@ -458,13 +458,13 @@ Log.printf("Static IP Configuration:\n  IP:      %s\n  Netmask: %s\n  Gateway: %
   bool res = wm.autoConnect("GrowattConfig", APPassword);
 
   if (!res) {
-Log.printf("Failed to connect WiFi!\n");
+    Log.printf("Failed to connect WiFi!\n");
     SetLED.on(LED_RED);
     ESP.restart();
   }
 
   SetLED.off(LED_BLUE);
-Log.println(F("WiFi connected"));
+  Log.println(F("WiFi connected"));
 
 #if OTA_SUPPORTED == 1
 #if !defined(OTA_PASSWORD)
@@ -833,13 +833,14 @@ void handlePostData() {
                         : Inverter.ReadHoldingReg(reg, &val);
 
       if (ok) {
-        snprintf_P(msg, sizeof(msg),
-                   PSTR("Reading Value %u from 16-bit %s Register %u succeeded"),
-                   val, typeName, reg);
+        snprintf_P(
+            msg, sizeof(msg),
+            PSTR("Reading Value %u from 16-bit %s Register %u succeeded"), val,
+            typeName, reg);
       } else {
         snprintf_P(msg, sizeof(msg),
-                   PSTR("Reading from 16-bit %s Register %u failed!"),
-                   typeName, reg);
+                   PSTR("Reading from 16-bit %s Register %u failed!"), typeName,
+                   reg);
       }
 
     } else if (widthStr == "32b") {
@@ -848,13 +849,14 @@ void handlePostData() {
                         : Inverter.ReadHoldingReg(reg, &val);
 
       if (ok) {
-        snprintf_P(msg, sizeof(msg),
-                   PSTR("Reading Value %lu from 32-bit %s Register %u succeeded"),
-                   val, typeName, reg);
+        snprintf_P(
+            msg, sizeof(msg),
+            PSTR("Reading Value %lu from 32-bit %s Register %u succeeded"), val,
+            typeName, reg);
       } else {
         snprintf_P(msg, sizeof(msg),
-                   PSTR("Reading from 32-bit %s Register %u failed!"),
-                   typeName, reg);
+                   PSTR("Reading from 32-bit %s Register %u failed!"), typeName,
+                   reg);
       }
 
     } else {
@@ -887,12 +889,12 @@ void handlePostData() {
 
     if (ok) {
       snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing Value %u to Holding Register %u succeeded"),
-                 val, reg);
+                 PSTR("Writing Value %u to Holding Register %u succeeded"), val,
+                 reg);
     } else {
       snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing Value %u to Holding Register %u failed!"),
-                 val, reg);
+                 PSTR("Writing Value %u to Holding Register %u failed!"), val,
+                 reg);
     }
 
     Log.printf("Modbus Write: %s\n", msg);

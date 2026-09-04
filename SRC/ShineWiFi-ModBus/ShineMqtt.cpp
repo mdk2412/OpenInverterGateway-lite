@@ -33,8 +33,9 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   if (port == 0) port = 1883;
 
   Log.printf(
-      "MQTT Configuration:\n  MQTT Server: %s\n  MQTT User:   %s\n  MQTT Port: "
-      "  %u\n  MQTT Topic:  %s\n",
+      "MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   %s\n    MQTT "
+      "Port: "
+      "  %u\n    MQTT Topic:  %s\n",
       mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
       mqttconfig.topic.c_str());
 
