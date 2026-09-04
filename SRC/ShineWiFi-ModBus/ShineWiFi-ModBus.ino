@@ -941,9 +941,15 @@ void handleNTPSync() {
     struct tm tm;
     time_t t = time(NULL);
     localtime_r(&t, &tm);
-    strftime(buff, sizeof(buff), "{\"value\":\"%Y-%m-%d %T\"}", &tm);
-    Inverter.HandleCommand("datetime/set", (byte*)&buff, strlen(buff), req,
-                           res);
+
+    // Datum/Uhrzeit als ISO-Format "YYYY-MM-DD HH:MM:SS" formatieren
+    strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", &tm);
+
+    // Direkt in das JSON-Dokument schreiben
+    req["value"] = buff;
+
+    // Aufruf nach ArduinoJson v7 Standard (3 Argumente)
+    Inverter.HandleCommand("datetime/set", req, res);
   }
 }
 #endif

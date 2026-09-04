@@ -151,24 +151,30 @@ void ShineMqtt::subscribeTopics() {
         // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist
         if (strlen(topic) < prefixLen) return;
 
-        // 4. Befehl isolieren (Zero-Copy)
+        // 4. Befehl isolieren
         const char* command = topic + prefixLen;
         const char* safePayload = payload ? payload : "";
 
         // 5. Wunschausgabe
         Log.printf("Received Command: %s %s\n", command, safePayload);
 
-        // 6. ArduinoJson v7: Automatische RAM-Verwaltung auf dem Stack (RAII)
+        // 6. ArduinoJson v7: Dynamische Dokumente auf dem Stack
         JsonDocument req;
         JsonDocument res;
 
-        // 7. Übergabe an bestehenden Handler
-        const unsigned int payloadLen = strlen(safePayload);
-        inverter.HandleCommand(command, (const byte*)safePayload, payloadLen,
-                               req, res);
+        // Falls eine Payload gesendet wurde, direkt in req deserialisieren
+        if (safePayload[0] != '\0') {
+          DeserializationError err = deserializeJson(req, safePayload);
+          if (err) {
+            Log.printf("MQTT Payload JSON parse error: %s\n", err.c_str());
+          }
+        }
 
-        // 8. Senden
-        if (!res.isNull()) {
+        // 7. Übergabe an bestehenden Handler (v7 Signatur mit 3 Parametern)
+        inverter.HandleCommand(command, req, res);
+
+        // 8. Ergebnis zurücksenden
+        if (!res.isNull() && res.size() > 0) {
           String resultTopic = mqttconfig.topic + "/result";
 
           String responsePayload;

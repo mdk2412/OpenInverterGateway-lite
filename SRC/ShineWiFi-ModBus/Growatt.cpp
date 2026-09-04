@@ -611,76 +611,76 @@ void Growatt::RegisterCommand(const String& command,
   handlers[command] = handler;
 }
 
-void Growatt::HandleCommand(const String& command, const byte* payload,
-                            const unsigned int length, JsonDocument& req,
-                            JsonDocument& res) {
-  req.clear();
-  res.clear();
+// void Growatt::HandleCommand(const String& command, const byte* payload,
+//                             const unsigned int length, JsonDocument& req,
+//                             JsonDocument& res) {
+//   req.clear();
+//   res.clear();
 
-  // 1. JSON einmalig deserialisieren
-  DeserializationError deserializationErr = deserializeJson(req, payload, length);
+//   // 1. JSON einmalig deserialisieren
+//   DeserializationError deserializationErr = deserializeJson(req, payload, length);
 
-  if (deserializationErr) {
-    Log.printf("Failed to parse JSON Request in Command '%s': %s\n",
-               command.c_str(), deserializationErr.c_str());
+//   if (deserializationErr) {
+//     Log.printf("Failed to parse JSON Request in Command '%s': %s\n",
+//                command.c_str(), deserializationErr.c_str());
 
-    res["command"] = command;
-    res["success"] = false;
-    res["message"] =
-        "Failed to parse JSON Request: " + String(deserializationErr.c_str());
-    return;
-  }
+//     res["command"] = command;
+//     res["success"] = false;
+//     res["message"] =
+//         "Failed to parse JSON Request: " + String(deserializationErr.c_str());
+//     return;
+//   }
 
-  // 2. Metadaten auslesen
-  uint8_t retries = 0;
-  if (req["retry"].is<uint8_t>()) {
-    retries = req["retry"].as<uint8_t>();
-  }
+//   // 2. Metadaten auslesen
+//   uint8_t retries = 0;
+//   if (req["retry"].is<uint8_t>()) {
+//     retries = req["retry"].as<uint8_t>();
+//   }
 
-  if (req["correlationId"].is<String>()) {
-    res["correlationId"] = req["correlationId"].as<String>();
-  }
+//   if (req["correlationId"].is<String>()) {
+//     res["correlationId"] = req["correlationId"].as<String>();
+//   }
 
-  // 3. Command-Handler suchen
-  auto it = handlers.find(command);
-  if (it == handlers.end()) {
-    Log.printf("Unknown Command: %s\n", command.c_str());
-    res["command"] = command;
-    res["success"] = false;
-    res["message"] = "Unknown Command: " + command;
-    return;
-  }
+//   // 3. Command-Handler suchen
+//   auto it = handlers.find(command);
+//   if (it == handlers.end()) {
+//     Log.printf("Unknown Command: %s\n", command.c_str());
+//     res["command"] = command;
+//     res["success"] = false;
+//     res["message"] = "Unknown Command: " + command;
+//     return;
+//   }
 
-  Log.printf("Handling Command: %s\n", command.c_str());
+//   Log.printf("Handling Command: %s\n", command.c_str());
 
-  // 4. Execution Loop mit korrekter Retry-Logik
-  bool success = false;
-  String message = "";
+//   // 4. Execution Loop mit korrekter Retry-Logik
+//   bool success = false;
+//   String message = "";
 
-  for (uint8_t attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0) {
-      Log.printf("Retrying Command: %s (Attempt %d/%d)...\n", command.c_str(), attempt, retries);
-      delay(50); // Kleines Delay vor dem erneuten Modbus-Zugriff
-    }
+//   for (uint8_t attempt = 0; attempt <= retries; attempt++) {
+//     if (attempt > 0) {
+//       Log.printf("Retrying Command: %s (Attempt %d/%d)...\n", command.c_str(), attempt, retries);
+//       delay(50); // Kleines Delay vor dem erneuten Modbus-Zugriff
+//     }
 
-    // Handler ausführen
-    std::tie(success, message) = it->second(req, res, *this);
+//     // Handler ausführen
+//     std::tie(success, message) = it->second(req, res, *this);
 
-    if (success) {
-      break; // Erfolg -> Schleife sofort verlassen
-    }
-  }
+//     if (success) {
+//       break; // Erfolg -> Schleife sofort verlassen
+//     }
+//   }
 
-  // 5. Status im Response-JSON setzen
-  res["command"] = command;
-  res["success"] = success;
-  res["message"] = message;
+//   // 5. Status im Response-JSON setzen
+//   res["command"] = command;
+//   res["success"] = success;
+//   res["message"] = message;
 
-  const char* msg = res["message"].as<const char*>();
-  if (msg && msg[0] != '\0') {
-    Log.println(msg);
-  }
-}
+//   const char* msg = res["message"].as<const char*>();
+//   if (msg && msg[0] != '\0') {
+//     Log.println(msg);
+//   }
+// }
 
 void Growatt::HandleCommand(const String& command, JsonDocument& req,
                             JsonDocument& res) {

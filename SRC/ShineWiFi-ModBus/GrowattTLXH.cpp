@@ -36,7 +36,7 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
 
 std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
                                      Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, "'value' Field is required");
   }
 
@@ -80,7 +80,7 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
 std::tuple<bool, String> setOnOff(const JsonDocument& req, JsonDocument& res,
                                   Growatt& inverter) {
   // --- Validate JSON field ---
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     String msg = F("'Value' field is required");
     Log.println(msg);
     return std::make_tuple(false, msg);
@@ -155,7 +155,7 @@ std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
 std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
                                             Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, "'value' Field is required");
   }
 
@@ -175,7 +175,7 @@ std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
 std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, String(F("'Value' Field is required")));
   }
 
@@ -197,7 +197,7 @@ std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
 std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
                                                 JsonDocument& res,
                                                 Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, String(F("'Value' Field is required")));
   }
 
@@ -219,7 +219,7 @@ std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
 std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
                                                JsonDocument& res,
                                                Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, String(F("'Value' Field is required")));
   }
 
@@ -241,7 +241,7 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
 std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, String(F("'Value' Field is required")));
   }
 
@@ -262,7 +262,7 @@ std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
 std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
                                                JsonDocument& res,
                                                Growatt& inverter) {
-  if (!req.containsKey("value")) {
+  if (req["value"].isNull()) {
     return std::make_tuple(false, String(F("'Value' Field is required")));
   }
 
@@ -278,7 +278,7 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
 
 std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
                                      Growatt& inverter) {
-  if (!req.containsKey("mode")) {
+  if (req["mode"].isNull()) {
     return {false, F("'Mode' Field is required")};
   }
 
