@@ -30,18 +30,10 @@ void surplusCharge() {
   uint16_t targetpowerrate = std::clamp(rate, 0, 100);
 
   if (current_rate < targetpowerrate) {
-    // 1. Dokument strukturiert befüllen
-    JsonDocument payloadDoc;
-    payloadDoc["value"] = targetpowerrate;
-    payloadDoc["retry"] = 2;
-
-    // 2. Ohne snprintf in Puffer serialisieren
-    char jsonBuf[32];
-    size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
-
-    // 3. HandleCommand liest den Puffer ein
     JsonDocument req, res;
-    Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)jsonBuf,
-                           len, req, res);
+    req["value"] = targetpowerrate;
+    req["retry"] = 2;
+
+    Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
   }
 }

@@ -755,30 +755,32 @@ void loadFirst(void) {
   httpServer.send(200, F("text/plain"), F("Load First"));
 
   JsonDocument req1, res1;
-  const char* payload1 = "{\"mode\": 0, \"retry\": 2}";
-  Inverter.HandleCommand("priority/set", (const byte*)payload1,
-                         strlen(payload1), req1, res1);
+  req1["mode"] = 0;
+  req1["retry"] = 2;
+  Inverter.HandleCommand("priority/set", req1, res1);
 
   JsonDocument req2, res2;
-  const char* payload2 = "{\"value\": 100, \"retry\": 2}";
-  Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)payload2,
-                         strlen(payload2), req2, res2);
+  req2["value"] = 100;
+  req2["retry"] = 2;
+  Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
 }
 
 void batteryFirst(void) {
   httpServer.send(200, F("text/plain"), F("Battery First"));
+
   JsonDocument req, res;
-  const char* payload = "{\"mode\": 1, \"retry\": 2}";
-  Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
-                         req, res);
+  req["mode"] = 1;
+  req["retry"] = 2;
+  Inverter.HandleCommand("priority/set", req, res);
 }
 
 void gridFirst(void) {
   httpServer.send(200, F("text/plain"), F("Grid First"));
+
   JsonDocument req, res;
-  const char* payload = "{\"mode\": 2, \"retry\": 2}";
-  Inverter.HandleCommand("priority/set", (const byte*)payload, strlen(payload),
-                         req, res);
+  req["mode"] = 2;
+  req["retry"] = 2;
+  Inverter.HandleCommand("priority/set", req, res);
 }
 
 #ifdef ENABLE_WEB_DEBUG

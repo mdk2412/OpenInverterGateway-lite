@@ -682,6 +682,64 @@ void Growatt::HandleCommand(const String& command, const byte* payload,
   }
 }
 
+void Growatt::HandleCommand(const String& command, JsonDocument& req,
+                            JsonDocument& res) {
+  // Das 'req'-Dokument wird NICHT gelöscht und NICHT deserialisiert, 
+  // da es vom Aufrufer bereits direkt befüllt wurde!
+  res.clear();
+
+  // 1. Metadaten auslesen
+  uint8_t retries = 0;
+  if (req["retry"].is<uint8_t>()) {
+    retries = req["retry"].as<uint8_t>();
+  }
+
+  if (req["correlationId"].is<String>()) {
+    res["correlationId"] = req["correlationId"].as<String>();
+  }
+
+  // 2. Command-Handler suchen
+  auto it = handlers.find(command);
+  if (it == handlers.end()) {
+    Log.printf("Unknown Command: %s\n", command.c_str());
+    res["command"] = command;
+    res["success"] = false;
+    res["message"] = "Unknown Command: " + command;
+    return;
+  }
+
+  Log.printf("Handling Command: %s\n", command.c_str());
+
+  // 3. Execution Loop mit Retry-Logik
+  bool success = false;
+  String message = "";
+
+  for (uint8_t attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      Log.printf("Retrying Command: %s (Attempt %d/%d)...\n", command.c_str(),
+                 attempt, retries);
+      delay(50); // Kleines Delay vor erneutem Versuch
+    }
+
+    // Handler ausführen (reicht req direkt durch)
+    std::tie(success, message) = it->second(req, res, *this);
+
+    if (success) {
+      break; // Erfolg -> Schleife verlassen
+    }
+  }
+
+  // 4. Status im Response-JSON setzen
+  res["command"] = command;
+  res["success"] = success;
+  res["message"] = message;
+
+  const char* msg = res["message"].as<const char*>();
+  if (msg && msg[0] != '\0') {
+    Log.println(msg);
+  }
+}
+
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {

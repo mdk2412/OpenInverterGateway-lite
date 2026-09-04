@@ -25,16 +25,16 @@ void acchargeControl() {
     // Akku voll → auf LoadFirst umschalten
     if (soc == 100) {
       JsonDocument req1, res1;
-      const char* json1 = "{\"mode\":0,\"retry\":2}";
+      req1["mode"] = 0;
+      req1["retry"] = 2;
 
-      Inverter.HandleCommand("priority/set", (const byte*)json1,
-                             strlen(json1), req1, res1);
+      Inverter.HandleCommand("priority/set", req1, res1);
 
       JsonDocument req2, res2;
-      const char* json2 = "{\"value\":100,\"retry\":2}";
+      req2["value"] = 100;
+      req2["retry"] = 2;
 
-      Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)json2,
-                             strlen(json2), req2, res2);
+      Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
 
       return;
     }
@@ -49,19 +49,11 @@ void acchargeControl() {
     uint16_t targetpowerrate = std::clamp(rawRate, 0, 100);
 
     if (current_rate != targetpowerrate) {
-      // 1. Temporäres Objekt befüllen
-      JsonDocument payloadDoc;
-      payloadDoc["value"] = targetpowerrate;
-      payloadDoc["retry"] = 2;
-
-      // 2. In Puffer serialisieren (ohne snprintf)
-      char jsonBuf[32];
-      size_t len = serializeJson(payloadDoc, jsonBuf, sizeof(jsonBuf));
-
-      // 3. HandleCommand liest den Puffer ein und parst ihn sauber in req
       JsonDocument req, res;
-      Inverter.HandleCommand("bdc/set/chargepowerrate", (const byte*)jsonBuf,
-                             len, req, res);
+      req["value"] = targetpowerrate;
+      req["retry"] = 2;
+
+      Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
     }
   }
 }
