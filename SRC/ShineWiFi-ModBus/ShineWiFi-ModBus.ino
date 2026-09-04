@@ -294,7 +294,7 @@ void setupWifiHost() {
 #if OTA_SUPPORTED == 0
   MDNS.begin(Wifi.hostname);
 #endif
-  Log.printf("setupWifiHost: hostname %s\n", Wifi.hostname.c_str());
+  Log.printf("Setup WiFi Host: hostname %s\n", Wifi.hostname.c_str());
 }
 
 // --- Zentrale Defaults
@@ -408,7 +408,7 @@ prefs.begin("ShineWiFi");
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
-Log.printf("force_ap: %s\n", Wifi.force_ap ? "true" : "false");
+Log.printf("Force AP: %s\n", Wifi.force_ap ? "true" : "false");
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {

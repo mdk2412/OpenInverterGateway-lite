@@ -614,9 +614,9 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
 
   inverter.RegisterCommand("priority/set", setPriority);
 
-  Log.print(F("init_growattTLXH: "));
+  Log.print(F("Configured Growatt MIN TL-XH: "));
   Log.print(Protocol.InputRegisterCount);
-  Log.print(F(" input registers, "));
+  Log.print(F(" Input Registers, "));
   Log.print(Protocol.HoldingRegisterCount);
-  Log.println(F(" holding registers "));
+  Log.println(F(" Holding Registers"));
 }
