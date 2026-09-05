@@ -1,7 +1,7 @@
 #include "SurplusCharge.h"
 #include <ArduinoJson.h>
 #include <TLog.h>
-#include <algorithm> // std::clamp, std::max
+#include <algorithm>  // std::clamp, std::max
 
 void surplusCharge() {
   // --- User-Parameter laden ---
@@ -27,11 +27,22 @@ void surplusCharge() {
   int32_t rate = (delta * 10) / max_power;
 
   // clamp auf 0–100
-  uint16_t targetpowerrate = std::clamp(rate, 0, 100);
+  uint16_t targetpowerrate = std::clamp<int32_t>(rate, 0, 100);
 
-  if (current_rate < targetpowerrate) {
+  // --- Steuerung ausführen ---
+  if (current_rate != targetpowerrate) {
+    int value;
+
+    if (current_rate < targetpowerrate) {
+      // Sollwert direkt ansteuern beim Hochregeln
+      value = targetpowerrate;
+    } else {
+      // Schrittweise um 1 reduzieren, aber mindestens 0 halten
+      value = std::max(0, (int)current_rate - 1);
+    }
+
     JsonDocument req, res;
-    req["value"] = targetpowerrate;
+    req["value"] = value;
     req["retry"] = 2;
 
     Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
