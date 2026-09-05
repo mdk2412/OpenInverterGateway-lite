@@ -565,29 +565,25 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
 }
 
 void handleGetSettings(ESP8266WebServer& httpServer) {
-  Preferences prefs;
-  prefs.begin("config", true);
-
   JsonDocument doc;
 
   // Battery Standby
-  doc["bat_standby"] = prefs.getBool("bat_standby", User.bat_standby);
-  doc["bat_slp_thr"] = prefs.getInt("bat_slp_thr", User.bat_slp_thr);
-  doc["bat_wke_thr"] = prefs.getInt("bat_wke_thr", User.bat_wke_thr);
+  doc["bat_standby"] = User.bat_standby;
+  doc["bat_slp_thr"] = User.bat_slp_thr;
+  doc["bat_wke_thr"] = User.bat_wke_thr;
 
   // AC Charging
-  doc["accharge"] = prefs.getBool("accharge", User.accharge);
-  doc["ac_max_pow"] = prefs.getInt("ac_max_pow", User.ac_max_pow);
-  doc["ac_off_set"] = prefs.getInt("ac_off_set", User.ac_off_set);
+  doc["accharge"] = User.accharge;
+  doc["ac_max_pow"] = User.ac_max_pow;
+  doc["ac_off_set"] = User.ac_off_set;
 
-  // --- NEW: Priority Control ---
-  doc["prioctrl"] = prefs.getBool("prioctrl", User.prioctrl);
-  doc["ptogrid_thr"] = prefs.getInt("ptogrid_thr", User.ptogrid_thr);
-  doc["ptouser_thr"] = prefs.getInt("ptouser_thr", User.ptouser_thr);
-  doc["surch"] = prefs.getBool("surch", User.surch);
-  doc["power_limit"] = prefs.getInt("power_limit", User.power_limit);
+  // Priority Control & Limits
+  doc["prioctrl"] = User.prioctrl;
+  doc["ptogrid_thr"] = User.ptogrid_thr;
+  doc["ptouser_thr"] = User.ptouser_thr;
+  doc["surch"] = User.surch;
+  doc["power_limit"] = User.power_limit;
 
-  prefs.end();
   sendJson(doc);
 }
 
