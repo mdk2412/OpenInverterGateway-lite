@@ -175,14 +175,25 @@ void ShineMqtt::subscribeTopics() {
           DeserializationError err = deserializeJson(req, safePayload);
           if (err) {
             Log.printf("MQTT Payload JSON parse error: %s\n", err.c_str());
+
+            // Sofortige Fehlermeldung per MQTT senden und abbrechen
+            res["command"] = command;
+            res["success"] = false;
+            res["message"] = String("Invalid JSON Payload: ") + err.c_str();
+
+            String resultTopic = mqttconfig.topic + "/result";
+            String responsePayload;
+            serializeJson(res, responsePayload);
+
+            mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+            return; // Beendet die Lambda-Funktion frühzeitig
           }
         }
 
-        // 7. Übergabe an bestehenden Handler (v7 Signatur mit 3 Parametern)
+        // 7. Übergabe an bestehenden Handler (v7 Signatur)
         inverter.HandleCommand(command, req, res);
 
         // 8. Ergebnis zurücksenden
-        // Korrektur: In ArduinoJson v7 wird primitive Antwort über res.isNull() statt res.size() geprüft
         if (!res.isNull()) {
           String resultTopic = mqttconfig.topic + "/result";
 

@@ -684,24 +684,24 @@ void Growatt::RegisterCommand(const String& command,
 
 void Growatt::HandleCommand(const String& command, JsonDocument& req,
                             JsonDocument& res) {
-  // Das 'req'-Dokument wird NICHT gelöscht und NICHT deserialisiert, 
-  // da es vom Aufrufer bereits direkt befüllt wurde!
   res.clear();
 
-  // 1. Metadaten auslesen
+  // 1. Metadaten sichern
   uint8_t retries = 0;
   if (req["retry"].is<uint8_t>()) {
     retries = req["retry"].as<uint8_t>();
   }
 
+  String correlationId = "";
   if (req["correlationId"].is<String>()) {
-    res["correlationId"] = req["correlationId"].as<String>();
+    correlationId = req["correlationId"].as<String>();
   }
 
   // 2. Command-Handler suchen
   auto it = handlers.find(command);
   if (it == handlers.end()) {
     Log.printf("Unknown Command: %s\n", command.c_str());
+    if (!correlationId.isEmpty()) res["correlationId"] = correlationId;
     res["command"] = command;
     res["success"] = false;
     res["message"] = "Unknown Command: " + command;
@@ -710,7 +710,7 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 
   Log.printf("Handling Command: %s\n", command.c_str());
 
-  // 3. Execution Loop mit Retry-Logik
+  // 3. Execution Loop mit isoliertem 'res' pro Versuch
   bool success = false;
   String message = "";
 
@@ -718,10 +718,13 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
     if (attempt > 0) {
       Log.printf("Retrying Command: %s (Attempt %d/%d)...\n", command.c_str(),
                  attempt, retries);
-      delay(50); // Kleines Delay vor erneutem Versuch
+      delay(50);
     }
 
-    // Handler ausführen (reicht req direkt durch)
+    // res vor jedem Versuch leeren, um Altlasten fehlgeschlagener Versuche zu entfernen
+    res.clear();
+
+    // Handler ausführen
     std::tie(success, message) = it->second(req, res, *this);
 
     if (success) {
@@ -729,7 +732,10 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
     }
   }
 
-  // 4. Status im Response-JSON setzen
+  // 4. Status und Metadaten im Response-JSON setzen
+  if (!correlationId.isEmpty()) {
+    res["correlationId"] = correlationId;
+  }
   res["command"] = command;
   res["success"] = success;
   res["message"] = message;
