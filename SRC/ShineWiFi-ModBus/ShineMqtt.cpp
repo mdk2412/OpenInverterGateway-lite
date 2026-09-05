@@ -29,6 +29,11 @@ ShineMqtt::~ShineMqtt() {
 void ShineMqtt::mqttSetup(const MqttConfig& config) {
   mqttconfig = config;
 
+  // Abschließende Slashes aus dem Basistopic entfernen (verhindert z.B. "topic//command")
+  while (mqttconfig.topic.endsWith("/")) {
+    mqttconfig.topic.remove(mqttconfig.topic.length() - 1);
+  }
+
   uint16_t port = mqttconfig.port.toInt();
   if (port == 0) port = 1883;
 
@@ -107,6 +112,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
   if (bytesWritten != len) {
     Log.printf("MQTT Error: Serialization incomplete (%u/%u bytes)\n",
                (unsigned int)bytesWritten, (unsigned int)len);
+    // Verbindung trennen, um eine Asynchronität des TCP-Streams zu verhindern
+    mqttclient->disconnect();
     return false;
   }
 
@@ -175,7 +182,8 @@ void ShineMqtt::subscribeTopics() {
         inverter.HandleCommand(command, req, res);
 
         // 8. Ergebnis zurücksenden
-        if (!res.isNull() && res.size() > 0) {
+        // Korrektur: In ArduinoJson v7 wird primitive Antwort über res.isNull() statt res.size() geprüft
+        if (!res.isNull()) {
           String resultTopic = mqttconfig.topic + "/result";
 
           String responsePayload;
