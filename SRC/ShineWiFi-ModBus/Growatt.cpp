@@ -235,28 +235,48 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   uint8_t inputFragOffs = 0;
   uint8_t holdingFragOffs = 0;
   bool res;
-  uint8_t retryCnt = 0;
-  while (inputFragOffs < _Protocol.InputFragmentCount &&
-         retryCnt < maxRetries) {
-    res = ReadInputRegisters(inputFragOffs);
+  
+  // --- 1. Input Registers lesen ---
+  while (inputFragOffs < _Protocol.InputFragmentCount) {
+    uint8_t retryCnt = 0;
+    res = false;
+
+    // Retry-Schleife für das aktuelle Fragment
+    while (!res && retryCnt < maxRetries) {
+      res = ReadInputRegisters(inputFragOffs);
+      if (!res) {
+        retryCnt++;
+        Modbus.clearResponseBuffer();
+      }
+    }
+
     if (res) {
-      _PacketCnt++;  // nur bei Erfolg
+      _PacketCnt++; // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++;
-      retryCnt++;
-      Modbus.clearResponseBuffer();
+      _PacketCntFailed++; // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
+      break; // Abbrechen, da der Abruf unvollständig ist
     }
   }
-  retryCnt = 0;
-  while (holdingFragOffs < _Protocol.HoldingFragmentCount &&
-         retryCnt < maxRetries) {
-    res = ReadHoldingRegisters(holdingFragOffs);
+
+  // --- 2. Holding Registers lesen ---
+  while (holdingFragOffs < _Protocol.HoldingFragmentCount) {
+    uint8_t retryCnt = 0;
+    res = false;
+
+    // Retry-Schleife für das aktuelle Fragment
+    while (!res && retryCnt < maxRetries) {
+      res = ReadHoldingRegisters(holdingFragOffs);
+      if (!res) {
+        retryCnt++;
+        Modbus.clearResponseBuffer();
+      }
+    }
+
     if (res) {
-      _PacketCnt++;  // nur bei Erfolg
+      _PacketCnt++; // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++;
-      retryCnt++;
-      Modbus.clearResponseBuffer();
+      _PacketCntFailed++; // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
+      break; // Abbrechen, da der Abruf unvollständig ist
     }
   }
 
