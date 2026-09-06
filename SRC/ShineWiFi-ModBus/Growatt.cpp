@@ -474,58 +474,6 @@ bool Growatt::GetSingleValueByName(const String& name, double& value) {
   return false;
 }
 
-void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
-                         const String& Hostname) {
-  if (!Hostname.isEmpty()) {
-    doc["Hostname"] = Hostname;
-  }
-
-  // Input Registers verarbeiten
-  for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    const auto regName = _Protocol.InputRegisters[i].name;
-    if (regName) {
-      double val = getRegValue(&_Protocol.InputRegisters[i]);
-      // Nur ins JSON schreiben, wenn der Wert GUELTIG (nicht NaN) ist
-      if (!isnan(val)) {
-        doc[regName] = val;
-      }
-    }
-  }
-
-  // Holding Registers verarbeiten
-  for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    const auto regName = _Protocol.HoldingRegisters[i].name;
-    if (regName) {
-      double val = getRegValue(&_Protocol.HoldingRegisters[i]);
-      // Nur ins JSON schreiben, wenn der Wert GUELTIG (nicht NaN) ist
-      if (!isnan(val)) {
-        doc[regName] = val;
-      }
-    }
-  }
-
-  // System-Informationen
-  doc["Mac"] = MacAddress;
-  doc["Cnt"] = _PacketCnt;
-  doc["CntFailed"] = _PacketCntFailed;
-  doc["Uptime"] = millis() / 1000;
-  doc["WifiRSSI"] = WiFi.RSSI();
-  doc["HeapFree"] = ESP.getFreeHeap();
-
-  static uint32_t heap_min_free = ESP.getFreeHeap();
-  heap_min_free = (std::min)(ESP.getFreeHeap(), heap_min_free);
-
-  doc["HeapMaxAlloc"] = ESP.getMaxFreeBlockSize();
-  doc["HeapMinFree"] = heap_min_free;
-  doc["HeapFragmentation"] = ESP.getHeapFragmentation();
-
-  // Prüfen, ob der Speicher für das JSON ausgereicht hat
-  if (doc.overflowed()) {
-    Log.println(
-        F("CreateJson: JsonDocument overflowed! Output will be truncated"));
-  }
-}
-
 void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress,
                            const String& Hostname) {
   const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",

@@ -482,7 +482,6 @@ void setup() {
   shineMqtt.mqttSetup(Wifi.mqtt);
 #endif
 
-  httpServer.on("/status", sendJsonSite);
   httpServer.on("/uiStatus", sendUiJsonSite);
   httpServer.on("/startAp", startConfigAccessPoint);
   httpServer.on("/reboot", rebootESP);
@@ -694,18 +693,6 @@ void sendJson(JsonDocument& doc) {
 
   // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
   serializeJson(doc, httpServer.client());
-}
-
-void sendJsonSite(void) {
-  if (!readoutSucceeded) {
-    httpServer.send(503, F("text/plain"), F("Service Unavailable"));
-    return;
-  }
-
-  JsonDocument doc;
-  Inverter.CreateJson(doc, WiFi.macAddress(), Wifi.hostname);
-
-  sendJson(doc);
 }
 
 void sendUiJsonSite(void) {

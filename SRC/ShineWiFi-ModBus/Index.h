@@ -149,7 +149,6 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     <section id="system" class="tab-content" hidden>
       <div class="grid">
-        <button type="button" onclick="location.href='./status'">JSON</button>
         <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
       </div>
       <div class="grid">
