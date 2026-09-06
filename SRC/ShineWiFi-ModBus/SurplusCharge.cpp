@@ -33,18 +33,14 @@ void surplusCharge() {
   if (current_rate != targetpowerrate) {
     int value;
 
-    if (current_rate < targetpowerrate) {
-      // Sollwert direkt ansteuern beim Hochregeln
-      value = targetpowerrate;
-    // } else {
-    //   // Schrittweise um 1 reduzieren, aber mindestens 20 halten
-    //   value = std::max(20, (int)current_rate - 1);
+    if (current_rate != targetpowerrate) {
+      // Immer einen gültigen Wert zuweisen!
+      int value = targetpowerrate;
+
+      JsonDocument req, res;
+      req["value"] = value;
+      req["retry"] = 2;
+
+      Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
     }
-
-    JsonDocument req, res;
-    req["value"] = value;
-    req["retry"] = 2;
-
-    Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
   }
-}
