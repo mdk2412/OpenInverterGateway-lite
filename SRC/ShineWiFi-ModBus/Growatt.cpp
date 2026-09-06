@@ -526,18 +526,23 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   }
 }
 
-void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress, const String& Hostname) {
+void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress,
+                           const String& Hostname) {
   const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
                            "Hz", "°C", "VA",  "mA", "kOhm", "var"};
+  const int unitStrLength = sizeof(unitStr) / sizeof(char*);
 
-  const char* statusStr[] = {"(Waiting)", "(Normal Operation)", "", "(Error)"};
+  const char* statusStr[] = {"(Waiting)", "(Normal)", "(Fault)", "(Flash)"};
   const int statusStrLength = sizeof(statusStr) / sizeof(char*);
+
   const char* onoffStr[] = {"(Inverter Off)", "(Inverter On)", "(BDC Off)",
                             "(BDC On)"};
   const int onoffStrLength = sizeof(onoffStr) / sizeof(char*);
+
   const char* priorityStr[] = {"(Load First)", "(Battery First)",
                                "(Grid First)"};
   const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
+
   const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
@@ -547,7 +552,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress, const St
     arr.add("");
   }
 
-  // Input Registers verarbeiten (ALLE Register, ohne .frontend Filter)
+  // Input Registers verarbeiten
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
     double val = getRegValue(&_Protocol.InputRegisters[i]);
 
@@ -555,29 +560,34 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress, const St
       const auto regName = _Protocol.InputRegisters[i].name;
       if (regName) {
         JsonArray arr = doc[regName].to<JsonArray>();
-
         arr.add(val);
 
         const auto regVal = _Protocol.InputRegisters[i].value;
 
         if ((String(regName) == F("InverterStatus") ||
              String(regName) == F("BDCSysState")) &&
-            regVal < statusStrLength) {
+            regVal >= 0 && regVal < statusStrLength) {
           arr.add(statusStr[regVal]);
-        } else if (String(regName) == F("BDCSysMode") &&
+        } else if (String(regName) == F("BDCSysMode") && regVal >= 0 &&
                    regVal < bdcModeStrLength) {
           arr.add(bdcModeStr[regVal]);
-        } else if (String(regName) == F("Priority") &&
+        } else if (String(regName) == F("Priority") && regVal >= 0 &&
                    regVal < priorityStrLength) {
           arr.add(priorityStr[regVal]);
+        } else if ((String(regName) == F("InverterOnOff") ||
+                    String(regName) == F("BDCOnOff")) &&
+                   regVal >= 0 && regVal < onoffStrLength) {
+          arr.add(onoffStr[regVal]);
         } else {
-          arr.add(unitStr[_Protocol.InputRegisters[i].unit]);
+          // Sicherer Zugriff auf unitStr
+          uint8_t unitIdx = _Protocol.InputRegisters[i].unit;
+          arr.add(unitIdx < unitStrLength ? unitStr[unitIdx] : "");
         }
       }
     }
   }
 
-  // Holding Registers verarbeiten (ALLE Register, ohne .frontend Filter)
+  // Holding Registers verarbeiten
   for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
     double val = getRegValue(&_Protocol.HoldingRegisters[i]);
 
@@ -585,18 +595,20 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress, const St
       const auto regName = _Protocol.HoldingRegisters[i].name;
       if (regName) {
         JsonArray arr = doc[regName].to<JsonArray>();
-
         arr.add(val);
 
         const auto regVal = _Protocol.HoldingRegisters[i].value;
 
-        if (String(regName) == F("InverterStatus") &&
+        if (String(regName) == F("InverterStatus") && regVal >= 0 &&
             regVal < statusStrLength) {
           arr.add(statusStr[regVal]);
-        } else if (String(regName) == F("OnOff") && regVal < onoffStrLength) {
+        } else if (String(regName) == F("OnOff") && regVal >= 0 &&
+                   regVal < onoffStrLength) {
           arr.add(onoffStr[regVal]);
         } else {
-          arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);
+          // Sicherer Zugriff auf unitStr
+          uint8_t unitIdx = _Protocol.HoldingRegisters[i].unit;
+          arr.add(unitIdx < unitStrLength ? unitStr[unitIdx] : "");
         }
       }
     }
