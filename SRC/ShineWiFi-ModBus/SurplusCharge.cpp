@@ -30,18 +30,9 @@ void surplusCharge() {
   uint16_t targetpowerrate = std::clamp<int32_t>(rate, 0, 100);
 
   // --- Steuerung ausführen ---
-  if (current_rate != targetpowerrate) {
-    // value direkt mit dem Zielwert initialisieren, damit es nie
-    // uninitialisiert bleibt
+  // Nur senden, wenn die aktuelle Rate zu NIEDRIG ist (Hochregeln)
+  if (current_rate < targetpowerrate) {
     int value = targetpowerrate;
-
-    if (current_rate < targetpowerrate) {
-      // Sollwert direkt ansteuern beim Hochregeln
-      value = targetpowerrate;
-      // } else {
-      //   // Schrittweise um 1 reduzieren, aber mindestens 20 halten
-      //   value = std::max(20, (int)current_rate - 1);
-    }
 
     JsonDocument req, res;
     req["value"] = value;
