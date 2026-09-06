@@ -36,9 +36,9 @@ void surplusCharge() {
     if (current_rate < targetpowerrate) {
       // Sollwert direkt ansteuern beim Hochregeln
       value = targetpowerrate;
-    } else {
-      // Schrittweise um 1 reduzieren, aber mindestens 0 halten
-      value = std::max(0, (int)current_rate - 1);
+    // } else {
+    //   // Schrittweise um 1 reduzieren, aber mindestens 20 halten
+    //   value = std::max(20, (int)current_rate - 1);
     }
 
     JsonDocument req, res;
