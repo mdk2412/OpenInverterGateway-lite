@@ -710,7 +710,7 @@ void sendJsonSite(void) {
 
 void sendUiJsonSite(void) {
   JsonDocument doc;
-  Inverter.CreateUIJson(doc, Wifi.hostname);
+  Inverter.CreateUIJson(doc, WiFi.macAddress(), Wifi.hostname);
 
   sendJson(doc);
 }
@@ -719,7 +719,7 @@ void sendUiJsonSite(void) {
 boolean sendMqttJson(void) {
   JsonDocument doc;
 
-  Inverter.CreateJson(doc, WiFi.macAddress(), "");
+  Inverter.CreateUIJson(doc, WiFi.macAddress(), "");
   return shineMqtt.mqttPublish(doc);
 }
 #endif

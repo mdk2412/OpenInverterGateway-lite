@@ -526,7 +526,7 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   }
 }
 
-void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
+void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress, const String& Hostname) {
   const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
                            "Hz", "°C", "VA",  "mA", "kOhm", "var"};
 
@@ -547,67 +547,101 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& Hostname) {
     arr.add("");
   }
 
-  // Input Registers verarbeiten
+  // Input Registers verarbeiten (ALLE Register, ohne .frontend Filter)
   for (int i = 0; i < _Protocol.InputRegisterCount; i++) {
-    if (_Protocol.InputRegisters[i].frontend) {
-      double val = getRegValue(&_Protocol.InputRegisters[i]);
+    double val = getRegValue(&_Protocol.InputRegisters[i]);
 
-      // Nur verarbeiten, wenn der Wert GUELTIG (nicht NaN) ist
-      if (!isnan(val)) {
-        const auto regName = _Protocol.InputRegisters[i].name;
-        if (regName) {
-          JsonArray arr = doc[regName].to<JsonArray>();
+    if (!isnan(val)) {
+      const auto regName = _Protocol.InputRegisters[i].name;
+      if (regName) {
+        JsonArray arr = doc[regName].to<JsonArray>();
 
-          // Value hinzufügen
-          arr.add(val);
+        arr.add(val);
 
-          const auto regVal = _Protocol.InputRegisters[i].value;
+        const auto regVal = _Protocol.InputRegisters[i].value;
 
-          if ((String(regName) == F("InverterStatus") ||
-               String(regName) == F("BDCSysState")) &&
-              regVal < statusStrLength) {
-            arr.add(statusStr[regVal]);
-          } else if (String(regName) == F("BDCSysMode") &&
-                     regVal < bdcModeStrLength) {
-            arr.add(bdcModeStr[regVal]);
-          } else if (String(regName) == F("Priority") &&
-                     regVal < priorityStrLength) {
-            arr.add(priorityStr[regVal]);
-          } else {
-            arr.add(unitStr[_Protocol.InputRegisters[i].unit]);
-          }
+        if ((String(regName) == F("InverterStatus") ||
+             String(regName) == F("BDCSysState")) &&
+            regVal < statusStrLength) {
+          arr.add(statusStr[regVal]);
+        } else if (String(regName) == F("BDCSysMode") &&
+                   regVal < bdcModeStrLength) {
+          arr.add(bdcModeStr[regVal]);
+        } else if (String(regName) == F("Priority") &&
+                   regVal < priorityStrLength) {
+          arr.add(priorityStr[regVal]);
+        } else {
+          arr.add(unitStr[_Protocol.InputRegisters[i].unit]);
         }
       }
     }
   }
 
-  // Holding Registers verarbeiten
+  // Holding Registers verarbeiten (ALLE Register, ohne .frontend Filter)
   for (int i = 0; i < _Protocol.HoldingRegisterCount; i++) {
-    if (_Protocol.HoldingRegisters[i].frontend) {
-      double val = getRegValue(&_Protocol.HoldingRegisters[i]);
+    double val = getRegValue(&_Protocol.HoldingRegisters[i]);
 
-      // Nur verarbeiten, wenn der Wert GUELTIG (nicht NaN) ist
-      if (!isnan(val)) {
-        const auto regName = _Protocol.HoldingRegisters[i].name;
-        if (regName) {
-          JsonArray arr = doc[regName].to<JsonArray>();
+    if (!isnan(val)) {
+      const auto regName = _Protocol.HoldingRegisters[i].name;
+      if (regName) {
+        JsonArray arr = doc[regName].to<JsonArray>();
 
-          // Value hinzufügen
-          arr.add(val);
+        arr.add(val);
 
-          const auto regVal = _Protocol.HoldingRegisters[i].value;
+        const auto regVal = _Protocol.HoldingRegisters[i].value;
 
-          if (String(regName) == F("InverterStatus") &&
-              regVal < statusStrLength) {
-            arr.add(statusStr[regVal]);
-          } else if (String(regName) == F("OnOff") && regVal < onoffStrLength) {
-            arr.add(onoffStr[regVal]);
-          } else {
-            arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);
-          }
+        if (String(regName) == F("InverterStatus") &&
+            regVal < statusStrLength) {
+          arr.add(statusStr[regVal]);
+        } else if (String(regName) == F("OnOff") && regVal < onoffStrLength) {
+          arr.add(onoffStr[regVal]);
+        } else {
+          arr.add(unitStr[_Protocol.HoldingRegisters[i].unit]);
         }
       }
     }
+  }
+
+  // System-Informationen
+  {
+    JsonArray arrMac = doc["Mac"].to<JsonArray>();
+    arrMac.add(MacAddress);
+    arrMac.add("");
+
+    JsonArray arrCnt = doc["Cnt"].to<JsonArray>();
+    arrCnt.add(_PacketCnt);
+    arrCnt.add("");
+
+    JsonArray arrCntFailed = doc["CntFailed"].to<JsonArray>();
+    arrCntFailed.add(_PacketCntFailed);
+    arrCntFailed.add("");
+
+    JsonArray arrUptime = doc["Uptime"].to<JsonArray>();
+    arrUptime.add(millis() / 1000);
+    arrUptime.add("s");
+
+    JsonArray arrRssi = doc["WifiRSSI"].to<JsonArray>();
+    arrRssi.add(WiFi.RSSI());
+    arrRssi.add("dBm");
+
+    JsonArray arrHeap = doc["HeapFree"].to<JsonArray>();
+    arrHeap.add(ESP.getFreeHeap());
+    arrHeap.add("B");
+
+    static uint32_t heap_min_free = ESP.getFreeHeap();
+    heap_min_free = (std::min)(ESP.getFreeHeap(), heap_min_free);
+
+    JsonArray arrHeapMax = doc["HeapMaxAlloc"].to<JsonArray>();
+    arrHeapMax.add(ESP.getMaxFreeBlockSize());
+    arrHeapMax.add("B");
+
+    JsonArray arrHeapMin = doc["HeapMinFree"].to<JsonArray>();
+    arrHeapMin.add(heap_min_free);
+    arrHeapMin.add("B");
+
+    JsonArray arrHeapFrag = doc["HeapFragmentation"].to<JsonArray>();
+    arrHeapFrag.add(ESP.getHeapFragmentation());
+    arrHeapFrag.add("%");
   }
 
   if (doc.overflowed()) {

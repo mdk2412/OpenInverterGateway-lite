@@ -34,7 +34,7 @@ class Growatt {
   bool GetSingleValueByName(const String& name, double& value);
   void CreateJson(JsonDocument& doc, const String& MacAddress,
                   const String& Hostname);
-  void CreateUIJson(JsonDocument& doc, const String& Hostname);
+  void CreateUIJson(JsonDocument& doc, const String& MacAddress, const String& Hostname);
   void CreateMetrics(String& metrics, const String& MacAddress,
                      const String& Hostname);
 
