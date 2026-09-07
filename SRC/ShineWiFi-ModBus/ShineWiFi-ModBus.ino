@@ -163,28 +163,41 @@ UserConfig User;
 // Check the WiFi status and reconnect if necessary
 // -------------------------------------------------------
 void WiFi_Reconnect() {
-  static bool wasConnecting = false;
-  static unsigned long lastReconnectAttempt = 0;
+  static bool wasDisconnected = false;
+  static unsigned long disconnectedStart = 0;
 
   if (WiFi.status() != WL_CONNECTED) {
-    wasConnecting = true;
+    if (!wasDisconnected) {
+      wasDisconnected = true;
+      disconnectedStart = millis();
+      Log.println(F("WiFi connection lost. Waiting for auto-reconnect..."));
+    }
 
-    // Reconnect-Versuch entprellen (alle 10 Sekunden)
-    if (millis() - lastReconnectAttempt > 10000) {
-      lastReconnectAttempt = millis();
-      WiFi.reconnect();
-      Log.print(F("."));
+    // Hard-Reset / Reboot falls WiFi nach 5 Minuten nicht wiederhergestellt ist
+    if (millis() - disconnectedStart > 300000) { 
+      Log.println(F("WiFi reconnect timed out (5 min). Rebooting ESP..."));
+      ESP.restart();
     }
     return;
   }
 
-  if (wasConnecting) {
-    wasConnecting = false;
-
-    WiFi.printDiag(Serial);
+  if (wasDisconnected) {
+    wasDisconnected = false;
     Log.printf("WiFi reconnected | Local IP: %s | Hostname: %s\n",
                WiFi.localIP().toString().c_str(), WiFi.hostname().c_str());
   }
+}
+
+void setupWifiHost() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);        // System-Auto-Reconnect aktivieren
+  WiFi.setSleepMode(WIFI_NONE_SLEEP); // Verhindert Sleep-Latenzen bei Modbus/MQTT
+
+  WiFi.hostname(Wifi.hostname);
+#if OTA_SUPPORTED == 0
+  MDNS.begin(Wifi.hostname);
+#endif
+  Log.printf("Setup WiFi Host: hostname %s\n", Wifi.hostname.c_str());
 }
 
 void loadConfig();
@@ -289,16 +302,6 @@ void configureLogging() {
   }
 }
 
-void setupWifiHost() {
-  WiFi.mode(WIFI_STA);  // explicitly set mode, esp defaults to STA+AP
-  // ESP8266 needs this here (after WiFi.mode)
-  WiFi.hostname(Wifi.hostname);
-#if OTA_SUPPORTED == 0
-  MDNS.begin(Wifi.hostname);
-#endif
-  Log.printf("Setup WiFi Host: hostname %s\n", Wifi.hostname.c_str());
-}
-
 // --- Zentrale Defaults
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
@@ -397,17 +400,19 @@ void setup() {
   loadConfig();
   loadSettingsFromPrefs();
   configureLogging();
-  Log.begin();  // <-- MUSS direkt nach configureLogging() stehen!
+  Log.begin();  // MUSS direkt nach configureLogging() stehen!
+
+  // Hostname & WiFi-Basic-Settings konfigurieren
   setupWifiHost();
+  wm.setHostname(Wifi.hostname.c_str());
 
   setupWifiManagerConfigMenu(wm);
 
   SetLED.on(LED_BLUE);
   SetLED.off(LED_RED);
   SetLED.off(LED_GREEN);
-  // Set a timeout so the ESP doesn't hang waiting to be configured, for
-  // instance after a power failure
 
+  // Timeout für Config Portal (z.B. nach Stromausfall)
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
   Log.printf("Force AP: %s\n", Wifi.force_ap ? "true" : "false");
@@ -418,12 +423,14 @@ void setup() {
     Wifi.force_ap = true;
   }
 #endif
+
 #if ENABLE_DOUBLE_RESET == 1
   if (drd->detectDoubleReset()) {
     Log.println(F("Double reset detected"));
     Wifi.force_ap = true;
   }
 #endif
+
   if (Wifi.force_ap) {
     prefs.putBool(ConfigFiles.force_ap, false);
     wm.startConfigPortal("GrowattConfig", APPassword);
@@ -433,29 +440,34 @@ void setup() {
     ESP.restart();
   }
 
-  // Set static ip
+  // Statische IP sicher validieren und setzen
   if (!Wifi.static_ip.isEmpty() && !Wifi.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
-    ip.fromString(Wifi.static_ip);
-    netmask.fromString(Wifi.static_netmask);
-    gateway.fromString(Wifi.static_gateway);
-    dns.fromString(Wifi.static_dns);
-    Log.printf(
-        "Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
-        "Gateway: "
-        "%s\n    DNS:     %s\n",
-        Wifi.static_ip.c_str(), Wifi.static_netmask.c_str(),
-        Wifi.static_gateway.c_str(), Wifi.static_dns.c_str());
-    if (!Wifi.static_dns.isEmpty()) {
-      wm.setSTAStaticIPConfig(ip, gateway, netmask, dns);
+    
+    bool ipOk = ip.fromString(Wifi.static_ip);
+    bool netmaskOk = netmask.fromString(Wifi.static_netmask);
+    
+    if (ipOk && netmaskOk) {
+      gateway.fromString(Wifi.static_gateway);
+      dns.fromString(Wifi.static_dns);
+
+      Log.printf(
+          "Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
+          "Gateway: %s\n    DNS:     %s\n",
+          Wifi.static_ip.c_str(), Wifi.static_netmask.c_str(),
+          Wifi.static_gateway.c_str(), Wifi.static_dns.c_str());
+
+      if (dns != INADDR_NONE && dns != IPAddress(0, 0, 0, 0)) {
+        wm.setSTAStaticIPConfig(ip, gateway, netmask, dns);
+      } else {
+        wm.setSTAStaticIPConfig(ip, gateway, netmask);
+      }
     } else {
-      wm.setSTAStaticIPConfig(ip, gateway, netmask);
+      Log.println(F("WARN: Invalid static IP/Netmask stored. Falling back to DHCP."));
     }
   }
 
-  // Automatically connect using saved credentials,
-  // if connection fails, it starts an access point with the specified name
-  // ("GrowattConfig")
+  // Automatisch verbinden / Bei Fehlschlag AP "GrowattConfig" starten
   int connect_timeout_seconds = 15;
   wm.setConnectTimeout(connect_timeout_seconds);
   bool res = wm.autoConnect("GrowattConfig", APPassword);
@@ -485,22 +497,23 @@ void setup() {
   shineMqtt.mqttSetup(Wifi.mqtt);
 #endif
 
+  // --- HTTP Server Routes ---
   httpServer.on("/uiStatus", sendUiJsonSite);
   httpServer.on("/startAp", startConfigAccessPoint);
   httpServer.on("/reboot", rebootESP);
   httpServer.on("/loadfirst", loadFirst);
   httpServer.on("/batteryfirst", batteryFirst);
   httpServer.on("/gridfirst", gridFirst);
-  //  #if ENABLE_MODBUS_COMMUNICATION == 1
-  //    httpServer.on("/postCommunicationModbus", sendPostSite);
   httpServer.on("/postCommunicationModbus_p", HTTP_POST, handlePostData);
-  //  #endif
   httpServer.on("/", sendMainPage);
+
 #ifdef ENABLE_WEB_DEBUG
   httpServer.on("/debug", sendDebug);
 #endif
+
   httpServer.onNotFound(handleNotFound);
 
+  // Inverter & Modbus über Serial initialisieren
   Inverter.InitProtocol();
   Inverter.begin(Serial);
 
@@ -517,7 +530,6 @@ void setup() {
 
   httpServer.begin();
 
-// new
 #if MODBUS_TCP_SUPPORTED == 1
   modbusTCP.readHoldingRegister = modbusReadHoldingRegister;
   modbusTCP.readInputRegister = modbusReadInputRegister;
