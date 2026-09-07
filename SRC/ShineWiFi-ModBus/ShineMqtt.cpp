@@ -34,6 +34,7 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
     mqttconfig.topic.remove(mqttconfig.topic.length() - 1);
   }
 
+  // 1. Port zwingend VOR der Verwendung parsen
   uint16_t port = mqttconfig.port.toInt();
   if (port == 0) port = 1883;
 
@@ -48,7 +49,7 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
     mqttclient = nullptr;
   }
 
-  // Erstelle Client-Instanz
+  // 2. Jetzt ist 'port' bekannt und kann übergeben werden
   mqttclient = new PicoMQTT::Client(mqttconfig.server.c_str(), port, clientId);
 
   if (!mqttconfig.user.isEmpty()) {
@@ -68,18 +69,25 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 // 3. LAUFZEIT-SCHLEIFE (Main Loop)
 // =======================================================
 void ShineMqtt::loop() {
-  // Wenn MQTT nicht konfiguriert ist oder WLAN fehlt -> abbrechen
-  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED || !mqttclient) {
+  if (!mqttEnabled() || !mqttclient) {
     lastConnectedState = false;
     return;
   }
 
-  // WICHTIG: picoMQTT erledigt Reconnect & Ping komplett intern in ->loop()!
+  // Bei fehlendem WLAN braucht loop() nicht aufgerufen zu werden
+  if (WiFi.status() != WL_CONNECTED) {
+    if (lastConnectedState) {
+      Log.printf("MQTT disconnected (WiFi down)\n");
+      lastConnectedState = false;
+    }
+    return;
+  }
+
+  // PicoMQTT kümmert sich um Connect, Reconnect & Keep-Alive/Ping
   mqttclient->loop();
 
   bool currentlyConnected = mqttclient->connected();
 
-  // Statuswechsel im Log protokollieren
   if (currentlyConnected && !lastConnectedState) {
     Log.printf("MQTT connected\n");
   } else if (!currentlyConnected && lastConnectedState) {

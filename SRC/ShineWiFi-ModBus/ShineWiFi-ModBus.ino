@@ -83,7 +83,11 @@ Preferences prefs;
 Growatt Inverter;
 bool StartedConfigAfterBoot = false;
 
-// NEU:
+// Event-Handler für WiFi-Disconnects
+WiFiEventHandler disconnectHandler;
+static bool wasDisconnected = false;
+static unsigned long disconnectedStart = 0;
+
 #if MQTT_SUPPORTED == 1
 ShineMqtt shineMqtt(Inverter);
 #endif
@@ -160,22 +164,25 @@ UserConfig User;
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
 // -------------------------------------------------------
-// Check the WiFi status and reconnect if necessary
+// Callback für Event: WiFi Trennung aufgetreten
+// -------------------------------------------------------
+void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event) {
+  if (!wasDisconnected) {
+    wasDisconnected = true;
+    disconnectedStart = millis();
+    Log.printf("WiFi disconnected! Reason: %d. Attempting reconnect...\n", event.reason);
+  }
+  // WiFi.reconnect();
+}
+
+// -------------------------------------------------------
+// Überwacht Timeout bei anhaltendem Disconnect
 // -------------------------------------------------------
 void WiFi_Reconnect() {
-  static bool wasDisconnected = false;
-  static unsigned long disconnectedStart = 0;
-
   if (WiFi.status() != WL_CONNECTED) {
-    if (!wasDisconnected) {
-      wasDisconnected = true;
-      disconnectedStart = millis();
-      Log.println(F("WiFi connection lost. Waiting for auto-reconnect..."));
-    }
-
     // Hard-Reset / Reboot falls WiFi nach 5 Minuten nicht wiederhergestellt ist
-    if (millis() - disconnectedStart > 300000) { 
-      Log.println(F("WiFi reconnect timed out (5 min). Rebooting ESP..."));
+    if (wasDisconnected && (millis() - disconnectedStart > 300000)) { 
+      Log.println(F("WiFi Reconnect timed out (5 minutes). Rebooting..."));
       ESP.restart();
     }
     return;
@@ -192,6 +199,9 @@ void setupWifiHost() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);        // System-Auto-Reconnect aktivieren
   WiFi.setSleepMode(WIFI_NONE_SLEEP); // Verhindert Sleep-Latenzen bei Modbus/MQTT
+
+  // Event Listener für Disconnect registrieren
+  disconnectHandler = WiFi.onStationModeDisconnected(onStationModeDisconnected);
 
   WiFi.hostname(Wifi.hostname);
 #if OTA_SUPPORTED == 0
@@ -315,12 +325,7 @@ UserConfig validateUserConfig(const UserConfig& in) {
   UserConfig out = in;
 
   // BATTERY STANDBY
-  // bool ist bereits bool → keine Validierung nötig
-
-  // Sleep Threshold (>0)
   if (out.bat_slp_thr <= 0) out.bat_slp_thr = DEFAULT_SLEEP_THR;
-
-  // Wake Threshold (>0)
   if (out.bat_wke_thr <= 0) out.bat_wke_thr = DEFAULT_WAKE_THR;
 
   // AC Max Power (2500–12500)
@@ -330,9 +335,6 @@ UserConfig validateUserConfig(const UserConfig& in) {
   // Offset (-100 bis +100)
   if (out.ac_off_set < -100 || out.ac_off_set > 100)
     out.ac_off_set = DEFAULT_OFFSET;
-
-  // Priority Control (bool)
-  // bool → keine Validierung nötig
 
   // PTOGRID (>0)
   if (out.ptogrid_thr <= 0) out.ptogrid_thr = DEFAULT_PTOGRID_THR;
@@ -384,7 +386,7 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
 #endif
 
 void setup() {
-  // >>> LittleFS mounten (MUSS als erstes passieren)
+  // LittleFS mounten
   LittleFS.begin();
   httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css");
 
@@ -400,9 +402,9 @@ void setup() {
   loadConfig();
   loadSettingsFromPrefs();
   configureLogging();
-  Log.begin();  // MUSS direkt nach configureLogging() stehen!
+  Log.begin();
 
-  // Hostname & WiFi-Basic-Settings konfigurieren
+  // Hostname & WiFi-Basic-Settings konfigurieren (inkl. Event-Handler)
   setupWifiHost();
   wm.setHostname(Wifi.hostname.c_str());
 
@@ -412,7 +414,6 @@ void setup() {
   SetLED.off(LED_RED);
   SetLED.off(LED_GREEN);
 
-  // Timeout für Config Portal (z.B. nach Stromausfall)
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
   Log.printf("Force AP: %s\n", Wifi.force_ap ? "true" : "false");
@@ -440,7 +441,7 @@ void setup() {
     ESP.restart();
   }
 
-  // Statische IP sicher validieren und setzen
+  // Statische IP validieren
   if (!Wifi.static_ip.isEmpty() && !Wifi.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
     
@@ -467,7 +468,6 @@ void setup() {
     }
   }
 
-  // Automatisch verbinden / Bei Fehlschlag AP "GrowattConfig" starten
   int connect_timeout_seconds = 15;
   wm.setConnectTimeout(connect_timeout_seconds);
   bool res = wm.autoConnect("GrowattConfig", APPassword);
@@ -513,7 +513,6 @@ void setup() {
 
   httpServer.onNotFound(handleNotFound);
 
-  // Inverter & Modbus über Serial initialisieren
   Inverter.InitProtocol();
   Inverter.begin(Serial);
 
@@ -523,7 +522,6 @@ void setup() {
   httpServer.on("/getSettings", HTTP_GET,
                 []() { handleGetSettings(httpServer); });
 
-  // --- OTA Firmware Upload (Web) ---
   httpServer.on(
       "/update", HTTP_POST, []() { handleUpdateFinished(httpServer); },
       []() { handleUpdateUpload(httpServer); });
@@ -581,17 +579,14 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
 void handleGetSettings(ESP8266WebServer& httpServer) {
   JsonDocument doc;
 
-  // Battery Standby
   doc["bat_standby"] = User.bat_standby;
   doc["bat_slp_thr"] = User.bat_slp_thr;
   doc["bat_wke_thr"] = User.bat_wke_thr;
 
-  // AC Charging
   doc["accharge"] = User.accharge;
   doc["ac_max_pow"] = User.ac_max_pow;
   doc["ac_off_set"] = User.ac_off_set;
 
-  // Priority Control & Limits
   doc["prioctrl"] = User.prioctrl;
   doc["ptogrid_thr"] = User.ptogrid_thr;
   doc["ptouser_thr"] = User.ptouser_thr;
@@ -684,11 +679,6 @@ void setupWifiManagerConfigMenu(WiFiManager& wm) {
   setupMenu(wm, true);
 }
 
-/**
- * @brief create custom wifimanager menu entries
- *
- * @param enableCustomParams enable custom params aka. mqtt settings
- */
 void setupMenu(WiFiManager& wm, bool enableCustomParams) {
   Log.println(F("Setting up WiFiManager menu"));
   std::vector<const char*> menu = {"wifi", "wifinoscan", "update"};
@@ -699,28 +689,24 @@ void setupMenu(WiFiManager& wm, bool enableCustomParams) {
   menu.push_back("erase");
   menu.push_back("restart");
 
-  wm.setMenu(menu);  // custom menu, pass vector
+  wm.setMenu(menu);
 }
 
 void sendJson(JsonDocument& doc) {
   httpServer.setContentLength(measureJson(doc));
   httpServer.send(200, "application/json", "");
-
-  // ESP8266: std::clamp verfügbar, serializeJson akzeptiert rvalue
   serializeJson(doc, httpServer.client());
 }
 
 void sendUiJsonSite(void) {
   JsonDocument doc;
   Inverter.CreateUIJson(doc, WiFi.macAddress(), Wifi.hostname);
-
   sendJson(doc);
 }
 
 #if MQTT_SUPPORTED == 1
 boolean sendMqttJson(void) {
   JsonDocument doc;
-
   Inverter.CreateUIJson(doc, WiFi.macAddress(), "");
   return shineMqtt.mqttPublish(doc);
 }
@@ -794,7 +780,6 @@ void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
 void handlePostData() {
   char msg[256];
 
-  // --- Parameter einlesen ---
   const String opStr = httpServer.arg(F("operation"));
   const String regStr = httpServer.arg(F("reg"));
   const String valStr = httpServer.arg(F("val"));
@@ -807,7 +792,6 @@ void handlePostData() {
   const bool isInput = (typeStr == "I");
   const bool isHolding = (typeStr == "H");
 
-  // --- Pflichtparameter prüfen ---
   if (!httpServer.hasArg(F("reg")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
@@ -816,7 +800,6 @@ void handlePostData() {
 
   const uint16_t reg = regStr.toInt();
 
-  // --- READ ---
   if (isRead) {
     if (!isInput && !isHolding) {
       httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
@@ -866,7 +849,6 @@ void handlePostData() {
     return;
   }
 
-  // --- WRITE ---
   if (isWrite) {
     if (!isHolding) {
       snprintf_P(msg, sizeof(msg),
@@ -900,7 +882,6 @@ void handlePostData() {
     return;
   }
 
-  // --- Unbekannte Operation ---
   httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
 }
 
@@ -942,13 +923,8 @@ void handleNTPSync() {
     time_t t = time(NULL);
     localtime_r(&t, &tm);
 
-    // Datum/Uhrzeit als ISO-Format "YYYY-MM-DD HH:MM:SS" formatieren
     strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", &tm);
-
-    // Direkt in das JSON-Dokument schreiben
     req["value"] = buff;
-
-    // Aufruf nach ArduinoJson v7 Standard (3 Argumente)
     Inverter.HandleCommand("datetime/set", req, res);
   }
 }
@@ -963,7 +939,6 @@ void updateStatusLEDs() {
   mqttOK = shineMqtt.mqttConnected();
 #endif
 
-  // --- Fall 1: Grün blinkt ---
   if (wifiOK && modbusOK && mqttOK) {
     SetLED.blink(LED_GREEN, 500);
     SetLED.off(LED_RED);
@@ -971,7 +946,6 @@ void updateStatusLEDs() {
     return;
   }
 
-  // --- Fall 3: Blau blinkt ---
   if (wifiOK && modbusOK && !mqttOK) {
     SetLED.blink(LED_BLUE, 500);
     SetLED.off(LED_GREEN);
@@ -979,7 +953,6 @@ void updateStatusLEDs() {
     return;
   }
 
-  // --- Fall 2: Rot blinkt ---
   if (modbusOK && !wifiOK) {
     SetLED.blink(LED_RED, 500);
     SetLED.off(LED_GREEN);
@@ -987,7 +960,6 @@ void updateStatusLEDs() {
     return;
   }
 
-  // --- Default ---
   SetLED.off(LED_GREEN);
   SetLED.off(LED_RED);
   SetLED.off(LED_BLUE);
@@ -1045,7 +1017,6 @@ void loop() {
   WiFi_Reconnect();
 
 #if MQTT_SUPPORTED == 1
-  // picoMQTT verlangen kontinuierliches .loop(), solange WiFi steht
   if (wifiState == WL_CONNECTED) {
     shineMqtt.mqttReconnect();
     shineMqtt.loop();
@@ -1058,7 +1029,6 @@ void loop() {
   if (modbusTCP.isEnabled()) modbusTCP.loop();
 #endif
 
-  // Inverter read
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
 
