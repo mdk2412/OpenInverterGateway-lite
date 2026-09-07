@@ -164,14 +164,17 @@ UserConfig User;
 // -------------------------------------------------------
 void WiFi_Reconnect() {
   static bool wasConnecting = false;
+  static unsigned long lastReconnectAttempt = 0;
 
   if (WiFi.status() != WL_CONNECTED) {
     wasConnecting = true;
 
-    // echter reconnect
-    WiFi.reconnect();
-
-    Log.print(F("."));
+    // Reconnect-Versuch entprellen (alle 10 Sekunden)
+    if (millis() - lastReconnectAttempt > 10000) {
+      lastReconnectAttempt = millis();
+      WiFi.reconnect();
+      Log.print(F("."));
+    }
     return;
   }
 
@@ -1030,7 +1033,11 @@ void loop() {
   WiFi_Reconnect();
 
 #if MQTT_SUPPORTED == 1
-  if (wifiState == WL_CONNECTED && shineMqtt.mqttReconnect()) shineMqtt.loop();
+  // picoMQTT verlangen kontinuierliches .loop(), solange WiFi steht
+  if (wifiState == WL_CONNECTED) {
+    shineMqtt.mqttReconnect();
+    shineMqtt.loop();
+  }
 #endif
 
   httpServer.handleClient();

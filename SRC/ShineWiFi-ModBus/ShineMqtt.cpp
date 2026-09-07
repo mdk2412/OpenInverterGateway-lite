@@ -29,7 +29,7 @@ ShineMqtt::~ShineMqtt() {
 void ShineMqtt::mqttSetup(const MqttConfig& config) {
   mqttconfig = config;
 
-  // Abschließende Slashes aus dem Basistopic entfernen (verhindert z.B. "topic//command")
+  // Abschließende Slashes aus dem Basistopic entfernen
   while (mqttconfig.topic.endsWith("/")) {
     mqttconfig.topic.remove(mqttconfig.topic.length() - 1);
   }
@@ -39,31 +39,28 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 
   Log.printf(
       "MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   %s\n    MQTT "
-      "Port: "
-      "  %u\n    MQTT Topic:  %s\n",
+      "Port:   %u\n    MQTT Topic:  %s\n",
       mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
       mqttconfig.topic.c_str());
 
-  // Vorherige Instanz löschen, falls re-initialisiert wird
   if (mqttclient != nullptr) {
     delete mqttclient;
     mqttclient = nullptr;
   }
 
-  mqttclient = new PicoMQTT::Client(mqttconfig.server.c_str());
-  mqttclient->port = port;
-  mqttclient->client_id = clientId;
+  // Erstelle Client-Instanz
+  mqttclient = new PicoMQTT::Client(mqttconfig.server.c_str(), port, clientId);
 
   if (!mqttconfig.user.isEmpty()) {
     mqttclient->username = mqttconfig.user.c_str();
     mqttclient->password = mqttconfig.pwd.c_str();
   }
 
-  // Subscriptions direkt beim Setup einmalig anlegen
 #if MQTT_COMMANDS == 1
   subscribeTopics();
 #endif
 
+  // Starte den Hintergrund-Task von picoMQTT
   mqttclient->begin();
 }
 
@@ -71,14 +68,18 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
 // 3. LAUFZEIT-SCHLEIFE (Main Loop)
 // =======================================================
 void ShineMqtt::loop() {
-  if (!mqttReconnect()) {
+  // Wenn MQTT nicht konfiguriert ist oder WLAN fehlt -> abbrechen
+  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED || !mqttclient) {
     lastConnectedState = false;
     return;
   }
 
+  // WICHTIG: picoMQTT erledigt Reconnect & Ping komplett intern in ->loop()!
+  mqttclient->loop();
+
   bool currentlyConnected = mqttclient->connected();
 
-  // Statuswechsel protokollieren
+  // Statuswechsel im Log protokollieren
   if (currentlyConnected && !lastConnectedState) {
     Log.printf("MQTT connected\n");
   } else if (!currentlyConnected && lastConnectedState) {
@@ -86,9 +87,6 @@ void ShineMqtt::loop() {
   }
 
   lastConnectedState = currentlyConnected;
-
-  // PicoMQTT kümmert sich intern um die Netzwerkausführung
-  mqttclient->loop();
 }
 
 // =======================================================
@@ -96,29 +94,18 @@ void ShineMqtt::loop() {
 // =======================================================
 boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
                                uint8_t qos, bool retain) {
-  if (!mqttclient || !mqttclient->connected()) return false;
+  if (!mqttConnected()) return false;
 
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
-  // 1. Exakte JSON-Länge berechnen
-  size_t len = measureJson(doc);
+  // 1. Stream starten
+  auto publishStream = mqttclient->begin_publish(t.c_str(), measureJson(doc), qos, retain);
 
-  // 2. Stream-Publish starten
-  auto publish_stream = mqttclient->begin_publish(t.c_str(), len, qos, retain);
+  // 2. JSON in den Stream schreiben
+  serializeJson(doc, publishStream);
 
-  // 3. Direkt in den TCP-Stream serialisieren
-  size_t bytesWritten = serializeJson(doc, publish_stream);
-
-  if (bytesWritten != len) {
-    Log.printf("MQTT Error: Serialization incomplete (%u/%u bytes)\n",
-               (unsigned int)bytesWritten, (unsigned int)len);
-    // Verbindung trennen, um eine Asynchronität des TCP-Streams zu verhindern
-    mqttclient->disconnect();
-    return false;
-  }
-
-  // 4. Stream leeren & TCP-Pakete senden
-  publish_stream.flush();
+  // 3. Stream leeren/schließen (gibt void zurück)
+  publishStream.flush();
 
   return true;
 }
@@ -126,15 +113,18 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
 // =======================================================
 // 5. STATUS-ABFRAGEN & PRÜFUNGEN
 // =======================================================
-boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
+boolean ShineMqtt::mqttEnabled() { 
+  return !mqttconfig.server.isEmpty(); 
+}
 
 boolean ShineMqtt::mqttConnected() {
   return mqttclient && mqttclient->connected();
 }
 
 bool ShineMqtt::mqttReconnect() {
-  if (!mqttEnabled() || WiFi.status() != WL_CONNECTED) return false;
-  return mqttclient != nullptr;
+  // Diese Methode existiert nur zur Abwärtskompatibilität.
+  // In picoMQTT prüft man nur, ob die Verbindung betriebsbereit ist.
+  return mqttEnabled() && (WiFi.status() == WL_CONNECTED);
 }
 
 // =======================================================
@@ -144,7 +134,6 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  // 1. Topic-Muster für Subskription
   String commandTopicPattern = mqttconfig.topic + "/command/#";
 
   Log.printf("MQTT Subscribing to Topic: %s\n", commandTopicPattern.c_str());
@@ -152,31 +141,23 @@ void ShineMqtt::subscribeTopics() {
   mqttclient->subscribe(
       commandTopicPattern.c_str(),
       [this](const char* topic, const char* payload) {
-        // 2. Präfix-Länge berechnen (<baseTopic>/command/)
-        const size_t prefixLen =
-            mqttconfig.topic.length() + 9;  // 9 = strlen("/command/")
+        const size_t prefixLen = mqttconfig.topic.length() + 9; // strlen("/command/") = 9
 
-        // 3. Sicherheitsprüfung: Abbrechen, falls das Topic zu kurz ist
         if (strlen(topic) < prefixLen) return;
 
-        // 4. Befehl isolieren
         const char* command = topic + prefixLen;
         const char* safePayload = payload ? payload : "";
 
-        // 5. Wunschausgabe
         Log.printf("Received Command: %s %s\n", command, safePayload);
 
-        // 6. ArduinoJson v7: Dynamische Dokumente auf dem Stack
         JsonDocument req;
         JsonDocument res;
 
-        // Falls eine Payload gesendet wurde, direkt in req deserialisieren
         if (safePayload[0] != '\0') {
           DeserializationError err = deserializeJson(req, safePayload);
           if (err) {
             Log.printf("MQTT Payload JSON parse error: %s\n", err.c_str());
 
-            // Sofortige Fehlermeldung per MQTT senden und abbrechen
             res["command"] = command;
             res["success"] = false;
             res["message"] = String("Invalid JSON Payload: ") + err.c_str();
@@ -186,19 +167,17 @@ void ShineMqtt::subscribeTopics() {
             serializeJson(res, responsePayload);
 
             mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
-            return; // Beendet die Lambda-Funktion frühzeitig
+            return;
           }
         }
 
-        // 7. Übergabe an bestehenden Handler (v7 Signatur)
+        // Inverter Befehl ausführen
         inverter.HandleCommand(command, req, res);
 
-        // 8. Ergebnis zurücksenden
+        // Antwort zurücksenden
         if (!res.isNull()) {
           String resultTopic = mqttconfig.topic + "/result";
-
           String responsePayload;
-          responsePayload.reserve(measureJson(res) + 1);
           serializeJson(res, responsePayload);
 
           mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
