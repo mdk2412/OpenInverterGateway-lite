@@ -22,4 +22,20 @@ extern WiFiClientSecure espClient;
 extern WiFiClient espClient;
 #endif
 
+/**
+ * Trennt die WLAN-Verbindung sauber und schaltet das WLAN-Modul aus.
+ * @return true, wenn die Trennung erfolgreich war.
+ */
 bool ShineWifiDisconnect();
+
+/**
+ * Event-Callback, der aufgerufen wird, wenn die Station-Verbindung abbricht.
+ * @param event Event-Details zur Trennung
+ */
+void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event);
+
+/**
+ * Überwacht anhaltende Disconnects im Loop und führt bei Überschreiten des
+ * Timeouts (5 Minuten) einen Neustart des ESP durch.
+ */
+void WiFi_Reconnect();

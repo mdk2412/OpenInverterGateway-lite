@@ -87,8 +87,6 @@ bool StartedConfigAfterBoot = false;
 
 // Event-Handler für WiFi-Disconnects
 WiFiEventHandler disconnectHandler;
-static bool wasDisconnected = false;
-static unsigned long disconnectedStart = 0;
 
 #if MQTT_SUPPORTED == 1
 ShineMqtt shineMqtt(Inverter);
@@ -165,42 +163,11 @@ UserConfig User;
 
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
-// -------------------------------------------------------
-// Callback für Event: WiFi Trennung aufgetreten
-// -------------------------------------------------------
-void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event) {
-  if (!wasDisconnected) {
-    wasDisconnected = true;
-    disconnectedStart = millis();
-    Log.printf("WiFi disconnected! Reason: %d. Attempting Reconnect...\n", event.reason);
-  }
-  // WiFi.reconnect();
-}
-
-// -------------------------------------------------------
-// Überwacht Timeout bei anhaltendem Disconnect
-// -------------------------------------------------------
-void WiFi_Reconnect() {
-  if (WiFi.status() != WL_CONNECTED) {
-    // Hard-Reset / Reboot falls WiFi nach 5 Minuten nicht wiederhergestellt ist
-    if (wasDisconnected && (millis() - disconnectedStart > 300000)) { 
-      Log.println(F("WiFi Reconnect timed out (5 minutes). Rebooting..."));
-      ESP.restart();
-    }
-    return;
-  }
-
-  if (wasDisconnected) {
-    wasDisconnected = false;
-    Log.printf("WiFi reconnected | Local IP: %s | Hostname: %s\n",
-               WiFi.localIP().toString().c_str(), WiFi.hostname().c_str());
-  }
-}
-
 void setupWifiHost() {
   WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);        // System-Auto-Reconnect aktivieren
-  WiFi.setSleepMode(WIFI_NONE_SLEEP); // Verhindert Sleep-Latenzen bei Modbus/MQTT
+  WiFi.setAutoReconnect(true);  // System-Auto-Reconnect aktivieren
+  WiFi.setSleepMode(
+      WIFI_NONE_SLEEP);  // Verhindert Sleep-Latenzen bei Modbus/MQTT
 
   // Event Listener für Disconnect registrieren
   disconnectHandler = WiFi.onStationModeDisconnected(onStationModeDisconnected);
@@ -368,7 +335,7 @@ void setup() {
   prefs.begin("ShineWiFi");
   loadConfig();
   loadSettingsFromPrefs();
-  configureLogging(Wifi.syslog_ip); 
+  configureLogging(Wifi.syslog_ip);
   Log.begin();
 
   // Hostname & WiFi-Basic-Settings konfigurieren (inkl. Event-Handler)
@@ -411,10 +378,10 @@ void setup() {
   // Statische IP validieren
   if (!Wifi.static_ip.isEmpty() && !Wifi.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
-    
+
     bool ipOk = ip.fromString(Wifi.static_ip);
     bool netmaskOk = netmask.fromString(Wifi.static_netmask);
-    
+
     if (ipOk && netmaskOk) {
       gateway.fromString(Wifi.static_gateway);
       dns.fromString(Wifi.static_dns);
@@ -431,7 +398,8 @@ void setup() {
         wm.setSTAStaticIPConfig(ip, gateway, netmask);
       }
     } else {
-      Log.println(F("WARN: Invalid static IP/Netmask stored. Falling back to DHCP."));
+      Log.println(
+          F("WARN: Invalid static IP/Netmask stored. Falling back to DHCP."));
     }
   }
 
@@ -897,41 +865,6 @@ void handleNTPSync() {
 }
 #endif
 
-void updateStatusLEDs() {
-  bool wifiOK = (WiFi.status() == WL_CONNECTED);
-  bool modbusOK = readoutSucceeded;
-  bool mqttOK = false;
-
-#if MQTT_SUPPORTED == 1
-  mqttOK = shineMqtt.mqttConnected();
-#endif
-
-  if (wifiOK && modbusOK && mqttOK) {
-    SetLED.blink(LED_GREEN, 500);
-    SetLED.off(LED_RED);
-    SetLED.off(LED_BLUE);
-    return;
-  }
-
-  if (wifiOK && modbusOK && !mqttOK) {
-    SetLED.blink(LED_BLUE, 500);
-    SetLED.off(LED_GREEN);
-    SetLED.off(LED_RED);
-    return;
-  }
-
-  if (modbusOK && !wifiOK) {
-    SetLED.blink(LED_RED, 500);
-    SetLED.off(LED_GREEN);
-    SetLED.off(LED_BLUE);
-    return;
-  }
-
-  SetLED.off(LED_GREEN);
-  SetLED.off(LED_RED);
-  SetLED.off(LED_BLUE);
-}
-
 // -------------------------------------------------------
 // Main loop
 // -------------------------------------------------------
@@ -1001,7 +934,14 @@ void loop() {
 
     readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
 
-    updateStatusLEDs();
+    bool mqttOK = false;
+#if MQTT_SUPPORTED == 1
+    mqttOK = shineMqtt.mqttConnected();
+#endif
+
+    // Sauberer Aufruf über das globale SetLED-Objekt:
+    SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
+                        mqttOK);
 
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
