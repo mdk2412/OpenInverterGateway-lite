@@ -129,3 +129,33 @@ void SetLEDClass::loop()
         }
     }
 }
+
+// ... (bestehender Code von SetLED.cpp bleibt unverändert) ...
+
+void SetLEDClass::updateStatus(bool wifiOK, bool modbusOK, bool mqttOK)
+{
+    if (wifiOK && modbusOK && mqttOK) {
+        blink(LED_GREEN, 500);
+        off(LED_RED);
+        off(LED_BLUE);
+        return;
+    }
+
+    if (wifiOK && modbusOK && !mqttOK) {
+        blink(LED_BLUE, 500);
+        off(LED_GREEN);
+        off(LED_RED);
+        return;
+    }
+
+    if (modbusOK && !wifiOK) {
+        blink(LED_RED, 500);
+        off(LED_GREEN);
+        off(LED_BLUE);
+        return;
+    }
+
+    off(LED_GREEN);
+    off(LED_RED);
+    off(LED_BLUE);
+}
