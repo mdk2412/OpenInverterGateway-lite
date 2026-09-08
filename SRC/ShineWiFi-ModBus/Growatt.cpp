@@ -151,6 +151,14 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
                 (Modbus.getResponseBuffer(registerAddress) << 16) +
                 Modbus.getResponseBuffer(registerAddress + 1);
           }
+#if GROWATT_MODBUS_VERSION == 3000
+          // Direkt nach dem Auslesen des jeweiligen Registers anwenden:
+          if (j == P3000_INVERTER_STATUS || j == P3000_BDC_SYSSTATE) {
+            _Protocol.InputRegisters[j].value &= 0xFF;
+          } else if (j == P3000_INVERTER_RUNSTATE || j == P3000_BDC_SYSMODE) {
+            _Protocol.InputRegisters[j].value >>= 8;
+          }
+#endif
         }
       }
     } else {
@@ -161,12 +169,6 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
       return false;
     }
   }
-#if GROWATT_MODBUS_VERSION == 3000
-  _Protocol.InputRegisters[P3000_INVERTER_STATUS].value &= 0xff;
-  _Protocol.InputRegisters[P3000_INVERTER_RUNSTATE].value >>= 8;
-  _Protocol.InputRegisters[P3000_BDC_SYSSTATE].value &= 0xff;
-  _Protocol.InputRegisters[P3000_BDC_SYSMODE].value >>= 8;
-#endif
   return true;
 }
 
@@ -235,7 +237,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
   uint8_t inputFragOffs = 0;
   uint8_t holdingFragOffs = 0;
   bool res;
-  
+
   // --- 1. Input Registers lesen ---
   while (inputFragOffs < _Protocol.InputFragmentCount) {
     uint8_t retryCnt = 0;
@@ -251,10 +253,11 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     }
 
     if (res) {
-      _PacketCnt++; // Erfolg für dieses Fragment
+      _PacketCnt++;  // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++; // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
-      break; // Abbrechen, da der Abruf unvollständig ist
+      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries
+                           // fehlgeschlagen sind
+      break;               // Abbrechen, da der Abruf unvollständig ist
     }
   }
 
@@ -273,10 +276,11 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     }
 
     if (res) {
-      _PacketCnt++; // Erfolg für dieses Fragment
+      _PacketCnt++;  // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++; // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
-      break; // Abbrechen, da der Abruf unvollständig ist
+      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries
+                           // fehlgeschlagen sind
+      break;               // Abbrechen, da der Abruf unvollständig ist
     }
   }
 
