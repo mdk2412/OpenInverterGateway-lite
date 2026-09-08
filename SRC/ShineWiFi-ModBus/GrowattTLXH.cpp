@@ -52,6 +52,16 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
   uint16_t minute = datetime.substring(14, 16).toInt();
   uint16_t second = datetime.substring(17, 19).toInt();
 
+  // --- NEU: Plausibilitätsprüfung der Zahlenwerte ---
+  if (month < 1 || month > 12 || 
+      day < 1 || day > 31 || 
+      hour > 23 || 
+      minute > 59 || 
+      second > 59) {
+    return std::make_tuple(false, "Invalid Date/Time values out of range!");
+  }
+
+  // Umrechnung für Growatt (z.B. 2026 -> 26)
   year = year > 2000 ? year - 2000 : 0;
 
   uint16_t values[] = {year, month, day, hour, minute, second};
@@ -161,7 +171,7 @@ std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
 
   uint16_t value = req["value"].as<uint16_t>();
 
-  if (!((value >= 0 && value <= 100) || value == 255)) {
+  if (value > 100 && value != 255) {
     return std::make_tuple(false, "'value' Field not in Range");
   }
 
@@ -181,7 +191,7 @@ std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
 
   uint16_t value = req["value"].as<uint16_t>();
 
-  if (!((value >= 0 && value <= 100))) {
+  if (value > 100) {
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
@@ -203,7 +213,7 @@ std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
 
   uint16_t value = req["value"].as<uint16_t>();
 
-  if (!((value >= 0 && value <= 100))) {
+  if (value > 100) {
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
@@ -225,7 +235,7 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
 
   uint16_t value = req["value"].as<uint16_t>();
 
-  if (!((value >= 0 && value <= 100))) {
+  if (value > 100) {
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
@@ -247,7 +257,7 @@ std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
 
   uint16_t value = req["value"].as<uint16_t>();
 
-  if (!((value >= 0 && value <= 100))) {
+  if (value > 100) {
     return std::make_tuple(false, String(F("'Value' Field not in Range")));
   }
 
@@ -267,6 +277,11 @@ std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
   }
 
   uint16_t value = req["value"].as<uint16_t>();
+
+  if (value > 1) {
+    return std::make_tuple(
+        false, String(F("'Value' must be 0 (Disabled) or 1 (Enabled)")));
+  }
 
   if (!inverter.WriteHoldingReg(3049, value)) {
     return std::make_tuple(false,
@@ -313,12 +328,11 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
 
 void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   // definition of input registers
-  Protocol.InputRegisterCount = P3000_INPUT_REGISTER_COUNT;
   // address, value, size, name, multiplier, resolution, unit
 
   // FRAGMENT 1: BEGIN
-  Protocol.InputRegisters[P3000_INVERTER_STATUS] = sGrowattModbusReg_t{
-      3000, 0, SIZE_16BIT, F("InverterStatus"), 1, 1, NONE};
+  Protocol.InputRegisters[P3000_INVERTER_STATUS] =
+      sGrowattModbusReg_t{3000, 0, SIZE_16BIT, F("InverterStatus"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_INVERTER_RUNSTATE] = sGrowattModbusReg_t{
       3000, 0, SIZE_16BIT, F("InverterRunState"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_PPV] = sGrowattModbusReg_t{
@@ -338,49 +352,39 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3009, 0, SIZE_32BIT, F("PV2Power"), 0.1, 0.1, POWER_W};
   Protocol.InputRegisters[P3000_PSYS] = sGrowattModbusReg_t{
       3019, 0, SIZE_32BIT_S, F("SystemOutputPower"), 0.1, 0.1, POWER_W};
-  Protocol.InputRegisters[P3000_QAC] =
-      sGrowattModbusReg_t{3021, 0,   SIZE_32BIT_S,   F("ReactivePower"),
-                          0.1,  0.1, POWER_REACTIVE};
+  Protocol.InputRegisters[P3000_QAC] = sGrowattModbusReg_t{
+      3021, 0, SIZE_32BIT_S, F("ReactivePower"), 0.1, 0.1, POWER_REACTIVE};
   Protocol.InputRegisters[P3000_PAC] = sGrowattModbusReg_t{
       3023, 0, SIZE_32BIT_S, F("OutputPower"), 0.1, 0.1, POWER_W};
   Protocol.InputRegisters[P3000_FAC] = sGrowattModbusReg_t{
       3025, 0, SIZE_16BIT, F("GridFrequency"), 0.01, 0.01, FREQUENCY};
-  Protocol.InputRegisters[P3000_VAC1] =
-      sGrowattModbusReg_t{3026, 0,   SIZE_16BIT, F("L1ThreePhaseGridVoltage"),
-                          0.1,  0.1, VOLTAGE};
+  Protocol.InputRegisters[P3000_VAC1] = sGrowattModbusReg_t{
+      3026, 0, SIZE_16BIT, F("L1ThreePhaseGridVoltage"), 0.1, 0.1, VOLTAGE};
   Protocol.InputRegisters[P3000_IAC1] = sGrowattModbusReg_t{
       3027, 0,   SIZE_16BIT, F("L1ThreePhaseGridOutputCurrent"),
       0.1,  0.1, CURRENT};
   Protocol.InputRegisters[P3000_PAC1] = sGrowattModbusReg_t{
-      3028, 0,   SIZE_32BIT, F("L1ThreePhaseGridOutputPower"),
-      0.1,  0.1, POWER_W};
-  Protocol.InputRegisters[P3000_VAC2] =
-      sGrowattModbusReg_t{3030, 0,   SIZE_16BIT, F("L2ThreePhaseGridVoltage"),
-                          0.1,  0.1, VOLTAGE};
+      3028, 0, SIZE_32BIT, F("L1ThreePhaseGridOutputPower"), 0.1, 0.1, POWER_W};
+  Protocol.InputRegisters[P3000_VAC2] = sGrowattModbusReg_t{
+      3030, 0, SIZE_16BIT, F("L2ThreePhaseGridVoltage"), 0.1, 0.1, VOLTAGE};
   Protocol.InputRegisters[P3000_IAC2] = sGrowattModbusReg_t{
       3031, 0,   SIZE_16BIT, F("L2ThreePhaseGridOutputCurrent"),
       0.1,  0.1, CURRENT};
   Protocol.InputRegisters[P3000_PAC2] = sGrowattModbusReg_t{
-      3032, 0,   SIZE_32BIT, F("L2ThreePhaseGridOutputPower"),
-      0.1,  0.1, POWER_W};
-  Protocol.InputRegisters[P3000_VAC3] =
-      sGrowattModbusReg_t{3034, 0,   SIZE_16BIT, F("L3ThreePhaseGridVoltage"),
-                          0.1,  0.1, VOLTAGE};
+      3032, 0, SIZE_32BIT, F("L2ThreePhaseGridOutputPower"), 0.1, 0.1, POWER_W};
+  Protocol.InputRegisters[P3000_VAC3] = sGrowattModbusReg_t{
+      3034, 0, SIZE_16BIT, F("L3ThreePhaseGridVoltage"), 0.1, 0.1, VOLTAGE};
   Protocol.InputRegisters[P3000_IAC3] = sGrowattModbusReg_t{
       3035, 0,   SIZE_16BIT, F("L3ThreePhaseGridOutputCurrent"),
       0.1,  0.1, CURRENT};
   Protocol.InputRegisters[P3000_PAC3] = sGrowattModbusReg_t{
-      3036, 0,   SIZE_32BIT, F("L3ThreePhaseGridOutputPower"),
-      0.1,  0.1, POWER_W};
-  Protocol.InputRegisters[P3000_VAC_RS] =
-      sGrowattModbusReg_t{3038, 0,   SIZE_16BIT, F("RSThreePhaseGridVoltage"),
-                          0.1,  0.1, VOLTAGE};
-  Protocol.InputRegisters[P3000_VAC_ST] =
-      sGrowattModbusReg_t{3039, 0,   SIZE_16BIT, F("STThreePhaseGridVoltage"),
-                          0.1,  0.1, VOLTAGE};
-  Protocol.InputRegisters[P3000_VAC_TR] =
-      sGrowattModbusReg_t{3040, 0,   SIZE_16BIT, F("TRThreePhaseGridVoltage"),
-                          0.1,  0.1, VOLTAGE};
+      3036, 0, SIZE_32BIT, F("L3ThreePhaseGridOutputPower"), 0.1, 0.1, POWER_W};
+  Protocol.InputRegisters[P3000_VAC_RS] = sGrowattModbusReg_t{
+      3038, 0, SIZE_16BIT, F("RSThreePhaseGridVoltage"), 0.1, 0.1, VOLTAGE};
+  Protocol.InputRegisters[P3000_VAC_ST] = sGrowattModbusReg_t{
+      3039, 0, SIZE_16BIT, F("STThreePhaseGridVoltage"), 0.1, 0.1, VOLTAGE};
+  Protocol.InputRegisters[P3000_VAC_TR] = sGrowattModbusReg_t{
+      3040, 0, SIZE_16BIT, F("TRThreePhaseGridVoltage"), 0.1, 0.1, VOLTAGE};
   Protocol.InputRegisters[P3000_PTOUSER_TOTAL] = sGrowattModbusReg_t{
       3041, 0, SIZE_32BIT_S, F("TotalForwardPower"), 0.1, 0.1, POWER_W};
   Protocol.InputRegisters[P3000_PTOGRID_TOTAL] = sGrowattModbusReg_t{
@@ -389,12 +393,10 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3045, 0, SIZE_32BIT_S, F("TotalLoadPower"), 0.1, 0.1, POWER_W};
   Protocol.InputRegisters[P3000_TIME_TOTAL] = sGrowattModbusReg_t{
       3047, 0, SIZE_32BIT, F("WorkTimeTotal"), 0.5, 1, SECONDS};
-  Protocol.InputRegisters[P3000_EAC_TODAY] =
-      sGrowattModbusReg_t{3049, 0,   SIZE_32BIT, F("TodayGenerateEnergy"),
-                          0.1,  0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_EAC_TOTAL] =
-      sGrowattModbusReg_t{3051, 0,   SIZE_32BIT, F("TotalGenerateEnergy"),
-                          0.1,  0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_EAC_TODAY] = sGrowattModbusReg_t{
+      3049, 0, SIZE_32BIT, F("TodayGenerateEnergy"), 0.1, 0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_EAC_TOTAL] = sGrowattModbusReg_t{
+      3051, 0, SIZE_32BIT, F("TotalGenerateEnergy"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_EPV_TOTAL] = sGrowattModbusReg_t{
       3053, 0, SIZE_32BIT, F("PVEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_EPV1_TODAY] = sGrowattModbusReg_t{
@@ -416,17 +418,14 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3071, 0, SIZE_32BIT, F("TodayEnergyToGrid"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_ETOGRID_TOTAL] = sGrowattModbusReg_t{
       3073, 0, SIZE_32BIT, F("TotalEnergyToGrid"), 0.1, 0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_ELOAD_TODAY] =
-      sGrowattModbusReg_t{3075, 0,   SIZE_32BIT, F("TodayEnergyOfUserLoad"),
-                          0.1,  0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_ELOAD_TOTAL] =
-      sGrowattModbusReg_t{3077, 0,   SIZE_32BIT, F("TotalEnergyOfUserLoad"),
-                          0.1,  0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_ELOAD_TODAY] = sGrowattModbusReg_t{
+      3075, 0, SIZE_32BIT, F("TodayEnergyOfUserLoad"), 0.1, 0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_ELOAD_TOTAL] = sGrowattModbusReg_t{
+      3077, 0, SIZE_32BIT, F("TotalEnergyOfUserLoad"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_EPV_TODAY] = sGrowattModbusReg_t{
       3083, 0, SIZE_32BIT, F("PVEnergyToday"), 0.1, 0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_DERATING_MODE] =
-      sGrowattModbusReg_t{3086, 0, SIZE_16BIT, F("DeratingMode"),
-                          1,    1, NONE};  // TODO: decode
+  Protocol.InputRegisters[P3000_DERATING_MODE] = sGrowattModbusReg_t{
+      3086, 0, SIZE_16BIT, F("DeratingMode"), 1, 1, NONE};  // TODO: decode
   Protocol.InputRegisters[P3000_ISO] = sGrowattModbusReg_t{
       3087, 0, SIZE_16BIT, F("PVISOValue"), 1, 1, RESISTANCE_K};
   Protocol.InputRegisters[P3000_DCI_R] = sGrowattModbusReg_t{
@@ -435,20 +434,18 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3089, 0, SIZE_16BIT, F("SDCICurr"), 0.1, 0.1, CURRENT_M};
   Protocol.InputRegisters[P3000_DCI_T] = sGrowattModbusReg_t{
       3090, 0, SIZE_16BIT, F("TDCICurr"), 0.1, 0.1, CURRENT_M};
-  Protocol.InputRegisters[P3000_GFCI] = sGrowattModbusReg_t{
-      3091, 0, SIZE_16BIT, F("GFCICurr"), 1, 1, CURRENT_M};
+  Protocol.InputRegisters[P3000_GFCI] =
+      sGrowattModbusReg_t{3091, 0, SIZE_16BIT, F("GFCICurr"), 1, 1, CURRENT_M};
   Protocol.InputRegisters[P3000_BUS_VOLTAGE] = sGrowattModbusReg_t{
       3092, 0, SIZE_16BIT, F("TotalBusVoltage"), 0.1, 0.1, VOLTAGE};
-  Protocol.InputRegisters[P3000_TEMP1] =
-      sGrowattModbusReg_t{3093, 0,   SIZE_16BIT,  F("InverterTemperature"),
-                          0.1,  0.1, TEMPERATURE};
-  Protocol.InputRegisters[P3000_TEMP2] =
-      sGrowattModbusReg_t{3094, 0,   SIZE_16BIT,  F("TemperatureInsideIPM"),
-                          0.1,  0.1, TEMPERATURE};
+  Protocol.InputRegisters[P3000_TEMP1] = sGrowattModbusReg_t{
+      3093, 0, SIZE_16BIT, F("InverterTemperature"), 0.1, 0.1, TEMPERATURE};
+  Protocol.InputRegisters[P3000_TEMP2] = sGrowattModbusReg_t{
+      3094, 0, SIZE_16BIT, F("TemperatureInsideIPM"), 0.1, 0.1, TEMPERATURE};
   Protocol.InputRegisters[P3000_TEMP3] = sGrowattModbusReg_t{
       3095, 0, SIZE_16BIT, F("BoostTemperature"), 0.1, 0.1, TEMPERATURE};
   Protocol.InputRegisters[P3000_TEMP5] = sGrowattModbusReg_t{
-      3097, 0,   SIZE_16BIT,  F("CommunicationBoardTemperature"),
+      3097, 0,   SIZE_16BIT, F("CommunicationBoardTemperature"),
       0.1,  0.1, TEMPERATURE};
   Protocol.InputRegisters[P3000_P_BUS_VOLTAGE] = sGrowattModbusReg_t{
       3098, 0, SIZE_16BIT, F("PBusInsideVoltage"), 0.1, 0.1, VOLTAGE};
@@ -458,17 +455,16 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3100, 0, SIZE_16BIT, F("InverterOutputPFNow"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_REALOPPERCENT] = sGrowattModbusReg_t{
       3101, 0, SIZE_16BIT_S, F("RealOutputPercent"), 1, 1, PERCENTAGE};
-  Protocol.InputRegisters[P3000_OPFULLWATT] =
-      sGrowattModbusReg_t{3102, 0,   SIZE_32BIT, F("OutputMaxpowerLimited"),
-                          0.1,  0.1, POWER_W};
+  Protocol.InputRegisters[P3000_OPFULLWATT] = sGrowattModbusReg_t{
+      3102, 0, SIZE_32BIT, F("OutputMaxpowerLimited"), 0.1, 0.1, POWER_W};
   Protocol.InputRegisters[P3000_STANDBY_FLAG] = sGrowattModbusReg_t{
       3104, 0, SIZE_16BIT, F("InverterStandbyFlag"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_FAULT_MAINCODE] = sGrowattModbusReg_t{
       3105, 0, SIZE_16BIT, F("InverterFaultMaincode"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_WARN_MAINCODE] = sGrowattModbusReg_t{
       3106, 0, SIZE_16BIT, F("InverterWarnMaincode"), 1, 1, NONE};
-  Protocol.InputRegisters[P3000_AFCI_STATUS] = sGrowattModbusReg_t{
-      3112, 0, SIZE_16BIT, F("AFCIStatus"), 1, 1, NONE};
+  Protocol.InputRegisters[P3000_AFCI_STATUS] =
+      sGrowattModbusReg_t{3112, 0, SIZE_16BIT, F("AFCIStatus"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_INV_START_DELAY] = sGrowattModbusReg_t{
       3115, 0, SIZE_16BIT, F("InvStartDelayTime"), 1, 1, SECONDS};
   Protocol.InputRegisters[P3000_BDC_ONOFFSTATE] = sGrowattModbusReg_t{
@@ -482,42 +478,36 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   // FRAGMENT 2: END
 
   // FRAGMENT 3: BEGIN
-  Protocol.InputRegisters[P3000_EDISCHR_TODAY] =
-      sGrowattModbusReg_t{3125, 0,   SIZE_32BIT, F("DischargeEnergyToday"),
-                          0.1,  0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_EDISCHR_TOTAL] =
-      sGrowattModbusReg_t{3127, 0,   SIZE_32BIT, F("DischargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_EDISCHR_TODAY] = sGrowattModbusReg_t{
+      3125, 0, SIZE_32BIT, F("DischargeEnergyToday"), 0.1, 0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_EDISCHR_TOTAL] = sGrowattModbusReg_t{
+      3127, 0, SIZE_32BIT, F("DischargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_ECHR_TODAY] = sGrowattModbusReg_t{
       3129, 0, SIZE_32BIT, F("ChargeEnergyToday"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_ECHR_TOTAL] = sGrowattModbusReg_t{
       3131, 0, SIZE_32BIT, F("ChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_EACCHR_TODAY] =
-      sGrowattModbusReg_t{3133, 0,   SIZE_32BIT, F("ACChargeEnergyToday"),
-                          0.1,  0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_EACCHR_TOTAL] =
-      sGrowattModbusReg_t{3135, 0,   SIZE_32BIT, F("ACChargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_EACCHR_TODAY] = sGrowattModbusReg_t{
+      3133, 0, SIZE_32BIT, F("ACChargeEnergyToday"), 0.1, 0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_EACCHR_TOTAL] = sGrowattModbusReg_t{
+      3135, 0, SIZE_32BIT, F("ACChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_ESYS_TOTAL] = sGrowattModbusReg_t{
       3137, 0, SIZE_32BIT, F("SystemEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_ESELF_TODAY] =
-      sGrowattModbusReg_t{3139, 0,   SIZE_32BIT, F("SelfOutputEnergyToday"),
-                          0.1,  0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_ESELF_TOTAL] =
-      sGrowattModbusReg_t{3141, 0,   SIZE_32BIT, F("SelfOutputEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_ESELF_TODAY] = sGrowattModbusReg_t{
+      3139, 0, SIZE_32BIT, F("SelfOutputEnergyToday"), 0.1, 0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_ESELF_TOTAL] = sGrowattModbusReg_t{
+      3141, 0, SIZE_32BIT, F("SelfOutputEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
   Protocol.InputRegisters[P3000_PRIORITY] =
       sGrowattModbusReg_t{3144, 0, SIZE_16BIT, F("Priority"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_BDC_DERATINGMODE] = sGrowattModbusReg_t{
       3165, 0, SIZE_16BIT, F("BDCDeratingMode"), 1, 1, NONE};
-  Protocol.InputRegisters[P3000_BDC_SYSSTATE] = sGrowattModbusReg_t{
-      3166, 0, SIZE_16BIT, F("BDCSysState"), 1, 1, NONE};
-  Protocol.InputRegisters[P3000_BDC_SYSMODE] = sGrowattModbusReg_t{
-      3166, 0, SIZE_16BIT, F("BDCSysMode"), 1, 1, NONE};
-  Protocol.InputRegisters[P3000_BDC_FAULTCODE] = sGrowattModbusReg_t{
-      3167, 0, SIZE_16BIT, F("BDCFaultCode"), 1, 1, NONE};
-  Protocol.InputRegisters[P3000_BDC_WARNCODE] = sGrowattModbusReg_t{
-      3168, 0, SIZE_16BIT, F("BDCWarnCode"), 1, 1, NONE};
+  Protocol.InputRegisters[P3000_BDC_SYSSTATE] =
+      sGrowattModbusReg_t{3166, 0, SIZE_16BIT, F("BDCSysState"), 1, 1, NONE};
+  Protocol.InputRegisters[P3000_BDC_SYSMODE] =
+      sGrowattModbusReg_t{3166, 0, SIZE_16BIT, F("BDCSysMode"), 1, 1, NONE};
+  Protocol.InputRegisters[P3000_BDC_FAULTCODE] =
+      sGrowattModbusReg_t{3167, 0, SIZE_16BIT, F("BDCFaultCode"), 1, 1, NONE};
+  Protocol.InputRegisters[P3000_BDC_WARNCODE] =
+      sGrowattModbusReg_t{3168, 0, SIZE_16BIT, F("BDCWarnCode"), 1, 1, NONE};
   Protocol.InputRegisters[P3000_BDC_VBAT] = sGrowattModbusReg_t{
       3169, 0, SIZE_16BIT, F("BDCBatteryVoltage"), 0.01, 0.01, VOLTAGE};
   Protocol.InputRegisters[P3000_BDC_IBAT] = sGrowattModbusReg_t{
@@ -540,13 +530,13 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       3178, 0, SIZE_32BIT, F("BDCDischargePower"), 0.1, 0.1, POWER_W};
   Protocol.InputRegisters[P3000_BDC_PCHR] = sGrowattModbusReg_t{
       3180, 0, SIZE_32BIT, F("BDCChargePower"), 0.1, 0.1, POWER_W};
-  Protocol.InputRegisters[P3000_BDC_EDISCHR_TOTAL] =
-      sGrowattModbusReg_t{3182, 0,   SIZE_32BIT, F("BDCDischargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH};
-  Protocol.InputRegisters[P3000_BDC_ECHR_TOTAL] =
-      sGrowattModbusReg_t{3184, 0,   SIZE_32BIT, F("BDCChargeEnergyTotal"),
-                          0.1,  0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_BDC_EDISCHR_TOTAL] = sGrowattModbusReg_t{
+      3182, 0, SIZE_32BIT, F("BDCDischargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
+  Protocol.InputRegisters[P3000_BDC_ECHR_TOTAL] = sGrowattModbusReg_t{
+      3184, 0, SIZE_32BIT, F("BDCChargeEnergyTotal"), 0.1, 0.1, ENERGY_KWH};
   // FRAGMENT 3: END
+
+  Protocol.InputRegisterCount = P3000_INPUT_REGISTER_COUNT;
 
   Protocol.InputReadFragments[Protocol.InputFragmentCount++] =
       sGrowattReadFragment_t{3000, 63};
@@ -554,8 +544,6 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
       sGrowattReadFragment_t{3063, 62};
   Protocol.InputReadFragments[Protocol.InputFragmentCount++] =
       sGrowattReadFragment_t{3125, 61};
-
-  Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
   // FRAGMENT 1: BEGIN
   Protocol.HoldingRegisters[P3000_ONOFF] =
@@ -583,7 +571,7 @@ void init_growattTLXH(sProtocolDefinition_t& Protocol, Growatt& inverter) {
   Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED] = sGrowattModbusReg_t{
       3049, 0, SIZE_16BIT, F("BDCChargeACEnabled"), 1, 1, NONE};
   // FRAGMENT 2: END
-  
+
   Protocol.HoldingRegisterCount = P3000_HOLDING_REGISTER_COUNT;
 
   Protocol.HoldingReadFragments[Protocol.HoldingFragmentCount++] =
