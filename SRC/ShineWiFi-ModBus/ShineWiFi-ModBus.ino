@@ -1,18 +1,34 @@
-// -----------------------------------------------------------------------------
-//  Projekt-Konfiguration
-// -----------------------------------------------------------------------------
+// ============================================================================
+// 1. INCLUDES & KONFIGURATION
+// ============================================================================
+
+// --- Projekt-Konfiguration & Pre-Checks ---
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
 #error Please rename Config.h.example to Config.h
 #endif
 
-// -----------------------------------------------------------------------------
-//  Projekt-Header
-// -----------------------------------------------------------------------------
-#include "ShineWifi.h"
-#include "Index.h"
-#include "Growatt.h"
+// --- System & Standard Library Includes ---
+#include <LittleFS.h>
+#include <Preferences.h>
+#include <StreamUtils.h>
+#include <TLog.h>
+#include <Updater.h>
+#include <WiFiManager.h>
+#include <vector>
 
+// --- Projekt Header ---
+#include "ACChargeControl.h"
+#include "BatteryStandby.h"
+#include "Growatt.h"
+#include "Index.h"
+#include "Logging.h"
+#include "PriorityControl.h"
+#include "SetLED.h"
+#include "ShineWifi.h"
+#include "SurplusCharge.h"
+
+// --- Bedingte / Feature Includes ---
 #if MQTT_SUPPORTED == 1
 #include "ShineMqtt.h"
 #endif
@@ -21,71 +37,47 @@
 #include "ModbusTCP.h"
 #endif
 
-#include "ACChargeControl.h"
-#include "BatteryStandby.h"
-#include "SetLED.h"
-#include "PriorityControl.h"
-#include "SurplusCharge.h"
-
-#include "Logging.h"
-
-// -----------------------------------------------------------------------------
-//  Externe Bibliotheken
-// -----------------------------------------------------------------------------
-#include <LittleFS.h>
-#include <Preferences.h>
-#include <StreamUtils.h>
-#include <TLog.h>
-#include <WiFiManager.h>
-
-// -----------------------------------------------------------------------------
-//  Plattformabhängige Includes
-// -----------------------------------------------------------------------------
-#include <Updater.h>
-
-// -----------------------------------------------------------------------------
-//  Optional: OTA
-// -----------------------------------------------------------------------------
 #if OTA_SUPPORTED == 1
 #include <ArduinoOTA.h>
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: Pinger
-// -----------------------------------------------------------------------------
 #if PINGER_SUPPORTED == 1
 #include <Pinger.h>
 #include <PingerResponse.h>
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: Double Reset Detector
-// -----------------------------------------------------------------------------
 #if ENABLE_DOUBLE_RESET == 1
 #define ESP_DRD_USE_LITTLEFS true
 #define ESP_DRD_USE_EEPROM false
 #define DRD_TIMEOUT 10
 #define DRD_ADDRESS 0
 #include <ESP_DoubleResetDetector.h>
-DoubleResetDetector* drd;
 #endif
 
-// -----------------------------------------------------------------------------
-//  Optional: NTP
-// -----------------------------------------------------------------------------
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 #include <time.h>
 extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
-// -----------------------------------------------------------------------------
-//  Globale Objekte
-// -----------------------------------------------------------------------------
+// ============================================================================
+// 2. GLOBALE DEFINITIONEN, STRUCTS & INSTANZEN
+// ============================================================================
+
+// --- Defaults & Konstanten ---
+#define CONFIG_PORTAL_MAX_TIME_SECONDS 300
+
+constexpr int DEFAULT_SLEEP_THR = 50;
+constexpr int DEFAULT_WAKE_THR = 75;
+constexpr int DEFAULT_AC_MAX = 3750;
+constexpr int DEFAULT_OFFSET = 0;
+constexpr int DEFAULT_PTOGRID_THR = 100;
+constexpr int DEFAULT_PTOUSER_THR = 150;
+constexpr int DEFAULT_POWER_LIMIT = 6132;
+
+// --- Globale Hardware- & System-Instanzen ---
 Preferences prefs;
 Growatt Inverter;
-bool StartedConfigAfterBoot = false;
-
-// Event-Handler für WiFi-Disconnects
+ESP8266WebServer httpServer(80);
 WiFiEventHandler disconnectHandler;
 
 #if MQTT_SUPPORTED == 1
@@ -96,18 +88,37 @@ ShineMqtt shineMqtt(Inverter);
 ModbusTCP modbusTCP(MODBUS_TCP_PORT);
 #endif
 
-#if defined(AP_BUTTON_PRESSED)
-byte btnPressed = 0;
-#endif
-
-boolean readoutSucceeded = false;
-
 #if PINGER_SUPPORTED == 1
 Pinger pinger;
 #endif
 
-ESP8266WebServer httpServer(80);
+#if ENABLE_DOUBLE_RESET == 1
+DoubleResetDetector* drd;
+#endif
 
+// --- Globale Status-Variablen ---
+bool StartedConfigAfterBoot = false;
+boolean readoutSucceeded = false;
+
+#if defined(AP_BUTTON_PRESSED)
+byte btnPressed = 0;
+#endif
+
+// --- Loop Timer ---
+#if ENABLE_AP_BUTTON == 1
+unsigned long ButtonTimer = 0;
+#endif
+unsigned long RefreshTimer = 0;
+unsigned long BatteryStandbyTimer = 0;
+unsigned long ACChargeControlTimer = 0;
+
+#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
+unsigned long NTPTimer = 0;
+unsigned long lastSync = 0;
+bool initialSyncDone = false;
+#endif
+
+// --- Structs für Konfigurationen ---
 struct {
   WiFiManagerParameter* hostname = NULL;
   WiFiManagerParameter* static_ip = NULL;
@@ -122,7 +133,6 @@ struct {
   WiFiManagerParameter* mqtt_pwd = NULL;
 #endif
   WiFiManagerParameter* syslog_ip = NULL;
-
 } customWMParams;
 
 static const struct {
@@ -158,31 +168,61 @@ struct WifiConfig {
 };
 
 WifiConfig Wifi;
-
 UserConfig User;
 
-#define CONFIG_PORTAL_MAX_TIME_SECONDS 300
+// ============================================================================
+// 3. VORWÄRTSDEKLARATIONEN (PROTOTYPES)
+// ============================================================================
 
-void setupWifiHost() {
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);  // System-Auto-Reconnect aktivieren
-  WiFi.setSleepMode(
-      WIFI_NONE_SLEEP);  // Verhindert Sleep-Latenzen bei Modbus/MQTT
-
-  // Event Listener für Disconnect registrieren
-  disconnectHandler = WiFi.onStationModeDisconnected(onStationModeDisconnected);
-
-  WiFi.hostname(Wifi.hostname);
-#if OTA_SUPPORTED == 0
-  MDNS.begin(Wifi.hostname);
-#endif
-  Log.printf("Setup WiFi Host: hostname %s\n", Wifi.hostname.c_str());
-}
+void setupWifiHost();
+void setupWifiManagerConfigMenu(WiFiManager& wm);
+void setupMenu(WiFiManager& wm, bool enableCustomParams);
+void saveParamCallback();
 
 void loadConfig();
 void saveConfig();
-void saveParamCallback();
-void setupWifiManagerConfigMenu(WiFiManager& wm);
+void loadSettingsFromPrefs();
+UserConfig validateUserConfig(const UserConfig& in);
+
+void sendJson(JsonDocument& doc);
+void sendUiJsonSite(void);
+void sendMainPage(void);
+void startConfigAccessPoint(void);
+void rebootESP(void);
+
+void loadFirst(void);
+void batteryFirst(void);
+void gridFirst(void);
+
+void handlePostData();
+void handleSaveSettings(ESP8266WebServer& httpServer);
+void handleGetSettings(ESP8266WebServer& httpServer);
+void handleUpdateFinished(ESP8266WebServer& httpServer);
+void handleUpdateUpload(ESP8266WebServer& httpServer);
+void handleNotFound();
+bool sendSingleValue(void);
+
+#ifdef ENABLE_WEB_DEBUG
+void sendDebug(void);
+#endif
+
+#if MQTT_SUPPORTED == 1
+boolean sendMqttJson(void);
+#endif
+
+#if MODBUS_TCP_SUPPORTED == 1
+bool modbusReadHoldingRegister(uint16_t address, uint16_t* value);
+bool modbusReadInputRegister(uint16_t address, uint16_t* value);
+bool modbusWriteHoldingRegister(uint16_t address, uint16_t value);
+#endif
+
+#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
+void handleNTPSync();
+#endif
+
+// ============================================================================
+// 4. KONFIGURATION & PREFERENCES
+// ============================================================================
 
 void loadConfig() {
   Wifi.hostname = prefs.getString(ConfigFiles.hostname, DEFAULT_HOSTNAME);
@@ -221,39 +261,6 @@ void saveConfig() {
   prefs.putString(ConfigFiles.syslog_ip, Wifi.syslog_ip);
   prefs.putBool(ConfigFiles.force_ap, Wifi.force_ap);
 }
-
-void saveParamCallback() {
-  Log.println(F("[CALLBACK] saveParamCallback fired"));
-
-  Wifi.hostname = customWMParams.hostname->getValue();
-  Wifi.static_ip = customWMParams.static_ip->getValue();
-  Wifi.static_netmask = customWMParams.static_netmask->getValue();
-  Wifi.static_gateway = customWMParams.static_gateway->getValue();
-  Wifi.static_dns = customWMParams.static_dns->getValue();
-
-#if MQTT_SUPPORTED == 1
-  Wifi.mqtt.server = customWMParams.mqtt_server->getValue();
-  Wifi.mqtt.port = customWMParams.mqtt_port->getValue();
-  Wifi.mqtt.topic = customWMParams.mqtt_topic->getValue();
-  Wifi.mqtt.user = customWMParams.mqtt_user->getValue();
-  Wifi.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
-#endif
-
-  Wifi.syslog_ip = customWMParams.syslog_ip->getValue();
-
-  saveConfig();
-
-  Log.println(F("[CALLBACK] saveParamCallback complete"));
-}
-
-// --- Zentrale Defaults
-constexpr int DEFAULT_SLEEP_THR = 50;
-constexpr int DEFAULT_WAKE_THR = 75;
-constexpr int DEFAULT_AC_MAX = 3750;
-constexpr int DEFAULT_OFFSET = 0;
-constexpr int DEFAULT_PTOGRID_THR = 100;
-constexpr int DEFAULT_PTOUSER_THR = 150;
-constexpr int DEFAULT_POWER_LIMIT = 6132;
 
 UserConfig validateUserConfig(const UserConfig& in) {
   UserConfig out = in;
@@ -305,6 +312,435 @@ void loadSettingsFromPrefs() {
   User = validateUserConfig(raw);
 }
 
+// ============================================================================
+// 5. WIFI & WIFIMANAGER HANDLER
+// ============================================================================
+
+void setupWifiHost() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+
+  disconnectHandler = WiFi.onStationModeDisconnected(onStationModeDisconnected);
+
+  WiFi.hostname(Wifi.hostname);
+#if OTA_SUPPORTED == 0
+  MDNS.begin(Wifi.hostname);
+#endif
+  Log.printf("Setup WiFi Host: hostname %s\n", Wifi.hostname.c_str());
+}
+
+void saveParamCallback() {
+  Log.println(F("[CALLBACK] saveParamCallback fired"));
+
+  Wifi.hostname = customWMParams.hostname->getValue();
+  Wifi.static_ip = customWMParams.static_ip->getValue();
+  Wifi.static_netmask = customWMParams.static_netmask->getValue();
+  Wifi.static_gateway = customWMParams.static_gateway->getValue();
+  Wifi.static_dns = customWMParams.static_dns->getValue();
+
+#if MQTT_SUPPORTED == 1
+  Wifi.mqtt.server = customWMParams.mqtt_server->getValue();
+  Wifi.mqtt.port = customWMParams.mqtt_port->getValue();
+  Wifi.mqtt.topic = customWMParams.mqtt_topic->getValue();
+  Wifi.mqtt.user = customWMParams.mqtt_user->getValue();
+  Wifi.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
+#endif
+
+  Wifi.syslog_ip = customWMParams.syslog_ip->getValue();
+
+  saveConfig();
+
+  Log.println(F("[CALLBACK] saveParamCallback complete"));
+}
+
+void setupWifiManagerConfigMenu(WiFiManager& wm) {
+  customWMParams.hostname = new WiFiManagerParameter(
+      "hostname", "Hostname (no spaces or special characters)",
+      Wifi.hostname.c_str(), 30);
+  customWMParams.static_ip =
+      new WiFiManagerParameter("staticip", "IP", Wifi.static_ip.c_str(), 15);
+  customWMParams.static_netmask = new WiFiManagerParameter(
+      "staticnetmask", "Netmask", Wifi.static_netmask.c_str(), 15);
+  customWMParams.static_gateway = new WiFiManagerParameter(
+      "staticgateway", "Gateway", Wifi.static_gateway.c_str(), 15);
+  customWMParams.static_dns =
+      new WiFiManagerParameter("staticdns", "DNS", Wifi.static_dns.c_str(), 15);
+#if MQTT_SUPPORTED == 1
+  customWMParams.mqtt_server = new WiFiManagerParameter(
+      "mqttserver", "Server", Wifi.mqtt.server.c_str(), 40);
+  customWMParams.mqtt_port =
+      new WiFiManagerParameter("mqttport", "Port", Wifi.mqtt.port.c_str(), 6);
+  customWMParams.mqtt_topic = new WiFiManagerParameter(
+      "mqtttopic", "Topic", Wifi.mqtt.topic.c_str(), 64);
+  customWMParams.mqtt_user = new WiFiManagerParameter(
+      "mqttusername", "Username", Wifi.mqtt.user.c_str(), 40);
+  customWMParams.mqtt_pwd = new WiFiManagerParameter("mqttpassword", "Password",
+                                                     Wifi.mqtt.pwd.c_str(), 64);
+#endif
+  customWMParams.syslog_ip = new WiFiManagerParameter(
+      "syslogip", "Syslog Server IP (leave blank for none)",
+      Wifi.syslog_ip.c_str(), 15);
+
+  wm.addParameter(customWMParams.hostname);
+#if MQTT_SUPPORTED == 1
+  wm.addParameter(new WiFiManagerParameter(
+      "<p><b>MQTT Settings</b> (leave server blank to disable)</p>"));
+  wm.addParameter(customWMParams.mqtt_server);
+  wm.addParameter(customWMParams.mqtt_port);
+  wm.addParameter(customWMParams.mqtt_topic);
+  wm.addParameter(customWMParams.mqtt_user);
+  wm.addParameter(customWMParams.mqtt_pwd);
+#endif
+  wm.addParameter(new WiFiManagerParameter(
+      "<p><b>Static IP</b> (leave blank for DHCP)</p>"));
+  wm.addParameter(customWMParams.static_ip);
+  wm.addParameter(customWMParams.static_netmask);
+  wm.addParameter(customWMParams.static_gateway);
+  wm.addParameter(customWMParams.static_dns);
+  wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
+  wm.addParameter(customWMParams.syslog_ip);
+  wm.setSaveParamsCallback(saveParamCallback);
+
+  setupMenu(wm, true);
+}
+
+void setupMenu(WiFiManager& wm, bool enableCustomParams) {
+  Log.println(F("Setting up WiFiManager menu"));
+  std::vector<const char*> menu = {"wifi", "wifinoscan", "update"};
+  if (enableCustomParams) {
+    menu.push_back("param");
+  }
+  menu.push_back("sep");
+  menu.push_back("erase");
+  menu.push_back("restart");
+
+  wm.setMenu(menu);
+}
+
+void startConfigAccessPoint(void) {
+  char msg[384];
+
+  snprintf_P(msg, sizeof(msg),
+             PSTR("<html><body>Configuration Access Point started...<br /><br "
+                  "/>Connect to WiFi \"GrowattConfig\" with your password "
+                  "(default: \"growsolar\") and visit <a "
+                  "href='http://192.168.4.1'>192.168.4.1</a><br /><br />The "
+                  "stick will automatically return to normal operation after "
+                  "%d seconds</body></html>"),
+             CONFIG_PORTAL_MAX_TIME_SECONDS);
+  httpServer.send(200, "text/html", msg);
+  delay(2000);
+  StartedConfigAfterBoot = true;
+}
+
+// ============================================================================
+// 6. HTTP SERVER & API ROUTE HANDLER
+// ============================================================================
+
+void sendJson(JsonDocument& doc) {
+  httpServer.setContentLength(measureJson(doc));
+  httpServer.send(200, "application/json", "");
+  serializeJson(doc, httpServer.client());
+}
+
+void sendUiJsonSite(void) {
+  JsonDocument doc;
+  Inverter.CreateUIJson(doc, WiFi.macAddress(), Wifi.hostname);
+  sendJson(doc);
+}
+
+void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
+
+void rebootESP(void) {
+  httpServer.send(200, F("text/html"),
+                  F("<html><body>Rebooting...</body></html>"));
+  delay(2000);
+  ESP.restart();
+}
+
+#ifdef ENABLE_WEB_DEBUG
+void sendDebug(void) {
+  httpServer.sendHeader("Location",
+                        "http://" + WiFi.localIP().toString() + ":8080/", true);
+  httpServer.send(302, F("text/plain"), "");
+}
+#endif
+
+// --- Steuerungs-Aktionen ---
+
+void loadFirst(void) {
+  httpServer.send(200, F("text/plain"), F("Load First"));
+
+  JsonDocument req1, res1;
+  req1["mode"] = 0;
+  req1["retry"] = 2;
+  Inverter.HandleCommand("priority/set", req1, res1);
+
+  JsonDocument req2, res2;
+  req2["value"] = 100;
+  req2["retry"] = 2;
+  Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
+}
+
+void batteryFirst(void) {
+  httpServer.send(200, F("text/plain"), F("Battery First"));
+
+  JsonDocument req, res;
+  req["mode"] = 1;
+  req["retry"] = 2;
+  Inverter.HandleCommand("priority/set", req, res);
+}
+
+void gridFirst(void) {
+  httpServer.send(200, F("text/plain"), F("Grid First"));
+
+  JsonDocument req, res;
+  req["mode"] = 2;
+  req["retry"] = 2;
+  Inverter.HandleCommand("priority/set", req, res);
+}
+
+// --- Einstellungen (Settings) Handler ---
+
+void handleSaveSettings(ESP8266WebServer& httpServer) {
+  Preferences prefs;
+  prefs.begin("config", false);
+
+  UserConfig raw;
+
+  raw.bat_standby = (httpServer.arg("bat_standby") == "on");
+  raw.bat_slp_thr = httpServer.arg("bat_slp_thr").toInt();
+  raw.bat_wke_thr = httpServer.arg("bat_wke_thr").toInt();
+  raw.accharge = (httpServer.arg("accharge") == "on");
+  raw.ac_max_pow = httpServer.arg("ac_max_pow").toInt();
+  raw.ac_off_set = httpServer.arg("ac_off_set").toInt();
+  raw.prioctrl = (httpServer.arg("prioctrl") == "on");
+  raw.ptogrid_thr = httpServer.arg("ptogrid_thr").toInt();
+  raw.ptouser_thr = httpServer.arg("ptouser_thr").toInt();
+  raw.surch = (httpServer.arg("surch") == "on");
+  raw.power_limit = httpServer.arg("power_limit").toInt();
+
+  User = validateUserConfig(raw);
+
+  prefs.putBool("bat_standby", User.bat_standby);
+  prefs.putInt("bat_slp_thr", User.bat_slp_thr);
+  prefs.putInt("bat_wke_thr", User.bat_wke_thr);
+  prefs.putBool("accharge", User.accharge);
+  prefs.putInt("ac_max_pow", User.ac_max_pow);
+  prefs.putInt("ac_off_set", User.ac_off_set);
+  prefs.putBool("prioctrl", User.prioctrl);
+  prefs.putInt("ptogrid_thr", User.ptogrid_thr);
+  prefs.putInt("ptouser_thr", User.ptouser_thr);
+  prefs.putBool("surch", User.surch);
+  prefs.putInt("power_limit", User.power_limit);
+
+  prefs.end();
+  httpServer.send(200, "text/plain", "Settings saved");
+}
+
+void handleGetSettings(ESP8266WebServer& httpServer) {
+  JsonDocument doc;
+
+  doc["bat_standby"] = User.bat_standby;
+  doc["bat_slp_thr"] = User.bat_slp_thr;
+  doc["bat_wke_thr"] = User.bat_wke_thr;
+
+  doc["accharge"] = User.accharge;
+  doc["ac_max_pow"] = User.ac_max_pow;
+  doc["ac_off_set"] = User.ac_off_set;
+
+  doc["prioctrl"] = User.prioctrl;
+  doc["ptogrid_thr"] = User.ptogrid_thr;
+  doc["ptouser_thr"] = User.ptouser_thr;
+  doc["surch"] = User.surch;
+  doc["power_limit"] = User.power_limit;
+
+  sendJson(doc);
+}
+
+// --- Modbus Post/Web Endpunkte ---
+
+void handlePostData() {
+  char msg[256];
+
+  const String opStr = httpServer.arg(F("operation"));
+  const String regStr = httpServer.arg(F("reg"));
+  const String valStr = httpServer.arg(F("val"));
+  const String widthStr = httpServer.arg(F("width"));
+  const String typeStr = httpServer.arg(F("type"));
+
+  const bool isWrite = (opStr == "W");
+  const bool isRead = (opStr == "R");
+  const bool is16 = (widthStr == "16b");
+  const bool isInput = (typeStr == "I");
+  const bool isHolding = (typeStr == "H");
+
+  if (!httpServer.hasArg(F("reg")) ||
+      (isWrite && !httpServer.hasArg(F("val")))) {
+    httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
+    return;
+  }
+
+  const uint16_t reg = regStr.toInt();
+
+  if (isRead) {
+    if (!isInput && !isHolding) {
+      httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
+      return;
+    }
+
+    const char* typeName = isInput ? "Input" : "Holding";
+
+    if (is16) {
+      uint16_t val = 0;
+      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
+                        : Inverter.ReadHoldingReg(reg, &val);
+
+      if (ok) {
+        snprintf_P(
+            msg, sizeof(msg),
+            PSTR("Reading Value %u from 16-bit %s Register %u succeeded"), val,
+            typeName, reg);
+      } else {
+        snprintf_P(msg, sizeof(msg),
+                   PSTR("Reading from 16-bit %s Register %u failed!"), typeName,
+                   reg);
+      }
+
+    } else if (widthStr == "32b") {
+      uint32_t val = 0;
+      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
+                        : Inverter.ReadHoldingReg(reg, &val);
+
+      if (ok) {
+        snprintf_P(
+            msg, sizeof(msg),
+            PSTR("Reading Value %lu from 32-bit %s Register %u succeeded"), val,
+            typeName, reg);
+      } else {
+        snprintf_P(msg, sizeof(msg),
+                   PSTR("Reading from 32-bit %s Register %u failed!"), typeName,
+                   reg);
+      }
+
+    } else {
+      snprintf_P(msg, sizeof(msg), PSTR("Unknown type (expected 16b or 32b)"));
+    }
+
+    Log.printf("Modbus Read: %s\n", msg);
+    httpServer.send(200, F("text/plain"), msg);
+    return;
+  }
+
+  if (isWrite) {
+    if (!isHolding) {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing to Input Registers not possible!"));
+      httpServer.send(200, F("text/plain"), msg);
+      return;
+    }
+
+    if (!is16) {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing to 32-bit Registers not supported!"));
+      httpServer.send(200, F("text/plain"), msg);
+      return;
+    }
+
+    uint16_t val = valStr.toInt();
+    bool ok = Inverter.WriteHoldingReg(reg, val);
+
+    if (ok) {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing Value %u to Holding Register %u succeeded"), val,
+                 reg);
+    } else {
+      snprintf_P(msg, sizeof(msg),
+                 PSTR("Writing Value %u to Holding Register %u failed!"), val,
+                 reg);
+    }
+
+    Log.printf("Modbus Write: %s\n", msg);
+    httpServer.send(200, F("text/plain"), msg);
+    return;
+  }
+
+  httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
+}
+
+bool sendSingleValue(void) {
+  if (!readoutSucceeded) {
+    httpServer.send(503, F("text/plain"), F("Service unavailable"));
+    return true;
+  }
+  const String& key = httpServer.uri().substring(7);
+  double value;
+  if (Inverter.GetSingleValueByName(key, value)) {
+    httpServer.send(200, "text/plain", String(value));
+    return true;
+  }
+  return false;
+}
+
+void handleNotFound() {
+  if (httpServer.uri().startsWith(F("/value/")) &&
+      httpServer.uri().length() > 7) {
+    if (sendSingleValue()) {
+      return;
+    }
+  }
+  String msg = "Not found: " + httpServer.uri();
+  httpServer.send(404, F("text/plain"), msg);
+}
+
+// --- Firmware-Update Handler ---
+
+void handleUpdateFinished(ESP8266WebServer& httpServer) {
+  bool ok = !Update.hasError();
+  String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
+  httpServer.send(ok ? 200 : 500, "text/plain", msg);
+
+  delay(1000);
+  if (ok) {
+    SetLED.on(LED_RED);
+    ESP.restart();
+  }
+}
+
+void handleUpdateUpload(ESP8266WebServer& httpServer) {
+  HTTPUpload& upload = httpServer.upload();
+
+  if (upload.status == UPLOAD_FILE_START) {
+    size_t sketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+    if (!Update.begin(sketchSpace)) {
+      Update.printError(Serial);
+    }
+
+  } else if (upload.status == UPLOAD_FILE_WRITE) {
+    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+      Update.printError(Serial);
+    }
+
+  } else if (upload.status == UPLOAD_FILE_END) {
+    if (!Update.end(true)) {
+      Update.printError(Serial);
+    }
+  }
+}
+
+// ============================================================================
+// 7. ZUSATZ-PROTOKOLLE & HELPER (MQTT, MODBUS TCP, NTP)
+// ============================================================================
+
+#if MQTT_SUPPORTED == 1
+boolean sendMqttJson(void) {
+  JsonDocument doc;
+  Inverter.CreateUIJson(doc, WiFi.macAddress(), "");
+  return shineMqtt.mqttPublish(doc);
+}
+#endif
+
 #if MODBUS_TCP_SUPPORTED == 1
 bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
   return Inverter.ReadHoldingReg(address, value);
@@ -319,8 +755,32 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
 }
 #endif
 
+#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
+void handleNTPSync() {
+  int reachable = sntp_getreachability(0);
+  Log.printf("NTP Server: %s reachable %d\n", DEFAULT_NTP_SERVER,
+             reachable & 1);
+
+  if (reachable & 1) {
+    JsonDocument req, res;
+    char buff[32];
+    struct tm tm;
+    time_t t = time(NULL);
+    localtime_r(&t, &tm);
+
+    strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", &tm);
+    req["value"] = buff;
+    Inverter.HandleCommand("datetime/set", req, res);
+  }
+}
+#endif
+
+// ============================================================================
+// 8. SETUP METHODE
+// ============================================================================
+
 void setup() {
-  // LittleFS mounten
+  // LittleFS Mounten & Dateisystem initialisieren
   LittleFS.begin();
   httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css");
 
@@ -475,410 +935,9 @@ void setup() {
 #endif
 }
 
-void handleSaveSettings(ESP8266WebServer& httpServer) {
-  Preferences prefs;
-  prefs.begin("config", false);
-
-  UserConfig raw;
-
-  raw.bat_standby = (httpServer.arg("bat_standby") == "on");
-  raw.bat_slp_thr = httpServer.arg("bat_slp_thr").toInt();
-  raw.bat_wke_thr = httpServer.arg("bat_wke_thr").toInt();
-  raw.accharge = (httpServer.arg("accharge") == "on");
-  raw.ac_max_pow = httpServer.arg("ac_max_pow").toInt();
-  raw.ac_off_set = httpServer.arg("ac_off_set").toInt();
-  raw.prioctrl = (httpServer.arg("prioctrl") == "on");
-  raw.ptogrid_thr = httpServer.arg("ptogrid_thr").toInt();
-  raw.ptouser_thr = httpServer.arg("ptouser_thr").toInt();
-  raw.surch = (httpServer.arg("surch") == "on");
-  raw.power_limit = httpServer.arg("power_limit").toInt();
-
-  User = validateUserConfig(raw);
-
-  prefs.putBool("bat_standby", User.bat_standby);
-  prefs.putInt("bat_slp_thr", User.bat_slp_thr);
-  prefs.putInt("bat_wke_thr", User.bat_wke_thr);
-  prefs.putBool("accharge", User.accharge);
-  prefs.putInt("ac_max_pow", User.ac_max_pow);
-  prefs.putInt("ac_off_set", User.ac_off_set);
-  prefs.putBool("prioctrl", User.prioctrl);
-  prefs.putInt("ptogrid_thr", User.ptogrid_thr);
-  prefs.putInt("ptouser_thr", User.ptouser_thr);
-  prefs.putBool("surch", User.surch);
-  prefs.putInt("power_limit", User.power_limit);
-
-  prefs.end();
-  httpServer.send(200, "text/plain", "Settings saved");
-}
-
-void handleGetSettings(ESP8266WebServer& httpServer) {
-  JsonDocument doc;
-
-  doc["bat_standby"] = User.bat_standby;
-  doc["bat_slp_thr"] = User.bat_slp_thr;
-  doc["bat_wke_thr"] = User.bat_wke_thr;
-
-  doc["accharge"] = User.accharge;
-  doc["ac_max_pow"] = User.ac_max_pow;
-  doc["ac_off_set"] = User.ac_off_set;
-
-  doc["prioctrl"] = User.prioctrl;
-  doc["ptogrid_thr"] = User.ptogrid_thr;
-  doc["ptouser_thr"] = User.ptouser_thr;
-  doc["surch"] = User.surch;
-  doc["power_limit"] = User.power_limit;
-
-  sendJson(doc);
-}
-
-void handleUpdateFinished(ESP8266WebServer& httpServer) {
-  bool ok = !Update.hasError();
-  String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
-  httpServer.send(ok ? 200 : 500, "text/plain", msg);
-
-  delay(1000);
-  if (ok) {
-    SetLED.on(LED_RED);
-    ESP.restart();
-  }
-}
-
-void handleUpdateUpload(ESP8266WebServer& httpServer) {
-  HTTPUpload& upload = httpServer.upload();
-
-  if (upload.status == UPLOAD_FILE_START) {
-    size_t sketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-    if (!Update.begin(sketchSpace)) {
-      Update.printError(Serial);
-    }
-
-  } else if (upload.status == UPLOAD_FILE_WRITE) {
-    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-      Update.printError(Serial);
-    }
-
-  } else if (upload.status == UPLOAD_FILE_END) {
-    if (!Update.end(true)) {
-      Update.printError(Serial);
-    }
-  }
-}
-
-void setupWifiManagerConfigMenu(WiFiManager& wm) {
-  customWMParams.hostname = new WiFiManagerParameter(
-      "hostname", "Hostname (no spaces or special characters)",
-      Wifi.hostname.c_str(), 30);
-  customWMParams.static_ip =
-      new WiFiManagerParameter("staticip", "IP", Wifi.static_ip.c_str(), 15);
-  customWMParams.static_netmask = new WiFiManagerParameter(
-      "staticnetmask", "Netmask", Wifi.static_netmask.c_str(), 15);
-  customWMParams.static_gateway = new WiFiManagerParameter(
-      "staticgateway", "Gateway", Wifi.static_gateway.c_str(), 15);
-  customWMParams.static_dns =
-      new WiFiManagerParameter("staticdns", "DNS", Wifi.static_dns.c_str(), 15);
-#if MQTT_SUPPORTED == 1
-  customWMParams.mqtt_server = new WiFiManagerParameter(
-      "mqttserver", "Server", Wifi.mqtt.server.c_str(), 40);
-  customWMParams.mqtt_port =
-      new WiFiManagerParameter("mqttport", "Port", Wifi.mqtt.port.c_str(), 6);
-  customWMParams.mqtt_topic = new WiFiManagerParameter(
-      "mqtttopic", "Topic", Wifi.mqtt.topic.c_str(), 64);
-  customWMParams.mqtt_user = new WiFiManagerParameter(
-      "mqttusername", "Username", Wifi.mqtt.user.c_str(), 40);
-  customWMParams.mqtt_pwd = new WiFiManagerParameter("mqttpassword", "Password",
-                                                     Wifi.mqtt.pwd.c_str(), 64);
-#endif
-  customWMParams.syslog_ip = new WiFiManagerParameter(
-      "syslogip", "Syslog Server IP (leave blank for none)",
-      Wifi.syslog_ip.c_str(), 15);
-  wm.addParameter(customWMParams.hostname);
-#if MQTT_SUPPORTED == 1
-  wm.addParameter(new WiFiManagerParameter(
-      "<p><b>MQTT Settings</b> (leave server blank to disable)</p>"));
-  wm.addParameter(customWMParams.mqtt_server);
-  wm.addParameter(customWMParams.mqtt_port);
-  wm.addParameter(customWMParams.mqtt_topic);
-  wm.addParameter(customWMParams.mqtt_user);
-  wm.addParameter(customWMParams.mqtt_pwd);
-#endif
-  wm.addParameter(new WiFiManagerParameter(
-      "<p><b>Static IP</b> (leave blank for DHCP)</p>"));
-  wm.addParameter(customWMParams.static_ip);
-  wm.addParameter(customWMParams.static_netmask);
-  wm.addParameter(customWMParams.static_gateway);
-  wm.addParameter(customWMParams.static_dns);
-  wm.addParameter(new WiFiManagerParameter("<p><b>Advanced Settings</b></p>"));
-  wm.addParameter(customWMParams.syslog_ip);
-  wm.setSaveParamsCallback(saveParamCallback);
-
-  setupMenu(wm, true);
-}
-
-void setupMenu(WiFiManager& wm, bool enableCustomParams) {
-  Log.println(F("Setting up WiFiManager menu"));
-  std::vector<const char*> menu = {"wifi", "wifinoscan", "update"};
-  if (enableCustomParams) {
-    menu.push_back("param");
-  }
-  menu.push_back("sep");
-  menu.push_back("erase");
-  menu.push_back("restart");
-
-  wm.setMenu(menu);
-}
-
-void sendJson(JsonDocument& doc) {
-  httpServer.setContentLength(measureJson(doc));
-  httpServer.send(200, "application/json", "");
-  serializeJson(doc, httpServer.client());
-}
-
-void sendUiJsonSite(void) {
-  JsonDocument doc;
-  Inverter.CreateUIJson(doc, WiFi.macAddress(), Wifi.hostname);
-  sendJson(doc);
-}
-
-#if MQTT_SUPPORTED == 1
-boolean sendMqttJson(void) {
-  JsonDocument doc;
-  Inverter.CreateUIJson(doc, WiFi.macAddress(), "");
-  return shineMqtt.mqttPublish(doc);
-}
-#endif
-
-void startConfigAccessPoint(void) {
-  char msg[384];
-
-  snprintf_P(msg, sizeof(msg),
-             PSTR("<html><body>Configuration Access Point started...<br /><br "
-                  "/>Connect to WiFi \"GrowattConfig\" with your password "
-                  "(default: \"growsolar\") and visit <a "
-                  "href='http://192.168.4.1'>192.168.4.1</a><br /><br />The "
-                  "stick will automatically return to normal operation after "
-                  "%d seconds</body></html>"),
-             CONFIG_PORTAL_MAX_TIME_SECONDS);
-  httpServer.send(200, "text/html", msg);
-  delay(2000);
-  StartedConfigAfterBoot = true;
-}
-
-void rebootESP(void) {
-  httpServer.send(200, F("text/html"),
-                  F("<html><body>Rebooting...</body></html>"));
-  delay(2000);
-  ESP.restart();
-}
-
-void loadFirst(void) {
-  httpServer.send(200, F("text/plain"), F("Load First"));
-
-  JsonDocument req1, res1;
-  req1["mode"] = 0;
-  req1["retry"] = 2;
-  Inverter.HandleCommand("priority/set", req1, res1);
-
-  JsonDocument req2, res2;
-  req2["value"] = 100;
-  req2["retry"] = 2;
-  Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
-}
-
-void batteryFirst(void) {
-  httpServer.send(200, F("text/plain"), F("Battery First"));
-
-  JsonDocument req, res;
-  req["mode"] = 1;
-  req["retry"] = 2;
-  Inverter.HandleCommand("priority/set", req, res);
-}
-
-void gridFirst(void) {
-  httpServer.send(200, F("text/plain"), F("Grid First"));
-
-  JsonDocument req, res;
-  req["mode"] = 2;
-  req["retry"] = 2;
-  Inverter.HandleCommand("priority/set", req, res);
-}
-
-#ifdef ENABLE_WEB_DEBUG
-void sendDebug(void) {
-  httpServer.sendHeader("Location",
-                        "http://" + WiFi.localIP().toString() + ":8080/", true);
-  httpServer.send(302, F("text/plain"), "");
-}
-#endif
-
-void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
-
-void handlePostData() {
-  char msg[256];
-
-  const String opStr = httpServer.arg(F("operation"));
-  const String regStr = httpServer.arg(F("reg"));
-  const String valStr = httpServer.arg(F("val"));
-  const String widthStr = httpServer.arg(F("width"));
-  const String typeStr = httpServer.arg(F("type"));
-
-  const bool isWrite = (opStr == "W");
-  const bool isRead = (opStr == "R");
-  const bool is16 = (widthStr == "16b");
-  const bool isInput = (typeStr == "I");
-  const bool isHolding = (typeStr == "H");
-
-  if (!httpServer.hasArg(F("reg")) ||
-      (isWrite && !httpServer.hasArg(F("val")))) {
-    httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
-    return;
-  }
-
-  const uint16_t reg = regStr.toInt();
-
-  if (isRead) {
-    if (!isInput && !isHolding) {
-      httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
-      return;
-    }
-
-    const char* typeName = isInput ? "Input" : "Holding";
-
-    if (is16) {
-      uint16_t val = 0;
-      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
-                        : Inverter.ReadHoldingReg(reg, &val);
-
-      if (ok) {
-        snprintf_P(
-            msg, sizeof(msg),
-            PSTR("Reading Value %u from 16-bit %s Register %u succeeded"), val,
-            typeName, reg);
-      } else {
-        snprintf_P(msg, sizeof(msg),
-                   PSTR("Reading from 16-bit %s Register %u failed!"), typeName,
-                   reg);
-      }
-
-    } else if (widthStr == "32b") {
-      uint32_t val = 0;
-      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
-                        : Inverter.ReadHoldingReg(reg, &val);
-
-      if (ok) {
-        snprintf_P(
-            msg, sizeof(msg),
-            PSTR("Reading Value %lu from 32-bit %s Register %u succeeded"), val,
-            typeName, reg);
-      } else {
-        snprintf_P(msg, sizeof(msg),
-                   PSTR("Reading from 32-bit %s Register %u failed!"), typeName,
-                   reg);
-      }
-
-    } else {
-      snprintf_P(msg, sizeof(msg), PSTR("Unknown type (expected 16b or 32b)"));
-    }
-
-    Log.printf("Modbus Read: %s\n", msg);
-    httpServer.send(200, F("text/plain"), msg);
-    return;
-  }
-
-  if (isWrite) {
-    if (!isHolding) {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing to Input Registers not possible!"));
-      httpServer.send(200, F("text/plain"), msg);
-      return;
-    }
-
-    if (!is16) {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing to 32-bit Registers not supported!"));
-      httpServer.send(200, F("text/plain"), msg);
-      return;
-    }
-
-    uint16_t val = valStr.toInt();
-    bool ok = Inverter.WriteHoldingReg(reg, val);
-
-    if (ok) {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing Value %u to Holding Register %u succeeded"), val,
-                 reg);
-    } else {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing Value %u to Holding Register %u failed!"), val,
-                 reg);
-    }
-
-    Log.printf("Modbus Write: %s\n", msg);
-    httpServer.send(200, F("text/plain"), msg);
-    return;
-  }
-
-  httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
-}
-
-bool sendSingleValue(void) {
-  if (!readoutSucceeded) {
-    httpServer.send(503, F("text/plain"), F("Service unavailable"));
-    return true;
-  }
-  const String& key = httpServer.uri().substring(7);
-  double value;
-  if (Inverter.GetSingleValueByName(key, value)) {
-    httpServer.send(200, "text/plain", String(value));
-    return true;
-  }
-  return false;
-}
-
-void handleNotFound() {
-  if (httpServer.uri().startsWith(F("/value/")) &&
-      httpServer.uri().length() > 7) {
-    if (sendSingleValue()) {
-      return;
-    }
-  }
-  String msg = "Not found: " + httpServer.uri();
-  httpServer.send(404, F("text/plain"), msg);
-}
-
-#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-void handleNTPSync() {
-  int reachable = sntp_getreachability(0);
-  Log.printf("NTP Server: %s reachable %d\n", DEFAULT_NTP_SERVER,
-             reachable & 1);
-
-  if (reachable & 1) {
-    JsonDocument req, res;
-    char buff[32];
-    struct tm tm;
-    time_t t = time(NULL);
-    localtime_r(&t, &tm);
-
-    strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", &tm);
-    req["value"] = buff;
-    Inverter.HandleCommand("datetime/set", req, res);
-  }
-}
-#endif
-
-// -------------------------------------------------------
-// Main loop
-// -------------------------------------------------------
-#if ENABLE_AP_BUTTON == 1
-unsigned long ButtonTimer = 0;
-#endif
-unsigned long RefreshTimer = 0;
-unsigned long BatteryStandbyTimer = 0;
-unsigned long ACChargeControlTimer = 0;
-#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-unsigned long NTPTimer = 0;
-unsigned long lastSync = 0;
-bool initialSyncDone = false;
-#endif
+// ============================================================================
+// 9. MAIN LOOP METHODE
+// ============================================================================
 
 void loop() {
 #if ENABLE_DOUBLE_RESET
@@ -939,7 +998,7 @@ void loop() {
     mqttOK = shineMqtt.mqttConnected();
 #endif
 
-    // Sauberer Aufruf über das globale SetLED-Objekt:
+    // Status-LEDs aktualisieren
     SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
                         mqttOK);
 
@@ -980,7 +1039,6 @@ void loop() {
   if (User.bat_standby && now - BatteryStandbyTimer > BATTERY_STANDBY_TIMER) {
     BatteryStandbyTimer = now;
     batteryStandby();
-    // Log.print("BatteryStandby active");
   }
 
   if (User.accharge && now - ACChargeControlTimer > ACCHARGE_CONTROL_TIMER) {
@@ -989,10 +1047,8 @@ void loop() {
     if (User.surch) {
       surplusCharge();
     }
-    // Log.print("ACControl active");
     if (User.prioctrl) {
       priorityControl();
-      // Log.print("PriorityControl active");
     }
   }
 }
