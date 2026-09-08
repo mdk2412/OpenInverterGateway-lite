@@ -591,13 +591,14 @@ void handlePostData() {
     }
 
     const char* typeName = isInput ? "Input" : "Holding";
+    bool operationOk = false;
 
     if (is16) {
       uint16_t val = 0;
-      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
-                        : Inverter.ReadHoldingReg(reg, &val);
+      operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
+                            : Inverter.ReadHoldingReg(reg, &val);
 
-      if (ok) {
+      if (operationOk) {
         snprintf_P(
             msg, sizeof(msg),
             PSTR("Reading Value %u from 16-bit %s Register %u succeeded"), val,
@@ -610,10 +611,10 @@ void handlePostData() {
 
     } else if (widthStr == "32b") {
       uint32_t val = 0;
-      bool ok = isInput ? Inverter.ReadInputReg(reg, &val)
-                        : Inverter.ReadHoldingReg(reg, &val);
+      operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
+                            : Inverter.ReadHoldingReg(reg, &val);
 
-      if (ok) {
+      if (operationOk) {
         snprintf_P(
             msg, sizeof(msg),
             PSTR("Reading Value %lu from 32-bit %s Register %u succeeded"), val,
@@ -629,7 +630,11 @@ void handlePostData() {
     }
 
     Log.printf("Modbus Read: %s\n", msg);
-    httpServer.send(200, F("text/plain"), msg);
+    if (!is16 && widthStr != "32b") {
+      httpServer.send(400, F("text/plain"), msg);
+    } else {
+      httpServer.send(operationOk ? 200 : 502, F("text/plain"), msg);
+    }
     return;
   }
 
@@ -637,14 +642,14 @@ void handlePostData() {
     if (!isHolding) {
       snprintf_P(msg, sizeof(msg),
                  PSTR("Writing to Input Registers not possible!"));
-      httpServer.send(200, F("text/plain"), msg);
+      httpServer.send(400, F("text/plain"), msg);
       return;
     }
 
     if (!is16) {
       snprintf_P(msg, sizeof(msg),
                  PSTR("Writing to 32-bit Registers not supported!"));
-      httpServer.send(200, F("text/plain"), msg);
+      httpServer.send(400, F("text/plain"), msg);
       return;
     }
 
@@ -662,7 +667,7 @@ void handlePostData() {
     }
 
     Log.printf("Modbus Write: %s\n", msg);
-    httpServer.send(200, F("text/plain"), msg);
+    httpServer.send(ok ? 200 : 502, F("text/plain"), msg);
     return;
   }
 
