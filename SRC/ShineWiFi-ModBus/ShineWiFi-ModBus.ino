@@ -27,6 +27,8 @@
 #include "PriorityControl.h"
 #include "SurplusCharge.h"
 
+#include "Logging.h"
+
 // -----------------------------------------------------------------------------
 //  Externe Bibliotheken
 // -----------------------------------------------------------------------------
@@ -170,7 +172,7 @@ void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event) {
   if (!wasDisconnected) {
     wasDisconnected = true;
     disconnectedStart = millis();
-    Log.printf("WiFi disconnected! Reason: %d. Attempting reconnect...\n", event.reason);
+    Log.printf("WiFi disconnected! Reason: %d. Attempting Reconnect...\n", event.reason);
   }
   // WiFi.reconnect();
 }
@@ -277,41 +279,6 @@ void saveParamCallback() {
   Log.println(F("[CALLBACK] saveParamCallback complete"));
 }
 
-#ifdef ENABLE_TELNET_DEBUG
-#include <TelnetSerialStream.h>
-TelnetSerialStream telnetSerialStream = TelnetSerialStream();
-#endif
-
-#ifdef ENABLE_WEB_DEBUG
-#include <WebSerialStream.h>
-WebSerialStream webSerialStream = WebSerialStream(8080);
-#endif
-
-#include <SyslogStream.h>
-SyslogStream syslogStream = SyslogStream();
-
-void configureLogging() {
-#ifdef ENABLE_SERIAL_DEBUG
-  Serial.begin(115200);
-  Log.disableSerial(false);
-#else
-  Log.disableSerial(true);
-#endif
-#ifdef ENABLE_TELNET_DEBUG
-  Log.addPrintStream(std::make_shared<TelnetSerialStream>(telnetSerialStream));
-#endif
-#ifdef ENABLE_WEB_DEBUG
-  Log.addPrintStream(std::make_shared<WebSerialStream>(webSerialStream));
-#endif
-  if (!Wifi.syslog_ip.isEmpty()) {
-    syslogStream.setDestination(Wifi.syslog_ip.c_str());
-    const std::shared_ptr<LOGBase> syslogStreamPtr =
-        std::make_shared<SyslogStream>(syslogStream);
-    Log.addPrintStream(syslogStreamPtr);
-    Log.printf("Syslog Server IP: %s\n", Wifi.syslog_ip.c_str());
-  }
-}
-
 // --- Zentrale Defaults
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
@@ -401,7 +368,7 @@ void setup() {
   prefs.begin("ShineWiFi");
   loadConfig();
   loadSettingsFromPrefs();
-  configureLogging();
+  configureLogging(Wifi.syslog_ip); 
   Log.begin();
 
   // Hostname & WiFi-Basic-Settings konfigurieren (inkl. Event-Handler)
