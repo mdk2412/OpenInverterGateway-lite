@@ -75,7 +75,6 @@ constexpr int DEFAULT_PTOUSER_THR = 150;
 constexpr int DEFAULT_POWER_LIMIT = 6132;
 
 // --- Globale Hardware- & System-Instanzen ---
-Preferences prefs;
 Growatt Inverter;
 ESP8266WebServer httpServer(80);
 WiFiEventHandler disconnectHandler;
@@ -136,20 +135,20 @@ struct {
 } customWMParams;
 
 static const struct {
-  const char* hostname = "/hostname";
-  const char* static_ip = "/staticip";
-  const char* static_netmask = "/staticnetmask";
-  const char* static_gateway = "/staticgateway";
-  const char* static_dns = "/staticdns";
+  const char* hostname       = "hostname";
+  const char* static_ip      = "staticip";
+  const char* static_netmask = "staticnetmask";
+  const char* static_gateway = "staticgateway";
+  const char* static_dns     = "staticdns";
 #if MQTT_SUPPORTED == 1
-  const char* mqtt_server = "/mqtts";
-  const char* mqtt_port = "/mqttp";
-  const char* mqtt_topic = "/mqttt";
-  const char* mqtt_user = "/mqttu";
-  const char* mqtt_pwd = "/mqttw";
+  const char* mqtt_server    = "mqtts";
+  const char* mqtt_port      = "mqttp";
+  const char* mqtt_topic     = "mqttt";
+  const char* mqtt_user      = "mqttu";
+  const char* mqtt_pwd       = "mqttw";
 #endif
-  const char* syslog_ip = "/syslogip";
-  const char* force_ap = "/forceap";
+  const char* syslog_ip      = "syslogip";
+  const char* force_ap       = "forceap";
 } ConfigFiles;
 
 struct WifiConfig {
@@ -169,6 +168,33 @@ struct WifiConfig {
 
 WifiConfig Wifi;
 UserConfig User;
+
+UserConfig validateUserConfig(const UserConfig& in) {
+  UserConfig out = in;
+
+  // BATTERY STANDBY
+  if (out.bat_slp_thr <= 0) out.bat_slp_thr = DEFAULT_SLEEP_THR;
+  if (out.bat_wke_thr <= 0) out.bat_wke_thr = DEFAULT_WAKE_THR;
+
+  // AC Max Power (2500–12500)
+  if (out.ac_max_pow < 2500 || out.ac_max_pow > 12500)
+    out.ac_max_pow = DEFAULT_AC_MAX;
+
+  // Offset (-100 bis +100)
+  if (out.ac_off_set < -100 || out.ac_off_set > 100)
+    out.ac_off_set = DEFAULT_OFFSET;
+
+  // PTOGRID (>0)
+  if (out.ptogrid_thr <= 0) out.ptogrid_thr = DEFAULT_PTOGRID_THR;
+
+  // PTOUSER (>0)
+  if (out.ptouser_thr <= 0) out.ptouser_thr = DEFAULT_PTOUSER_THR;
+
+  // Power limit (>0)
+  if (out.power_limit <= 0) out.power_limit = DEFAULT_POWER_LIMIT;
+
+  return out;
+}
 
 // ============================================================================
 // 3. VORWÄRTSDEKLARATIONEN (PROTOTYPES)
@@ -225,68 +251,51 @@ void handleNTPSync();
 // ============================================================================
 
 void loadConfig() {
-  Wifi.hostname = prefs.getString(ConfigFiles.hostname, DEFAULT_HOSTNAME);
-  Wifi.static_ip = prefs.getString(ConfigFiles.static_ip, "");
-  Wifi.static_netmask = prefs.getString(ConfigFiles.static_netmask, "");
-  Wifi.static_gateway = prefs.getString(ConfigFiles.static_gateway, "");
-  Wifi.static_dns = prefs.getString(ConfigFiles.static_dns, "");
+  Preferences p;
+  p.begin("ShineWiFi", true); // Read-only
+
+  Wifi.hostname       = p.getString(ConfigFiles.hostname, DEFAULT_HOSTNAME);
+  Wifi.static_ip      = p.getString(ConfigFiles.static_ip, "");
+  Wifi.static_netmask = p.getString(ConfigFiles.static_netmask, "");
+  Wifi.static_gateway = p.getString(ConfigFiles.static_gateway, "");
+  Wifi.static_dns     = p.getString(ConfigFiles.static_dns, "");
 
 #if MQTT_SUPPORTED == 1
-  Wifi.mqtt.server = prefs.getString(ConfigFiles.mqtt_server, "");
-  Wifi.mqtt.port = prefs.getString(ConfigFiles.mqtt_port, "1883");
-  Wifi.mqtt.topic = prefs.getString(ConfigFiles.mqtt_topic, "");
-  Wifi.mqtt.user = prefs.getString(ConfigFiles.mqtt_user, "");
-  Wifi.mqtt.pwd = prefs.getString(ConfigFiles.mqtt_pwd, "");
+  Wifi.mqtt.server    = p.getString(ConfigFiles.mqtt_server, "");
+  Wifi.mqtt.port      = p.getString(ConfigFiles.mqtt_port, "1883");
+  Wifi.mqtt.topic     = p.getString(ConfigFiles.mqtt_topic, "");
+  Wifi.mqtt.user      = p.getString(ConfigFiles.mqtt_user, "");
+  Wifi.mqtt.pwd       = p.getString(ConfigFiles.mqtt_pwd, "");
 #endif
 
-  Wifi.syslog_ip = prefs.getString(ConfigFiles.syslog_ip, "");
-  Wifi.force_ap = prefs.getBool(ConfigFiles.force_ap, false);
+  Wifi.syslog_ip      = p.getString(ConfigFiles.syslog_ip, "");
+  Wifi.force_ap       = p.getBool(ConfigFiles.force_ap, false);
+
+  p.end();
 }
 
 void saveConfig() {
-  prefs.putString(ConfigFiles.hostname, Wifi.hostname);
-  prefs.putString(ConfigFiles.static_ip, Wifi.static_ip);
-  prefs.putString(ConfigFiles.static_netmask, Wifi.static_netmask);
-  prefs.putString(ConfigFiles.static_gateway, Wifi.static_gateway);
-  prefs.putString(ConfigFiles.static_dns, Wifi.static_dns);
+  Preferences p;
+  p.begin("ShineWiFi", false); // Read-Write
+
+  p.putString(ConfigFiles.hostname, Wifi.hostname);
+  p.putString(ConfigFiles.static_ip, Wifi.static_ip);
+  p.putString(ConfigFiles.static_netmask, Wifi.static_netmask);
+  p.putString(ConfigFiles.static_gateway, Wifi.static_gateway);
+  p.putString(ConfigFiles.static_dns, Wifi.static_dns);
 
 #if MQTT_SUPPORTED == 1
-  prefs.putString(ConfigFiles.mqtt_server, Wifi.mqtt.server);
-  prefs.putString(ConfigFiles.mqtt_port, Wifi.mqtt.port);
-  prefs.putString(ConfigFiles.mqtt_topic, Wifi.mqtt.topic);
-  prefs.putString(ConfigFiles.mqtt_user, Wifi.mqtt.user);
-  prefs.putString(ConfigFiles.mqtt_pwd, Wifi.mqtt.pwd);
+  p.putString(ConfigFiles.mqtt_server, Wifi.mqtt.server);
+  p.putString(ConfigFiles.mqtt_port, Wifi.mqtt.port);
+  p.putString(ConfigFiles.mqtt_topic, Wifi.mqtt.topic);
+  p.putString(ConfigFiles.mqtt_user, Wifi.mqtt.user);
+  p.putString(ConfigFiles.mqtt_pwd, Wifi.mqtt.pwd);
 #endif
 
-  prefs.putString(ConfigFiles.syslog_ip, Wifi.syslog_ip);
-  prefs.putBool(ConfigFiles.force_ap, Wifi.force_ap);
-}
+  p.putString(ConfigFiles.syslog_ip, Wifi.syslog_ip);
+  p.putBool(ConfigFiles.force_ap, Wifi.force_ap);
 
-UserConfig validateUserConfig(const UserConfig& in) {
-  UserConfig out = in;
-
-  // BATTERY STANDBY
-  if (out.bat_slp_thr <= 0) out.bat_slp_thr = DEFAULT_SLEEP_THR;
-  if (out.bat_wke_thr <= 0) out.bat_wke_thr = DEFAULT_WAKE_THR;
-
-  // AC Max Power (2500–12500)
-  if (out.ac_max_pow < 2500 || out.ac_max_pow > 12500)
-    out.ac_max_pow = DEFAULT_AC_MAX;
-
-  // Offset (-100 bis +100)
-  if (out.ac_off_set < -100 || out.ac_off_set > 100)
-    out.ac_off_set = DEFAULT_OFFSET;
-
-  // PTOGRID (>0)
-  if (out.ptogrid_thr <= 0) out.ptogrid_thr = DEFAULT_PTOGRID_THR;
-
-  // PTOUSER (>0)
-  if (out.ptouser_thr <= 0) out.ptouser_thr = DEFAULT_PTOUSER_THR;
-
-  // Power limit (>0)
-  if (out.power_limit <= 0) out.power_limit = DEFAULT_POWER_LIMIT;
-
-  return out;
+  p.end();
 }
 
 void loadSettingsFromPrefs() {
@@ -333,21 +342,23 @@ void setupWifiHost() {
 void saveParamCallback() {
   Log.println(F("[CALLBACK] saveParamCallback fired"));
 
-  Wifi.hostname = customWMParams.hostname->getValue();
-  Wifi.static_ip = customWMParams.static_ip->getValue();
+  if (customWMParams.hostname == nullptr) return; // Null-Pointer Guard
+
+  Wifi.hostname       = customWMParams.hostname->getValue();
+  Wifi.static_ip      = customWMParams.static_ip->getValue();
   Wifi.static_netmask = customWMParams.static_netmask->getValue();
   Wifi.static_gateway = customWMParams.static_gateway->getValue();
-  Wifi.static_dns = customWMParams.static_dns->getValue();
+  Wifi.static_dns     = customWMParams.static_dns->getValue();
 
 #if MQTT_SUPPORTED == 1
-  Wifi.mqtt.server = customWMParams.mqtt_server->getValue();
-  Wifi.mqtt.port = customWMParams.mqtt_port->getValue();
-  Wifi.mqtt.topic = customWMParams.mqtt_topic->getValue();
-  Wifi.mqtt.user = customWMParams.mqtt_user->getValue();
-  Wifi.mqtt.pwd = customWMParams.mqtt_pwd->getValue();
+  Wifi.mqtt.server    = customWMParams.mqtt_server->getValue();
+  Wifi.mqtt.port      = customWMParams.mqtt_port->getValue();
+  Wifi.mqtt.topic     = customWMParams.mqtt_topic->getValue();
+  Wifi.mqtt.user      = customWMParams.mqtt_user->getValue();
+  Wifi.mqtt.pwd       = customWMParams.mqtt_pwd->getValue();
 #endif
 
-  Wifi.syslog_ip = customWMParams.syslog_ip->getValue();
+  Wifi.syslog_ip      = customWMParams.syslog_ip->getValue();
 
   saveConfig();
 
@@ -679,7 +690,9 @@ bool sendSingleValue(void) {
     httpServer.send(503, F("text/plain"), F("Service unavailable"));
     return true;
   }
-  const String& key = httpServer.uri().substring(7);
+  
+  // Korrektur: Wertzuweisung statt Referenz auf Temporärobjekt
+  String key = httpServer.uri().substring(7); 
   double value;
   if (Inverter.GetSingleValueByName(key, value)) {
     httpServer.send(200, "text/plain", String(value));
@@ -797,9 +810,10 @@ void setup() {
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 #endif
 
-  prefs.begin("ShineWiFi");
+  // Konfigurationen laden (nutzen intern nun eigene, lokale Preferences-Instanzen)
   loadConfig();
   loadSettingsFromPrefs();
+  
   configureLogging(Wifi.syslog_ip);
   Log.begin();
 
@@ -831,8 +845,11 @@ void setup() {
   }
 #endif
 
+  // --- CORRECTION: Bootloop-Fix für force_ap ---
   if (Wifi.force_ap) {
-    prefs.putBool(ConfigFiles.force_ap, false);
+    Wifi.force_ap = false; // Im RAM zurücksetzen, damit callbacks nicht 'true' sichern!
+    saveConfig();          // Den Wert 'false' sauber in NVS schreiben
+    
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.printf("GrowattConfig finished\n");
     SetLED.on(LED_RED);
@@ -945,7 +962,7 @@ void setup() {
 // ============================================================================
 
 void loop() {
-#if ENABLE_DOUBLE_RESET
+#if ENABLE_DOUBLE_RESET == 1
   drd->loop();
 #endif
   SetLED.loop();
@@ -970,9 +987,11 @@ void loop() {
   }
 #endif
 
+  // --- CORRECTION: Kapselung statt ungeöffnetem globalen prefs ---
   if (StartedConfigAfterBoot) {
     Log.println(F("StartedConfigAfterBoot"));
-    prefs.putBool(ConfigFiles.force_ap, true);
+    Wifi.force_ap = true;
+    saveConfig(); // Öffnet NVS, speichert force_ap = true und schließt es wieder
     SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();
