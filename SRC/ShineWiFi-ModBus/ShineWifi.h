@@ -23,12 +23,6 @@ extern WiFiClient espClient;
 #endif
 
 /**
- * Trennt die WLAN-Verbindung sauber und schaltet das WLAN-Modul aus.
- * @return true, wenn die Trennung erfolgreich war.
- */
-bool ShineWifiDisconnect();
-
-/**
  * Event-Callback, der aufgerufen wird, wenn die Station-Verbindung abbricht.
  * @param event Event-Details zur Trennung
  */

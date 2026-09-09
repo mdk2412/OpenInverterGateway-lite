@@ -12,20 +12,6 @@ WiFiClient espClient;
 static bool wasDisconnected = false;
 static unsigned long disconnectedStart = 0;
 
-bool ShineWifiDisconnect() {
-#ifdef WM_DEBUG_LEVEL
-  Log.print(F("WiFi station disconnected"));
-#endif
-
-  // Verbindung sauber trennen
-  bool ret = WiFi.disconnect(true);   // true = persistent (ESP8266), ignoriert auf ESP32
-
-  // WLAN komplett ausschalten
-  WiFi.mode(WIFI_OFF);
-
-  return ret;
-}
-
 void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event) {
   if (!wasDisconnected) {
     wasDisconnected = true;
