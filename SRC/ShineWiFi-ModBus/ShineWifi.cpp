@@ -16,7 +16,8 @@ void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event) {
   if (!wasDisconnected) {
     wasDisconnected = true;
     disconnectedStart = millis();
-    Log.printf("WiFi disconnected! Reason: %d. Attempting Reconnect...\n", event.reason);
+    Log.printf("WiFi disconnected! Reason: %d. Attempting Reconnect...\n",
+               event.reason);
   }
 }
 
@@ -25,7 +26,7 @@ void WiFi_Reconnect() {
     unsigned long currentMillis = millis();
 
     // 1. Hard-Reset nach 5 Minuten (300.000 ms)
-    if (wasDisconnected && (currentMillis - disconnectedStart > 300000)) { 
+    if (wasDisconnected && (currentMillis - disconnectedStart > 300000)) {
       Log.println(F("WiFi Reconnect timed out (5 minutes). Rebooting..."));
       ESP.restart();
     }
@@ -35,15 +36,9 @@ void WiFi_Reconnect() {
     if (currentMillis - lastReconnectAttempt > 60000) {
       lastReconnectAttempt = currentMillis;
       Log.println(F("Active Reconnect attempt..."));
-      
-      // Stellt sicher, dass das Modul wieder an ist, falls ShineWifiDisconnect() gerufen wurde
-      if (WiFi.getMode() == WIFI_OFF) {
-        WiFi.mode(WIFI_STA);
-      }
-      
-      WiFi.reconnect(); // Weist den ESP an, sich aktiv neu zu verbinden
+      WiFi.reconnect();  // Weist den ESP an, sich aktiv neu zu verbinden
     }
-    
+
     return;
   }
 
