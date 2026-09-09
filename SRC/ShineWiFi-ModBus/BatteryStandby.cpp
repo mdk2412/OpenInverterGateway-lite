@@ -26,7 +26,7 @@ void batteryStandby() {
     if (discharge_rate != 0) {
       JsonDocument req, res;
       req["value"] = 0;
-      req["retry"] = 3;
+      req["retry"] = 2;
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", req, res);
 
@@ -43,7 +43,7 @@ void batteryStandby() {
     if (discharge_rate != 100) {
       JsonDocument req, res;
       req["value"] = 100;
-      req["retry"] = 3;
+      req["retry"] = 2;
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", req, res);
 
@@ -60,7 +60,7 @@ void batteryStandby() {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
       JsonDocument req, res;
       req["value"] = 3;
-      req["retry"] = 3;
+      req["retry"] = 2;
 
       Inverter.HandleCommand("onoff/set", req, res);
     }
@@ -72,7 +72,7 @@ void batteryStandby() {
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
       JsonDocument req, res;
       req["value"] = 2;
-      req["retry"] = 3;
+      req["retry"] = 2;
 
       Inverter.HandleCommand("onoff/set", req, res);
     }
