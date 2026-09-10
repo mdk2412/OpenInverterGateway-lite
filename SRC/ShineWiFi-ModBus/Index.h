@@ -100,7 +100,7 @@ const char MAIN_page[] PROGMEM = R"=====(
 
     <!-- LOG -->
     <section id="log" class="tab-content" hidden>
-      <iframe src="./debug" style="width:100%;height:75vh;border:none"></iframe>
+      <iframe id="debugFrame" style="width:100%;height:75vh;border:none"></iframe>
     </section>
 
     <!-- SYSTEM -->
@@ -189,7 +189,14 @@ const char MAIN_page[] PROGMEM = R"=====(
             document.querySelector(".tab.active")?.classList.remove("active");
             tabBtn.classList.add("active");
             document.querySelectorAll(".tab-content").forEach(sec => sec.hidden = (sec.id !== tabBtn.dataset.tab));
+
             if (tabBtn.dataset.tab === "settings") loadSettings();
+
+            // NEU: Log-Iframe erst beim ersten Klick auf den Log-Tab laden
+            if (tabBtn.dataset.tab === "log") {
+              const iframe = document.getElementById("debugFrame");
+              if (iframe && !iframe.src) iframe.src = "./debug";
+            }
           }
         });
 
