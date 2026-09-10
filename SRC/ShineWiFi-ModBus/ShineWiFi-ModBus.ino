@@ -232,7 +232,7 @@ void sendUiJsonSite(void) {
   sendJson(doc);
 }
 
-void sendMainPage(void) { httpServer.send(200, F("text/html"), MAIN_page); }
+void sendMainPage(void) { httpServer.send(200, F("text/html"), FPSTR(MAIN_page)); }
 
 void rebootESP(void) {
   httpServer.send(200, F("text/html"),
@@ -584,7 +584,7 @@ void handleNTPSync() {
 void setup() {
   // LittleFS Mounten & Dateisystem initialisieren
   LittleFS.begin();
-  httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css");
+  httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css", "max-age=86400");
 
   WiFiManager wm;
 

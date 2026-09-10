@@ -1,4 +1,5 @@
 #pragma once
+
 const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
 <html lang="en">
@@ -14,48 +15,17 @@ const char MAIN_page[] PROGMEM = R"=====(
   <main class="container">
     <nav>
       <ul>
-        <li>
-          <button class="outline tab active" data-tab="main">
-            Dashboard
-          </button>
-        </li>
-
-        <li>
-          <button class="outline tab" data-tab="settings">
-            Settings
-          </button>
-        </li>
-
-        <li>
-          <button class="outline tab" data-tab="system">
-            System
-          </button>
-        </li>
-
-        <li>
-          <button class="outline tab" data-tab="modbus">
-            Modbus
-          </button>
-        </li>
-
-        <li>
-          <button class="outline tab" data-tab="log">
-            Log
-          </button>
-        </li>
-
-        <li>
-          <button class="outline tab" data-tab="update">
-            Update
-          </button>
-        </li>
-
+        <li><button class="outline tab active" data-tab="main">Dashboard</button></li>
+        <li><button class="outline tab" data-tab="settings">Settings</button></li>
+        <li><button class="outline tab" data-tab="system">System</button></li>
+        <li><button class="outline tab" data-tab="modbus">Modbus</button></li>
+        <li><button class="outline tab" data-tab="log">Log</button></li>
+        <li><button class="outline tab" data-tab="update">Update</button></li>
       </ul>
     </nav>
 
-    <!-- Dashboard -->
+    <!-- MAIN DASHBOARD -->
     <section id="main" class="tab-content">
-
       <table>
         <tbody>
           <tr>
@@ -101,31 +71,20 @@ const char MAIN_page[] PROGMEM = R"=====(
         </tbody>
       </table>
 
-      <!-- PRIORITY BUTTONS -->
       <div class="grid" id="priorityButtons">
         <button type="button" id="btn-loadfirst" onclick="fetch('/loadfirst')">Load First</button>
         <button type="button" id="btn-batteryfirst" class="secondary" onclick="fetch('/batteryfirst')">Battery
           First</button>
         <button type="button" id="btn-gridfirst" class="contrast"
-          onclick="if (confirm('Set priority to grid first?')) fetch('/gridfirst')">Grid First</button>
+          onclick="if(confirm('Set priority to grid first?'))fetch('/gridfirst')">Grid First</button>
       </div>
-
     </section>
 
     <!-- MODBUS -->
-
     <section id="modbus" class="tab-content" hidden>
       <form id="modbusForm">
-        <label>
-          Register ID
-          <input type="number" name="reg">
-        </label>
-
-        <label>
-          Register Value
-          <input type="number" name="val" id="modbusVal">
-        </label>
-
+        <label>Register ID<input type="number" name="reg"></label>
+        <label>Register Value<input type="number" name="val" id="modbusVal"></label>
         Register Width
         <label><input type="radio" name="width" value="16b" checked> 16-bit</label>
         <label><input type="radio" name="width" value="32b"> 32-bit</label>
@@ -139,81 +98,58 @@ const char MAIN_page[] PROGMEM = R"=====(
       </form>
     </section>
 
-    <!-- Log -->
-
+    <!-- LOG -->
     <section id="log" class="tab-content" hidden>
       <iframe src="./debug" style="width:100%;height:75vh;border:none"></iframe>
     </section>
 
-    <!-- System -->
-
+    <!-- SYSTEM -->
     <section id="system" class="tab-content" hidden>
       <div class="grid">
         <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
       </div>
       <div class="grid">
-        <button type="button" class="secondary"
-          onclick="if (confirm('Start Config AP?')) location.href='./startAp'">Start Config AP</button>
-        <button type="button" class="secondary"
-          onclick="if (confirm('Reboot?')) location.href='./reboot'">Reboot</button>
+        <button type="button" class="secondary" onclick="if(confirm('Start Config AP?'))location.href='./startAp'">Start
+          Config AP</button>
+        <button type="button" class="secondary" onclick="if(confirm('Reboot?'))location.href='./reboot'">Reboot</button>
       </div>
     </section>
 
-    <!-- Settings -->
-
+    <!-- SETTINGS -->
     <section id="settings" class="tab-content" hidden>
       <form id="settingsForm">
         <hr>
         <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
-
-        <label>Sleep Threshold (W)
-          <input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1" placeholder="0">
-        </label>
-
-        <label>Wake Threshold (W)
-          <input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1" placeholder="0">
-        </label>
+        <label>Sleep Threshold (W)<input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1"
+            placeholder="0"></label>
+        <label>Wake Threshold (W)<input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1"
+            placeholder="0"></label>
         <hr>
         <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
-
-        <label>Inverter Maximum Power (W)
-          <input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500" step="50" placeholder="2500">
-        </label>
-
-        <label>Offset (W)
-          <input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1" placeholder="0">
-        </label>
+        <label>Inverter Maximum Power (W)<input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500"
+            step="50" placeholder="2500"></label>
+        <label>Offset (W)<input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1"
+            placeholder="0"></label>
         <hr>
         <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
-
-        <label>Power to Grid threshold (W)
-          <input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1" placeholder="0">
-        </label>
-
-        <label>Power to User threshold (W)
-          <input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1" placeholder="0">
-        </label>
+        <label>Power to Grid threshold (W)<input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1"
+            placeholder="0"></label>
+        <label>Power to User threshold (W)<input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1"
+            placeholder="0"></label>
         <hr>
         <label><input name="surch" type="checkbox" role="switch"> Surplus Charging</label>
-        <label>Power Limit (W)
-          <input type="number" name="power_limit" id="power_limit" min="0" step="1" placeholder="0">
-        </label>
+        <label>Power Limit (W)<input type="number" name="power_limit" id="power_limit" min="0" step="1"
+            placeholder="0"></label>
         <div class="grid">
           <button type="button" onclick="saveSettings()">Save Settings</button>
         </div>
-
       </form>
-
     </section>
 
+    <!-- UPDATE -->
     <section id="update" class="tab-content" hidden>
       <form method="POST" action="/update" enctype="multipart/form-data">
-
-        <label>
-          Choose Firmware File (.bin)
-          <input type="file" name="firmware" accept=".bin" required>
-        </label>
-
+        <label>Choose Firmware File (.bin)<input type="file" name="firmware" accept=".bin" required></label>
         <div class="grid">
           <button type="submit">Start Update</button>
         </div>
@@ -221,88 +157,62 @@ const char MAIN_page[] PROGMEM = R"=====(
     </section>
 
     <!-- JAVASCRIPT -->
-
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        // -------------------------------
-        // PRIORITY BUTTON HIGHLIGHTING
-        // -------------------------------
-        window.setActivePriority = function (clickedBtn) {
+        window.setActivePriority = function (activeBtn) {
           const container = document.getElementById("priorityButtons");
           if (!container) return;
-
           container.querySelectorAll("button").forEach(btn => {
-            if (btn === clickedBtn) {
-              btn.classList.add("outline");
-            } else {
-              btn.classList.remove("outline");
-            }
+            if (btn === activeBtn) btn.classList.add("outline");
+            else btn.classList.remove("outline");
           });
         };
-        // -------------------------------
-        // UPDATE PRIORITY BUTTON STATES
-        // -------------------------------
-        function updatePriorityButtons(currentPriority) {
-          if (!currentPriority || !Array.isArray(currentPriority)) return;
 
-          const prioText = currentPriority.join(" ").toLowerCase();
-
+        function highlightPriorityButton(priorityArray) {
+          if (!priorityArray || !Array.isArray(priorityArray)) return;
+          const prioText = priorityArray.join(" ").toLowerCase();
           const btnLoad = document.getElementById("btn-loadfirst");
           const btnBat = document.getElementById("btn-batteryfirst");
           const btnGrid = document.getElementById("btn-gridfirst");
 
-          if (!btnLoad || !btnBat || !btnGrid) return;
+          if (btnLoad && btnBat && btnGrid) {
+            btnLoad.classList.toggle("outline", !prioText.includes("load"));
+            btnBat.classList.toggle("outline", !prioText.includes("battery"));
+            btnGrid.classList.toggle("outline", !prioText.includes("grid"));
+          }
+        }
 
-          // Umgekehrte Logik: 
-          // Ist der Modus AKTIV -> KEIN .outline (ausgefüllter Button)
-          // Ist der Modus INAKTIV -> MIT .outline (nur Umrandung)
-          btnLoad.classList.toggle("outline", !prioText.includes("load"));
-          btnBat.classList.toggle("outline", !prioText.includes("battery"));
-          btnGrid.classList.toggle("outline", !prioText.includes("grid"));
-        }        // -------------------------------
-        // TAB SWITCHING
-        // -------------------------------
+        // Tab Switching
         document.addEventListener("click", e => {
-          const tab = e.target.closest(".tab");
-          if (!tab) return;
-
-          document.querySelector(".tab.active")?.classList.remove("active");
-          tab.classList.add("active");
-
-          document.querySelectorAll(".tab-content").forEach(sec =>
-            sec.hidden = sec.id !== tab.dataset.tab
-          );
-
-          if (tab.dataset.tab === "settings") {
-            loadSettings();
+          const tabBtn = e.target.closest(".tab");
+          if (tabBtn) {
+            document.querySelector(".tab.active")?.classList.remove("active");
+            tabBtn.classList.add("active");
+            document.querySelectorAll(".tab-content").forEach(sec => sec.hidden = (sec.id !== tabBtn.dataset.tab));
+            if (tabBtn.dataset.tab === "settings") loadSettings();
           }
         });
 
-        // -------------------------------
-        // MAIN PAGE AUTO-UPDATE
-        // -------------------------------
-        async function loadData() {
-          const dashboard = document.getElementById("main");
-          if (dashboard.hidden) return;
-
+        // Main Refresh
+        async function refreshDashboard() {
+          const mainSec = document.getElementById("main");
+          if (mainSec.hidden) return;
           try {
-            const response = await fetch("/uiStatus");
-            if (!response.ok) return;
+            const res = await fetch("/uiStatus");
+            if (!res.ok) return;
+            const data = await res.json();
+            highlightPriorityButton(data.Priority);
 
-            const data = await response.json();
-            updatePriorityButtons(data.Priority);
-            // --- Generic renderer ---
-            const render = (id, arr, rateArr = null) => {
+            const updateCell = (id, valArray, rateArray = null) => {
               const el = document.getElementById(id);
-              if (!el || !Array.isArray(arr)) return;
-
-              el.innerHTML = rateArr
-                ? `${arr.join(" ")}<br>(${rateArr.join(" ")})`
-                : arr.join(" ");
+              if (el && Array.isArray(valArray)) {
+                el.innerHTML = rateArray
+                  ? `${valArray.join(" ")}<br>(${rateArray.join(" ")})`
+                  : valArray.join(" ");
+              }
             };
 
-            // --- Simple fields ---
-            const simpleFields = {
+            const map = {
               onoffMode: data.OnOff,
               priorityMode: data.Priority,
               outputPower: data.OutputPower,
@@ -313,172 +223,129 @@ const char MAIN_page[] PROGMEM = R"=====(
               batteryTemperature: data.BDCTemperatureA
             };
 
-            for (const id in simpleFields) {
-              render(id, simpleFields[id]);
-            }
-
-            // --- Complex fields (Power + Rate) ---
-            render("batteryCharge", data.BDCChargePower, data.BDCChargePowerRate);
-            render("batteryDischarge", data.BDCDischargePower, data.BDCDischargePowerRate);
-
-          } catch (e) {
-            console.error("Error fetching Data:", e);
+            for (const key in map) updateCell(key, map[key]);
+            updateCell("batteryCharge", data.BDCChargePower, data.BDCChargePowerRate);
+            updateCell("batteryDischarge", data.BDCDischargePower, data.BDCDischargePowerRate);
+          } catch (err) {
+            console.error("Error fetching Data:", err);
           }
         }
 
-        // -------------------------------
-        // MODBUS UI LOGIC
-        // -------------------------------
-        const valueInput = document.getElementById("modbusVal");
-        const writeButton = document.getElementById("modbusWriteButton");
+        // Modbus Handling
+        const modbusVal = document.getElementById("modbusVal");
+        const modbusWriteBtn = document.getElementById("modbusWriteButton");
 
-        function getSelected(name) {
+        function getRadioVal(name) {
           return document.querySelector(`input[name="${name}"]:checked`)?.value;
         }
 
-        function updateModbusUI() {
-          const width = getSelected("width");
-          const type = getSelected("type");
-
-          const disable = (width === "32b" || type === "I");
-
-          writeButton.disabled = disable;
-          valueInput.disabled = disable;
+        function updateModbusState() {
+          const isDisable = (getRadioVal("width") === "32b" || getRadioVal("type") === "I");
+          modbusWriteBtn.disabled = isDisable;
+          modbusVal.disabled = isDisable;
         }
 
-        document.querySelectorAll('input[name="width"], input[name="type"]')
-          .forEach(r => r.addEventListener("change", updateModbusUI));
+        document.querySelectorAll('input[name="width"], input[name="type"]').forEach(input => {
+          input.addEventListener("change", updateModbusState);
+        });
 
-        // -------------------------------
-        // SETTINGS LOADING
-        // -------------------------------
-        function parseBool(value) {
-          if (typeof value === "boolean") return value;
-          if (typeof value === "number") return value !== 0;
-          if (typeof value === "string") {
-            const normalized = value.trim().toLowerCase();
-            return normalized === "true" || normalized === "on" || normalized === "1";
-          }
+        function parseBool(v) {
+          if (typeof v === "boolean") return v;
+          if (typeof v === "number") return v !== 0;
+          if (typeof v === "string") return ["true", "on", "1"].includes(v.trim().toLowerCase());
           return false;
         }
 
+        // Settings Handling
         async function loadSettings() {
           try {
-            const response = await fetch("/getSettings");
-            if (!response.ok) return;
+            const res = await fetch("/getSettings");
+            if (!res.ok) return;
+            const s = await res.json();
 
-            const data = await response.json();
+            document.querySelector('input[name="bat_standby"]').checked = parseBool(s.bat_standby);
+            document.querySelector('input[name="accharge"]').checked = parseBool(s.accharge);
+            document.querySelector('input[name="prioctrl"]').checked = parseBool(s.prioctrl);
+            document.querySelector('input[name="surch"]').checked = parseBool(s.surch);
 
-            document.querySelector('input[name="bat_standby"]').checked = parseBool(data.bat_standby);
-            document.querySelector('input[name="accharge"]').checked = parseBool(data.accharge);
-            document.querySelector('input[name="prioctrl"]').checked = parseBool(data.prioctrl);
-            document.querySelector('input[name="surch"]').checked = parseBool(data.surch);
-
-            document.getElementById("bat_slp_thr").value = data.bat_slp_thr ?? "";
-            document.getElementById("bat_wke_thr").value = data.bat_wke_thr ?? "";
-            document.getElementById("ac_max_pow").value = data.ac_max_pow ?? "";
-            document.getElementById("ac_off_set").value = data.ac_off_set ?? "";
-            document.getElementById("ptogrid_thr").value = data.ptogrid_thr ?? "";
-            document.getElementById("ptouser_thr").value = data.ptouser_thr ?? "";
-            document.getElementById("power_limit").value = data.power_limit ?? "";
-
-          } catch (e) {
-            console.error("Error loading settings:", e);
+            document.getElementById("bat_slp_thr").value = s.bat_slp_thr ?? "";
+            document.getElementById("bat_wke_thr").value = s.bat_wke_thr ?? "";
+            document.getElementById("ac_max_pow").value = s.ac_max_pow ?? "";
+            document.getElementById("ac_off_set").value = s.ac_off_set ?? "";
+            document.getElementById("ptogrid_thr").value = s.ptogrid_thr ?? "";
+            document.getElementById("ptouser_thr").value = s.ptouser_thr ?? "";
+            document.getElementById("power_limit").value = s.power_limit ?? "";
+          } catch (err) {
+            console.error("Error loading settings:", err);
           }
         }
 
-        // -------------------------------
-        // GLOBAL: submitOperation
-        // -------------------------------
-        window.submitOperation = async function (op) {
-          const form = document.getElementById("modbusForm");
-          const data = new FormData(form);
-
-          const payload = new URLSearchParams();
-          payload.append("operation", op);
-          payload.append("reg", data.get("reg"));
-          payload.append("val", data.get("val"));
-          payload.append("width", data.get("width"));
-          payload.append("type", data.get("type"));
+        window.submitOperation = async function (type) {
+          const form = new FormData(document.getElementById("modbusForm"));
+          const params = new URLSearchParams();
+          params.append("operation", type);
+          params.append("reg", form.get("reg"));
+          params.append("val", form.get("val"));
+          params.append("width", form.get("width"));
+          params.append("type", form.get("type"));
 
           try {
-            const response = await fetch("/postCommunicationModbus_p", {
-              method: "POST",
-              body: payload
-            });
-
-            const trimmed = (await response.text()).trim();
-            const isError = trimmed.toLowerCase().includes("failed");
-
-            let extractedValue = trimmed;
-            const match = trimmed.match(/(\d+)/);
-            if (match) extractedValue = match[1];
-
-            valueInput.value = isError ? trimmed : extractedValue;
-
+            const res = await fetch("/postCommunicationModbus_p", { method: "POST", body: params });
+            const txt = (await res.text()).trim();
+            const isErr = txt.toLowerCase().includes("failed");
+            let display = txt;
+            const match = txt.match(/(\d+)/);
+            if (match) display = match[1];
+            modbusVal.value = isErr ? txt : display;
           } catch (e) {
-            valueInput.value = "JS Error: " + e.message;
+            modbusVal.value = "JS Error: " + e.message;
           }
         };
 
-        // -------------------------------
-        // GLOBAL: saveSettings
-        // -------------------------------
         window.saveSettings = async function () {
           const form = document.getElementById("settingsForm");
           const btn = document.querySelector('#settings button[type="button"]');
+          const params = new URLSearchParams();
 
-          const payload = new URLSearchParams();
+          params.append("bat_standby", form.bat_standby.checked ? "on" : "off");
+          params.append("accharge", form.accharge.checked ? "on" : "off");
+          params.append("prioctrl", form.prioctrl.checked ? "on" : "off");
+          params.append("surch", form.surch.checked ? "on" : "off");
 
-          payload.append("bat_standby", form.bat_standby.checked ? "on" : "off");
-          payload.append("accharge", form.accharge.checked ? "on" : "off");
-          payload.append("prioctrl", form.prioctrl.checked ? "on" : "off");
-          payload.append("surch", form.surch.checked ? "on" : "off");
+          params.append("bat_slp_thr", form.bat_slp_thr.value);
+          params.append("bat_wke_thr", form.bat_wke_thr.value);
+          params.append("ac_max_pow", form.ac_max_pow.value);
+          params.append("ac_off_set", form.ac_off_set.value);
+          params.append("ptogrid_thr", form.ptogrid_thr.value);
+          params.append("ptouser_thr", form.ptouser_thr.value);
+          params.append("power_limit", form.power_limit.value);
 
-          payload.append("bat_slp_thr", form.bat_slp_thr.value);
-          payload.append("bat_wke_thr", form.bat_wke_thr.value);
-          payload.append("ac_max_pow", form.ac_max_pow.value);
-          payload.append("ac_off_set", form.ac_off_set.value);
-          payload.append("ptogrid_thr", form.ptogrid_thr.value);
-          payload.append("ptouser_thr", form.ptouser_thr.value);
-          payload.append("power_limit", form.power_limit.value);
-
-          const oldText = btn.textContent;
-          const oldClass = btn.className;
-
-          // WICHTIG: Outline behalten!
+          const origTxt = btn.textContent;
+          const origCls = btn.className;
           btn.classList.add("outline");
 
           try {
-            const response = await fetch("/saveSettings", {
-              method: "POST",
-              body: payload
-            });
-
-            btn.textContent = (await response.text()).trim();
-
+            const res = await fetch("/saveSettings", { method: "POST", body: params });
+            btn.textContent = (await res.text()).trim();
           } catch {
             btn.textContent = "Error";
           }
-
           setTimeout(() => {
-            btn.textContent = oldText;
-            btn.className = oldClass;
+            btn.textContent = origTxt;
+            btn.className = origCls;
           }, 1000);
         };
 
-        // -------------------------------
-        // INITIALIZATION
-        // -------------------------------
-        updateModbusUI();
-        loadSettings();
-        loadData();
-        setInterval(loadData, 1000);
-
+        // Init
+        updateModbusState();
+        refreshDashboard();
+        setInterval(() => {
+          if (!document.hidden) {
+            refreshDashboard();
+          }
+        }, 1000);
       });
-
     </script>
-
   </main>
 </body>
 
