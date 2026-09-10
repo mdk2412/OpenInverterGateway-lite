@@ -249,23 +249,23 @@ void sendDebug(void) {
 }
 #endif
 
-void printFlashPartitionInfo() {
-  Log.println(F("Flash Memory Configuration:"));
+// void printFlashPartitionInfo() {
+//   Log.println(F("Flash Memory Configuration:"));
 
-  uint32_t realSize = ESP.getFlashChipRealSize();
-  uint32_t flashSize = ESP.getFlashChipSize();
-  uint32_t sketchSize = ESP.getSketchSize();
-  uint32_t freeSketch = ESP.getFreeSketchSpace();
+//   uint32_t realSize = ESP.getFlashChipRealSize();
+//   uint32_t flashSize = ESP.getFlashChipSize();
+//   uint32_t sketchSize = ESP.getSketchSize();
+//   uint32_t freeSketch = ESP.getFreeSketchSpace();
 
-  Log.printf("    Flash Chip Total Size (Physical):    %u Bytes\n", realSize);
-  Log.printf("    Flash SDK Configured Size:           %u Bytes\n", flashSize);
-  Log.printf("    Current Firmware:                    %u Bytes\n", sketchSize);
-  Log.printf("    Free Space for OTA Updates:          %u Bytes\n", freeSketch);
-  FSInfo fs_info;
-  if (LittleFS.info(fs_info)) {
-  Log.printf("    LittleFS Filesystem Total:           %u Bytes\n", fs_info.totalBytes);
-  Log.printf("    LittleFS Used:                       %u Bytes\n", fs_info.usedBytes);  }
-}
+//   Log.printf("    Flash Chip Total Size (Physical):    %u Bytes\n", realSize);
+//   Log.printf("    Flash SDK Configured Size:           %u Bytes\n", flashSize);
+//   Log.printf("    Current Firmware:                    %u Bytes\n", sketchSize);
+//   Log.printf("    Free Space for OTA Updates:          %u Bytes\n", freeSketch);
+//   FSInfo fs_info;
+//   if (LittleFS.info(fs_info)) {
+//   Log.printf("    LittleFS Filesystem Total:           %u Bytes\n", fs_info.totalBytes);
+//   Log.printf("    LittleFS Used:                       %u Bytes\n", fs_info.usedBytes);  }
+// }
 
 // --- Steuerungs-Aktionen ---
 
@@ -680,7 +680,7 @@ void setup() {
 
   SetLED.off(LED_BLUE);
   Log.println(F("WiFi connected"));
-  printFlashPartitionInfo();
+  // printFlashPartitionInfo();
 
 #if OTA_SUPPORTED == 1
 #if !defined(OTA_PASSWORD)
