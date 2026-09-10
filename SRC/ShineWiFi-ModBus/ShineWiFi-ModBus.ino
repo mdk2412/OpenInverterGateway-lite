@@ -1,6 +1,4 @@
-// ============================================================================
-// 1. INCLUDES & KONFIGURATION
-// ============================================================================
+// INCLUDES & KONFIGURATION
 
 #include "Config.h"
 #ifndef _SHINE_CONFIG_H_
@@ -58,9 +56,7 @@
 extern "C" uint8_t sntp_getreachability(uint8_t);
 #endif
 
-// ============================================================================
-// 2. GLOBALE DEFINITIONEN, STRUCTS & INSTANZEN
-// ============================================================================
+// GLOBALE DEFINITIONEN, STRUCTS & INSTANZEN
 
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
@@ -142,9 +138,7 @@ UserConfig validateUserConfig(const UserConfig& in) {
   return out;
 }
 
-// ============================================================================
-// 3. VORWÄRTSDEKLARATIONEN (PROTOTYPES)
-// ============================================================================
+// VORWÄRTSDEKLARATIONEN (PROTOTYPES)
 
 void loadSettingsFromPrefs();
 void sendJson(JsonDocument& doc);
@@ -183,9 +177,7 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value);
 void handleNTPSync();
 #endif
 
-// ============================================================================
-// 4. KONFIGURATION & PREFERENCES
-// ============================================================================
+// KONFIGURATION & PREFERENCES
 
 void loadSettingsFromPrefs() {
   Preferences prefs;
@@ -210,9 +202,7 @@ void loadSettingsFromPrefs() {
   User = validateUserConfig(raw);
 }
 
-// ============================================================================
-// 5. HTTP SERVER & API ROUTE HANDLER
-// ============================================================================
+// HTTP SERVER & API ROUTE HANDLER
 
 void startConfigAccessPoint(void) {
   char msg[384];
@@ -527,9 +517,7 @@ void handleUpdateUpload(ESP8266WebServer& httpServer) {
   }
 }
 
-// ============================================================================
-// 6. ZUSATZ-PROTOKOLLE & HELPER (MQTT, MODBUS TCP, NTP)
-// ============================================================================
+// ZUSATZ-PROTOKOLLE & HELPER (MQTT, MODBUS TCP, NTP)
 
 #if MQTT_SUPPORTED == 1
 boolean sendMqttJson(void) {
@@ -573,9 +561,7 @@ void handleNTPSync() {
 }
 #endif
 
-// ============================================================================
-// 7. SETUP METHODE
-// ============================================================================
+// SETUP
 
 void setup() {
   // LittleFS Mounten & Dateisystem initialisieren
@@ -736,9 +722,7 @@ void setup() {
 #endif
 }
 
-// ============================================================================
-// 9. MAIN LOOP METHODE
-// ============================================================================
+// MAIN LOOP
 
 void loop() {
 #if ENABLE_DOUBLE_RESET == 1
