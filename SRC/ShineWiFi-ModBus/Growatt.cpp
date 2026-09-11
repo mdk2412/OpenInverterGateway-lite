@@ -749,7 +749,7 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
     if (attempt > 0) {
       Log.printf("Retrying Command: %s (Attempt %d/%d)...\n", command.c_str(),
                  attempt, retries);
-      delay(50);
+      delay(100);
     }
 
     // res vor jedem Versuch leeren, um Altlasten fehlgeschlagener Versuche zu
