@@ -161,5 +161,5 @@
 // without a direct WIFI connection. This is a security risk as anyone could now
 // remotely update your firmware.
 // #define KEEP_AP_CONFIG_CONNECTION 1
-#define NUM_OF_RETRIES 4
+#define NUM_READ_RETRIES 4
 #define NUM_WRITE_RETRIES 2

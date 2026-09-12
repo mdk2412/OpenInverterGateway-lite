@@ -303,7 +303,7 @@ sGrowattModbusReg_t Growatt::GetInputRegister(uint16_t reg) {
    * @returns the register value
    */
   if (_GotData == false) {
-    ReadData(NUM_OF_RETRIES);
+    ReadData(NUM_READ_RETRIES);
   }
   return _Protocol.InputRegisters[reg];
 }
@@ -315,7 +315,7 @@ sGrowattModbusReg_t Growatt::GetHoldingRegister(uint16_t reg) {
    * @returns the register value
    */
   if (_GotData == false) {
-    ReadData(NUM_OF_RETRIES);
+    ReadData(NUM_READ_RETRIES);
   }
   return _Protocol.HoldingRegisters[reg];
 }

@@ -797,7 +797,7 @@ void loop() {
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
 
-    readoutSucceeded = Inverter.ReadData(NUM_OF_RETRIES);
+    readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
 
     bool mqttOK = false;
 #if MQTT_SUPPORTED == 1
