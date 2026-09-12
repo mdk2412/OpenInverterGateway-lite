@@ -162,3 +162,4 @@
 // remotely update your firmware.
 // #define KEEP_AP_CONFIG_CONNECTION 1
 #define NUM_OF_RETRIES 4
+#define NUM_WRITE_RETRIES 2

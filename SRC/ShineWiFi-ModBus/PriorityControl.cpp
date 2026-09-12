@@ -27,14 +27,14 @@ void priorityControl() {
     // 1. Command: priority/set
     JsonDocument req1, res1;
     req1["mode"] = 0;
-    req1["retry"] = 2;
+    req1["retry"] = NUM_WRITE_RETRIES;
 
     Inverter.HandleCommand("priority/set", req1, res1);
 
     // 2. Command: bdc/set/chargepowerrate
     JsonDocument req2, res2;
     req2["value"] = 100;
-    req2["retry"] = 2;
+    req2["retry"] = NUM_WRITE_RETRIES;
 
     Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
   }
@@ -42,7 +42,7 @@ void priorityControl() {
   if (priority == 0 && avg_ptogrid > ptogrid_threshold && soc < 95) {
     JsonDocument req, res;
     req["mode"] = 1;
-    req["retry"] = 2;
+    req["retry"] = NUM_WRITE_RETRIES;
 
     Inverter.HandleCommand("priority/set", req, res);
   }

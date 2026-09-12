@@ -26,13 +26,13 @@ void acchargeControl() {
     if (soc == 100) {
       JsonDocument req1, res1;
       req1["mode"] = 0;
-      req1["retry"] = 2;
+      req1["retry"] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("priority/set", req1, res1);
 
       JsonDocument req2, res2;
       req2["value"] = 100;
-      req2["retry"] = 2;
+      req2["retry"] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
 
@@ -51,7 +51,7 @@ void acchargeControl() {
     if (current_rate != targetpowerrate) {
       JsonDocument req, res;
       req["value"] = targetpowerrate;
-      req["retry"] = 2;
+      req["retry"] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
     }
