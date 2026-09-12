@@ -102,6 +102,7 @@ unsigned long ButtonTimer = 0;
 unsigned long RefreshTimer = 0;
 unsigned long BatteryStandbyTimer = 0;
 unsigned long ACChargeControlTimer = 0;
+unsigned long SurplusChargeTimer = 0;
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 unsigned long NTPTimer = 0;
@@ -850,11 +851,13 @@ void loop() {
   if (User.accharge && now - ACChargeControlTimer > ACCHARGE_CONTROL_TIMER) {
     ACChargeControlTimer = now;
     acchargeControl();
-    if (User.surch) {
-      surplusCharge();
-    }
     if (User.prioctrl) {
       priorityControl();
     }
+  }
+
+  if (User.surch && now - SurplusChargeTimer > SURPLUS_CHARGE_TIMER) {
+    SurplusChargeTimer = now;
+    surplusCharge();
   }
 }

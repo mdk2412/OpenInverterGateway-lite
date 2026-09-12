@@ -55,6 +55,8 @@
 //   1  // offset in % to be subtracted from target power rate to ensure 0 power
 //      // draw from grid
 
+#define SURPLUS_CHARGE_TIMER 5000
+
 // Define a NTP Server and TZ Info to automatically adjust the inverter
 // date/time. TZ Info can be found at:
 // https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
