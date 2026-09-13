@@ -26,6 +26,60 @@
 #include <ArduinoJson.h>
 #include <TLog.h>
 
+// --- PROGMEM String-Tabellen zur Einsparung von RAM ---
+static const char unit_0[] PROGMEM = "";
+static const char unit_1[] PROGMEM = "W";
+static const char unit_2[] PROGMEM = "kWh";
+static const char unit_3[] PROGMEM = "V";
+static const char unit_4[] PROGMEM = "A";
+static const char unit_5[] PROGMEM = "s";
+static const char unit_6[] PROGMEM = "%";
+static const char unit_7[] PROGMEM = "Hz";
+static const char unit_8[] PROGMEM = "°C";
+static const char unit_9[] PROGMEM = "VA";
+static const char unit_10[] PROGMEM = "mA";
+static const char unit_11[] PROGMEM = "kOhm";
+static const char unit_12[] PROGMEM = "var";
+
+static const char* const unitStr[] PROGMEM = {
+    unit_0, unit_1, unit_2, unit_3, unit_4, unit_5, unit_6,
+    unit_7, unit_8, unit_9, unit_10, unit_11, unit_12
+};
+
+static const char status_0[] PROGMEM = "(Waiting)";
+static const char status_1[] PROGMEM = "(Normal)";
+static const char status_2[] PROGMEM = "(Fault)";
+static const char status_3[] PROGMEM = "(Flash)";
+
+static const char* const statusStr[] PROGMEM = {
+    status_0, status_1, status_2, status_3
+};
+
+static const char onoff_0[] PROGMEM = "(Inverter Off)";
+static const char onoff_1[] PROGMEM = "(Inverter On)";
+static const char onoff_2[] PROGMEM = "(BDC Off)";
+static const char onoff_3[] PROGMEM = "(BDC On)";
+
+static const char* const onoffStr[] PROGMEM = {
+    onoff_0, onoff_1, onoff_2, onoff_3
+};
+
+static const char priority_0[] PROGMEM = "(Load First)";
+static const char priority_1[] PROGMEM = "(Battery First)";
+static const char priority_2[] PROGMEM = "(Grid First)";
+
+static const char* const priorityStr[] PROGMEM = {
+    priority_0, priority_1, priority_2
+};
+
+static const char bdcMode_0[] PROGMEM = "(Idle)";
+static const char bdcMode_1[] PROGMEM = "(Charging)";
+static const char bdcMode_2[] PROGMEM = "(Discharging)";
+
+static const char* const bdcModeStr[] PROGMEM = {
+    bdcMode_0, bdcMode_1, bdcMode_2
+};
+
 ModbusMaster Modbus;
 
 // Constructor
@@ -502,28 +556,16 @@ bool Growatt::GetSingleValueByName(const String& name, double& value) {
 
 void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
                          const String& Hostname) {
-  const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
-                           "Hz", "°C", "VA",  "mA", "kOhm", "var"};
   const int unitStrLength = sizeof(unitStr) / sizeof(char*);
-
-  const char* statusStr[] = {"(Waiting)", "(Normal)", "(Fault)", "(Flash)"};
   const int statusStrLength = sizeof(statusStr) / sizeof(char*);
-
-  const char* onoffStr[] = {"(Inverter Off)", "(Inverter On)", "(BDC Off)",
-                            "(BDC On)"};
   const int onoffStrLength = sizeof(onoffStr) / sizeof(char*);
-
-  const char* priorityStr[] = {"(Load First)", "(Battery First)",
-                               "(Grid First)"};
   const int priorityStrLength = sizeof(priorityStr) / sizeof(char*);
-
-  const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
   if (!Hostname.isEmpty()) {
-    JsonArray arr = doc["Hostname"].to<JsonArray>();
+    JsonArray arr = doc[F("Hostname")].to<JsonArray>();
     arr.add(Hostname);
-    arr.add("");
+    arr.add(F(""));
   }
 
   // Input Registers verarbeiten
@@ -541,21 +583,21 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
         if ((String(regName) == F("InverterStatus") ||
              String(regName) == F("BDCSysState")) &&
             regVal >= 0 && regVal < statusStrLength) {
-          arr.add(statusStr[regVal]);
+          arr.add((PGM_P)pgm_read_ptr(&(statusStr[regVal])));
         } else if (String(regName) == F("BDCSysMode") && regVal >= 0 &&
                    regVal < bdcModeStrLength) {
-          arr.add(bdcModeStr[regVal]);
+          arr.add((PGM_P)pgm_read_ptr(&(bdcModeStr[regVal])));
         } else if (String(regName) == F("Priority") && regVal >= 0 &&
                    regVal < priorityStrLength) {
-          arr.add(priorityStr[regVal]);
+          arr.add((PGM_P)pgm_read_ptr(&(priorityStr[regVal])));
         } else if ((String(regName) == F("InverterOnOff") ||
                     String(regName) == F("BDCOnOff")) &&
                    regVal >= 0 && regVal < onoffStrLength) {
-          arr.add(onoffStr[regVal]);
+          arr.add((PGM_P)pgm_read_ptr(&(onoffStr[regVal])));
         } else {
           // Sicherer Zugriff auf unitStr
           uint8_t unitIdx = _Protocol.InputRegisters[i].unit;
-          arr.add(unitIdx < unitStrLength ? unitStr[unitIdx] : "");
+          arr.add(unitIdx < unitStrLength ? (PGM_P)pgm_read_ptr(&(unitStr[unitIdx])) : "");
         }
       }
     }
@@ -575,14 +617,14 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 
         if (String(regName) == F("InverterStatus") && regVal >= 0 &&
             regVal < statusStrLength) {
-          arr.add(statusStr[regVal]);
+          arr.add((PGM_P)pgm_read_ptr(&(statusStr[regVal])));
         } else if (String(regName) == F("OnOff") && regVal >= 0 &&
                    regVal < onoffStrLength) {
-          arr.add(onoffStr[regVal]);
+          arr.add((PGM_P)pgm_read_ptr(&(onoffStr[regVal])));
         } else {
           // Sicherer Zugriff auf unitStr
           uint8_t unitIdx = _Protocol.HoldingRegisters[i].unit;
-          arr.add(unitIdx < unitStrLength ? unitStr[unitIdx] : "");
+          arr.add(unitIdx < unitStrLength ? (PGM_P)pgm_read_ptr(&(unitStr[unitIdx])) : "");
         }
       }
     }
@@ -591,45 +633,45 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   // System-Informationen
   {
     if (!MacAddress.isEmpty()) {
-      JsonArray arrMac = doc["Mac"].to<JsonArray>();
+      JsonArray arrMac = doc[F("Mac")].to<JsonArray>();
       arrMac.add(MacAddress);
-      arrMac.add("");
+      arrMac.add(F(""));
     }
 
-    JsonArray arrCnt = doc["Cnt"].to<JsonArray>();
+    JsonArray arrCnt = doc[F("Cnt")].to<JsonArray>();
     arrCnt.add(_PacketCnt);
-    arrCnt.add("");
+    arrCnt.add(F(""));
 
-    JsonArray arrCntFailed = doc["CntFailed"].to<JsonArray>();
+    JsonArray arrCntFailed = doc[F("CntFailed")].to<JsonArray>();
     arrCntFailed.add(_PacketCntFailed);
-    arrCntFailed.add("");
+    arrCntFailed.add(F(""));
 
-    JsonArray arrUptime = doc["Uptime"].to<JsonArray>();
+    JsonArray arrUptime = doc[F("Uptime")].to<JsonArray>();
     arrUptime.add(millis() / 1000);
-    arrUptime.add("s");
+    arrUptime.add(F("s"));
 
-    JsonArray arrRssi = doc["WifiRSSI"].to<JsonArray>();
+    JsonArray arrRssi = doc[F("WifiRSSI")].to<JsonArray>();
     arrRssi.add(WiFi.RSSI());
-    arrRssi.add("dBm");
+    arrRssi.add(F("dBm"));
 
-    JsonArray arrHeap = doc["HeapFree"].to<JsonArray>();
+    JsonArray arrHeap = doc[F("HeapFree")].to<JsonArray>();
     arrHeap.add(ESP.getFreeHeap());
-    arrHeap.add("B");
+    arrHeap.add(F("B"));
 
     static uint32_t heap_min_free = ESP.getFreeHeap();
     heap_min_free = (std::min)(ESP.getFreeHeap(), heap_min_free);
 
-    JsonArray arrHeapMax = doc["HeapMaxAlloc"].to<JsonArray>();
+    JsonArray arrHeapMax = doc[F("HeapMaxAlloc")].to<JsonArray>();
     arrHeapMax.add(ESP.getMaxFreeBlockSize());
-    arrHeapMax.add("B");
+    arrHeapMax.add(F("B"));
 
-    JsonArray arrHeapMin = doc["HeapMinFree"].to<JsonArray>();
+    JsonArray arrHeapMin = doc[F("HeapMinFree")].to<JsonArray>();
     arrHeapMin.add(heap_min_free);
-    arrHeapMin.add("B");
+    arrHeapMin.add(F("B"));
 
-    JsonArray arrHeapFrag = doc["HeapFragmentation"].to<JsonArray>();
+    JsonArray arrHeapFrag = doc[F("HeapFragmentation")].to<JsonArray>();
     arrHeapFrag.add(ESP.getHeapFragmentation());
-    arrHeapFrag.add("%");
+    arrHeapFrag.add(F("%"));
   }
 
   if (doc.overflowed()) {
