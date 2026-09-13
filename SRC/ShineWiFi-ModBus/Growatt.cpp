@@ -243,21 +243,22 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     uint8_t retryCnt = 0;
     res = false;
 
-    // Retry-Schleife für das aktuelle Fragment
-    while (!res && retryCnt < maxRetries) {
+    // Retry-Schleife für das aktuelle Fragment (Erstversuch + maxRetries)
+    while (!res && retryCnt <= maxRetries) {
+      if (retryCnt > 0) {
+        Modbus.clearResponseBuffer();
+        delay(1);
+      }
       res = ReadInputRegisters(inputFragOffs);
       if (!res) {
         retryCnt++;
-        Modbus.clearResponseBuffer();
-        delay(1);
       }
     }
 
     if (res) {
       _PacketCnt++;  // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries
-                           // fehlgeschlagen sind
+      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
       break;               // Abbrechen, da der Abruf unvollständig ist
     }
   }
@@ -267,21 +268,22 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     uint8_t retryCnt = 0;
     res = false;
 
-    // Retry-Schleife für das aktuelle Fragment
-    while (!res && retryCnt < maxRetries) {
+    // Retry-Schleife für das aktuelle Fragment (Erstversuch + maxRetries)
+    while (!res && retryCnt <= maxRetries) {
+      if (retryCnt > 0) {
+        Modbus.clearResponseBuffer();
+        delay(1);
+      }
       res = ReadHoldingRegisters(holdingFragOffs);
       if (!res) {
         retryCnt++;
-        Modbus.clearResponseBuffer();
-        delay(1);
       }
     }
 
     if (res) {
       _PacketCnt++;  // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries
-                           // fehlgeschlagen sind
+      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
       break;               // Abbrechen, da der Abruf unvollständig ist
     }
   }
@@ -643,80 +645,6 @@ void Growatt::RegisterCommand(const String& command,
   handlers[command] = handler;
 }
 
-// void Growatt::HandleCommand(const String& command, const byte* payload,
-//                             const unsigned int length, JsonDocument& req,
-//                             JsonDocument& res) {
-//   req.clear();
-//   res.clear();
-
-//   // 1. JSON einmalig deserialisieren
-//   DeserializationError deserializationErr = deserializeJson(req, payload,
-//   length);
-
-//   if (deserializationErr) {
-//     Log.printf("Failed to parse JSON Request in Command '%s': %s\n",
-//                command.c_str(), deserializationErr.c_str());
-
-//     res["command"] = command;
-//     res["success"] = false;
-//     res["message"] =
-//         "Failed to parse JSON Request: " +
-//         String(deserializationErr.c_str());
-//     return;
-//   }
-
-//   // 2. Metadaten auslesen
-//   uint8_t retries = 0;
-//   if (req["retry"].is<uint8_t>()) {
-//     retries = req["retry"].as<uint8_t>();
-//   }
-
-//   if (req["correlationId"].is<String>()) {
-//     res["correlationId"] = req["correlationId"].as<String>();
-//   }
-
-//   // 3. Command-Handler suchen
-//   auto it = handlers.find(command);
-//   if (it == handlers.end()) {
-//     Log.printf("Unknown Command: %s\n", command.c_str());
-//     res["command"] = command;
-//     res["success"] = false;
-//     res["message"] = "Unknown Command: " + command;
-//     return;
-//   }
-
-//   Log.printf("Handling Command: %s\n", command.c_str());
-
-//   // 4. Execution Loop mit korrekter Retry-Logik
-//   bool success = false;
-//   String message = "";
-
-//   for (uint8_t attempt = 0; attempt <= retries; attempt++) {
-//     if (attempt > 0) {
-//       Log.printf("Retrying Command: %s (Attempt %d/%d)...\n",
-//       command.c_str(), attempt, retries); delay(50); // Kleines Delay vor dem
-//       erneuten Modbus-Zugriff
-//     }
-
-//     // Handler ausführen
-//     std::tie(success, message) = it->second(req, res, *this);
-
-//     if (success) {
-//       break; // Erfolg -> Schleife sofort verlassen
-//     }
-//   }
-
-//   // 5. Status im Response-JSON setzen
-//   res["command"] = command;
-//   res["success"] = success;
-//   res["message"] = message;
-
-//   const char* msg = res["message"].as<const char*>();
-//   if (msg && msg[0] != '\0') {
-//     Log.println(msg);
-//   }
-// }
-
 void Growatt::HandleCommand(const String& command, JsonDocument& req,
                             JsonDocument& res) {
   res.clear();
@@ -751,14 +679,9 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 
   for (uint8_t attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) {
-      // Log.printf("Retrying Command: %s (Attempt %d/%d)...\n",
-      // command.c_str(),
-      //            attempt, retries);
       delay(100);
     }
 
-    // res vor jedem Versuch leeren, um Altlasten fehlgeschlagener Versuche zu
-    // entfernen
     res.clear();
 
     // Handler ausführen
@@ -798,115 +721,9 @@ std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
 std::tuple<bool, String> Growatt::handleCommandList(const JsonDocument& req,
                                                     JsonDocument& res,
                                                     Growatt& inverter) {
-  // v7 Syntax
   JsonArray commands = res["commands"].to<JsonArray>();
   for (const auto& pair : handlers) {
     commands.add(pair.first);
   }
   return std::make_tuple(true, "");
 }
-
-// std::tuple<bool, String> Growatt::handleModbusGet(const JsonDocument& req,
-//                                                   JsonDocument& res,
-//                                                   Growatt& inverter) {
-//   // 1. Parameter prüfen (Existenz & Typ-Prüfung nach v7 Standard)
-//   if (!req["reg"].is<uint16_t>()) {
-//     return std::make_tuple(false, "'Register ID' Field is required and must
-//     be an integer");
-//   }
-//   uint16_t reg = req["reg"].as<uint16_t>();
-
-//   if (!req["width"].is<String>()) {
-//     return std::make_tuple(false, "'Register Width' Field is required and
-//     must be a string");
-//   }
-//   String width = req["width"].as<String>();
-
-//   if (width != "16b" && width != "32b") {
-//     return std::make_tuple(false, "'Register Width' must be '16b' or '32b'");
-//   }
-
-//   if (!req["type"].is<String>()) {
-//     return std::make_tuple(false, "'Register Type' Field is required and must
-//     be a string");
-//   }
-//   String type = req["type"].as<String>();
-
-//   if (type != "H" && type != "I") {
-//     return std::make_tuple(false, "'Register Type' must be 'H' (Holding) or
-//     'I' (Input)");
-//   }
-
-//   // 2. Modbus Lesen
-//   if (width == "16b") {
-//     uint16_t value = 0;
-//     bool ok = (type == "H") ? inverter.ReadHoldingReg(reg, &value)
-//                             : inverter.ReadInputReg(reg, &value);
-//     if (!ok) {
-//       return std::make_tuple(false, "Failed to read 16-bit Register!");
-//     }
-//     res["value"] = value;
-//   } else { // 32b
-//     uint32_t value = 0;
-//     bool ok = (type == "H") ? inverter.ReadHoldingReg(reg, &value)
-//                             : inverter.ReadInputReg(reg, &value);
-//     if (!ok) {
-//       return std::make_tuple(false, "Failed to read 32-bit Register!");
-//     }
-//     res["value"] = value;
-//   }
-
-//   return std::make_tuple(true, "success");
-// }
-
-// std::tuple<bool, String> Growatt::handleModbusSet(const JsonDocument& req,
-//                                                   JsonDocument& res,
-//                                                   Growatt& inverter) {
-//   // --- Parameter prüfen ---
-//   if (!req["reg"].is<uint16_t>()) {
-//     return std::make_tuple(false, "'Register ID' Field is required and must
-//     be an integer");
-//   }
-//   uint16_t reg = req["reg"].as<uint16_t>();
-
-//   if (!req["width"].is<String>()) {
-//     return std::make_tuple(false, "'Register Width' Field is required and
-//     must be a string");
-//   }
-//   String width = req["width"].as<String>();
-
-//   if (width == "32b") {
-//     return std::make_tuple(false, "Writing to double (32b) Registers is not
-//     supported");
-//   }
-//   if (width != "16b") {
-//     return std::make_tuple(false, "'Width' must be '16b'");
-//   }
-
-//   if (!req["type"].is<String>()) {
-//     return std::make_tuple(false, "'Register Type' Field is required and must
-//     be a string");
-//   }
-//   String type = req["type"].as<String>();
-
-//   if (type == "I") {
-//     return std::make_tuple(false, "It is not possible to write into Input
-//     Registers");
-//   }
-//   if (type != "H") {
-//     return std::make_tuple(false, "'Register Type' must be 'H' (holding)");
-//   }
-
-//   if (!req["val"].is<uint16_t>()) {
-//     return std::make_tuple(false, "'Register Value' Field is required and
-//     must be an integer");
-//   }
-//   uint16_t val = req["val"].as<uint16_t>();
-
-//   // --- Write ---
-//   if (!inverter.WriteHoldingReg(reg, val)) {
-//     return std::make_tuple(false, "Failed to write into Holding Register!");
-//   }
-
-//   return std::make_tuple(true, "success");
-// }
