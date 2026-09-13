@@ -216,14 +216,14 @@ void startConfigAccessPoint(void) {
                   "stick will automatically return to normal operation after "
                   "%d seconds</body></html>"),
              CONFIG_PORTAL_MAX_TIME_SECONDS);
-  httpServer.send(200, "text/html", msg);
+  httpServer.send(200, F("text/html"), msg);
   delay(2000);
   StartedConfigAfterBoot = true;
 }
 
 void sendJson(JsonDocument& doc) {
   httpServer.setContentLength(measureJson(doc));
-  httpServer.send(200, "application/json", "");
+  httpServer.send(200, F("application/json"), F(""));
   serializeJson(doc, httpServer.client());
 }
 
@@ -244,29 +244,11 @@ void rebootESP(void) {
 
 #ifdef ENABLE_WEB_DEBUG
 void sendDebug(void) {
-  httpServer.sendHeader("Location",
-                        "http://" + WiFi.localIP().toString() + ":8080/", true);
-  httpServer.send(302, F("text/plain"), "");
+  httpServer.sendHeader(F("Location"),
+                        F("http://") + WiFi.localIP().toString() + F(":8080/"), true);
+  httpServer.send(302, F("text/plain"), F(""));
 }
 #endif
-
-// void printFlashPartitionInfo() {
-//   Log.println(F("Flash Memory Configuration:"));
-
-//   uint32_t realSize = ESP.getFlashChipRealSize();
-//   uint32_t flashSize = ESP.getFlashChipSize();
-//   uint32_t sketchSize = ESP.getSketchSize();
-//   uint32_t freeSketch = ESP.getFreeSketchSpace();
-
-//   Log.printf("    Flash Chip Total Size (Physical):    %u Bytes\n", realSize);
-//   Log.printf("    Flash SDK Configured Size:           %u Bytes\n", flashSize);
-//   Log.printf("    Current Firmware:                    %u Bytes\n", sketchSize);
-//   Log.printf("    Free Space for OTA Updates:          %u Bytes\n", freeSketch);
-//   FSInfo fs_info;
-//   if (LittleFS.info(fs_info)) {
-//   Log.printf("    LittleFS Filesystem Total:           %u Bytes\n", fs_info.totalBytes);
-//   Log.printf("    LittleFS Used:                       %u Bytes\n", fs_info.usedBytes);  }
-// }
 
 // --- Steuerungs-Aktionen ---
 
@@ -337,7 +319,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   prefs.putInt("power_limit", User.power_limit);
 
   prefs.end();
-  httpServer.send(200, "text/plain", "Settings saved");
+  httpServer.send(200, F("text/plain"), F("Settings saved"));
 }
 
 void handleGetSettings(ESP8266WebServer& httpServer) {
@@ -430,7 +412,7 @@ void handlePostData() {
       snprintf_P(msg, sizeof(msg), PSTR("Unknown type (expected 16b or 32b)"));
     }
 
-    Log.printf("Modbus Read: %s\n", msg);
+    Log.printf(PSTR("Modbus Read: %s\n"), msg);
     if (!is16 && widthStr != "32b") {
       httpServer.send(400, F("text/plain"), msg);
     } else {
@@ -467,7 +449,7 @@ void handlePostData() {
                  reg);
     }
 
-    Log.printf("Modbus Write: %s\n", msg);
+    Log.printf(PSTR("Modbus Write: %s\n"), msg);
     httpServer.send(ok ? 200 : 502, F("text/plain"), msg);
     return;
   }
@@ -484,7 +466,7 @@ bool sendSingleValue(void) {
   String key = httpServer.uri().substring(7); 
   double value;
   if (Inverter.GetSingleValueByName(key, value)) {
-    httpServer.send(200, "text/plain", String(value));
+    httpServer.send(200, F("text/plain"), String(value));
     return true;
   }
   return false;
@@ -497,7 +479,7 @@ void handleNotFound() {
       return;
     }
   }
-  String msg = "Not found: " + httpServer.uri();
+  String msg = String(F("Not found: ")) + httpServer.uri();
   httpServer.send(404, F("text/plain"), msg);
 }
 
@@ -505,8 +487,8 @@ void handleNotFound() {
 
 void handleUpdateFinished(ESP8266WebServer& httpServer) {
   bool ok = !Update.hasError();
-  String msg = ok ? "Update successfull, rebooting..." : "Update failed!";
-  httpServer.send(ok ? 200 : 500, "text/plain", msg);
+  String msg = ok ? String(F("Update successfull, rebooting...")) : String(F("Update failed!"));
+  httpServer.send(ok ? 200 : 500, F("text/plain"), msg);
 
   delay(1000);
   if (ok) {
@@ -563,7 +545,7 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 void handleNTPSync() {
   int reachable = sntp_getreachability(0);
-  Log.printf("NTP Server: %s reachable %d\n", DEFAULT_NTP_SERVER,
+  Log.printf(PSTR("NTP Server: %s reachable %d\n"), DEFAULT_NTP_SERVER,
              reachable & 1);
 
   if (reachable & 1) {
@@ -614,11 +596,11 @@ void setup() {
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
-  Log.printf("Force AP: %s\n", Wifi.force_ap ? "true" : "false");
+  Log.printf(PSTR("Force AP: %s\n"), Wifi.force_ap ? "true" : "false");
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {
-    Log.printf("AP Button pressed during power up -> force_ap set to true\n");
+    Log.printf(PSTR("AP Button pressed during power up -> force_ap set to true\n"));
     Wifi.force_ap = true;
   }
 #endif
@@ -635,7 +617,7 @@ void setup() {
     saveConfig();
     
     wm.startConfigPortal("GrowattConfig", APPassword);
-    Log.printf("GrowattConfig finished\n");
+    Log.printf(PSTR("GrowattConfig finished\n"));
     SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();
@@ -653,8 +635,8 @@ void setup() {
       dns.fromString(Wifi.static_dns);
 
       Log.printf(
-          "Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
-          "Gateway: %s\n    DNS:     %s\n",
+          PSTR("Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
+               "Gateway: %s\n    DNS:     %s\n"),
           Wifi.static_ip.c_str(), Wifi.static_netmask.c_str(),
           Wifi.static_gateway.c_str(), Wifi.static_dns.c_str());
 
@@ -674,7 +656,7 @@ void setup() {
   bool res = wm.autoConnect("GrowattConfig", APPassword);
 
   if (!res) {
-    Log.printf("Failed to connect WiFi!\n");
+    Log.printf(PSTR("Failed to connect WiFi!\n"));
     SetLED.on(LED_RED);
     ESP.restart();
   }
@@ -759,7 +741,7 @@ void loop() {
     ButtonTimer = now;
     if (AP_BUTTON_PRESSED) {
       btnPressed++;
-      Log.printf("Button pressed (%d/5)\n", btnPressed);
+      Log.printf(PSTR("Button pressed (%d/5)\n"), btnPressed);
       if (btnPressed > 5) {
         Log.println(F("Handle press"));
         StartedConfigAfterBoot = true;
@@ -770,11 +752,10 @@ void loop() {
   }
 #endif
 
-  // --- CORRECTION: Kapselung statt ungeöffnetem globalen prefs ---
   if (StartedConfigAfterBoot) {
     Log.println(F("StartedConfigAfterBoot"));
     Wifi.force_ap = true;
-    saveConfig(); // Öffnet NVS, speichert force_ap = true und schließt es wieder
+    saveConfig();
     SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();
@@ -812,10 +793,6 @@ void loop() {
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
-    // } else {
-    //   JsonDocument doc;
-    //   doc["InverterStatus"] = -1;
-    //   shineMqtt.mqttPublish(doc);
     }
 #endif
 

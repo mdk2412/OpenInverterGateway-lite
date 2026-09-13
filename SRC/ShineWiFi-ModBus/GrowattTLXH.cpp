@@ -27,22 +27,22 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
 
     res["value"] = buf;
 
-    String message = String("Read Date/Time: ") + buf;
+    String message = String(F("Read Date/Time: ")) + buf;
     return std::make_tuple(true, message);
   } else {
-    return std::make_tuple(false, "Failed to read Date/Time!");
+    return std::make_tuple(false, String(F("Failed to read Date/Time!")));
   }
 };
 
 std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
                                      Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, String(F("'value' Field is required")));
   }
 
   String datetime = req["value"].as<String>();
   if (datetime.length() != 19) {
-    return std::make_tuple(false, "Invalid Date/Time Format!");
+    return std::make_tuple(false, String(F("Invalid Date/Time Format!")));
   }
 
   uint16_t year = datetime.substring(0, 4).toInt();
@@ -53,12 +53,10 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
   uint16_t second = datetime.substring(17, 19).toInt();
 
   // --- NEU: Plausibilitätsprüfung der Zahlenwerte ---
-  if (month < 1 || month > 12 || 
-      day < 1 || day > 31 || 
-      hour > 23 || 
-      minute > 59 || 
-      second > 59) {
-    return std::make_tuple(false, "Invalid Date/Time values out of range!");
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 ||
+      minute > 59 || second > 59) {
+    return std::make_tuple(false,
+                           String(F("Invalid Date/Time values out of range!")));
   }
 
   // Umrechnung für Growatt (z.B. 2026 -> 26)
@@ -68,11 +66,11 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
 
   bool success = inverter.WriteHoldingRegFrag(45, 6, values);
   if (success) {
-    String message = "Wrote Date/Time: " + datetime;
+    String message = String(F("Wrote Date/Time: ")) + datetime;
     return std::make_tuple(true, message);
   }
 
-  return std::make_tuple(false, "Failed to write Date/Time!");
+  return std::make_tuple(false, String(F("Failed to write Date/Time!")));
 };
 
 // std::tuple<bool, String> getOnOff(const JsonDocument& req,
@@ -154,32 +152,32 @@ std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
   uint16_t value;
 
   if (!inverter.ReadHoldingReg(3, &value)) {
-    return std::make_tuple(false, "Failed to read active Rate!");
+    return std::make_tuple(false, String(F("Failed to read active Rate!")));
   }
 
   res["value"] = value;
 
-  return std::make_tuple(true, "Read active Rate");
+  return std::make_tuple(true, String(F("Read active Rate")));
 };
 
 std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
                                             Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, "'value' Field is required");
+    return std::make_tuple(false, String(F("'value' Field is required")));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 100 && value != 255) {
-    return std::make_tuple(false, "'value' Field not in Range");
+    return std::make_tuple(false, String(F("'value' Field not in Range")));
   }
 
   if (!inverter.WriteHoldingReg(3, value)) {
-    return std::make_tuple(false, "Failed to write active Rate!");
+    return std::make_tuple(false, String(F("Failed to write active Rate!")));
   }
 
-  return std::make_tuple(true, "Updated active Rate");
+  return std::make_tuple(true, String(F("Updated active Rate")));
 };
 
 std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,

@@ -1,6 +1,6 @@
 #include "PriorityControl.h"
 #include <ArduinoJson.h>
-#include <TLog.h>
+// #include <TLog.h>
 
 void priorityControl() {
   static float avg_ptouser = 0;

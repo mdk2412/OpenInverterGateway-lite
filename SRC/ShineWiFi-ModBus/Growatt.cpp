@@ -739,7 +739,7 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
     if (!correlationId.isEmpty()) res["correlationId"] = correlationId;
     res["command"] = command;
     res["success"] = false;
-    res["message"] = "Unknown Command: " + command;
+    res["message"] = String(F("Unknown Command: ")) + command;
     return;
   }
 
@@ -786,13 +786,12 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
-  // v7 Syntax
   if (!req["text"].is<String>()) {
-    return std::make_tuple(false,
-                           "'text' Field is required and must be a String");
+    return std::make_tuple(
+        false, String(F("'text' Field is required and must be a String")));
   }
   String text = req["text"].as<String>();
-  res["text"] = "Echo: " + text;
+  res["text"] = String(F("Echo: ")) + text;
   return std::make_tuple(true, "");
 }
 

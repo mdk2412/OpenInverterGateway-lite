@@ -39,8 +39,8 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   if (port == 0) port = 1883;
 
   Log.printf(
-      "MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   %s\n    MQTT "
-      "Port:   %u\n    MQTT Topic:  %s\n",
+      PSTR("MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   %s\n    MQTT "
+           "Port:   %u\n    MQTT Topic:  %s\n"),
       mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
       mqttconfig.topic.c_str());
 
@@ -77,7 +77,7 @@ void ShineMqtt::loop() {
   // Bei fehlendem WLAN braucht loop() nicht aufgerufen zu werden
   if (WiFi.status() != WL_CONNECTED) {
     if (lastConnectedState) {
-      Log.printf("MQTT disconnected (WiFi down)\n");
+      Log.printf(PSTR("MQTT disconnected (WiFi down)\n"));
       lastConnectedState = false;
     }
     return;
@@ -89,9 +89,9 @@ void ShineMqtt::loop() {
   bool currentlyConnected = mqttclient->connected();
 
   if (currentlyConnected && !lastConnectedState) {
-    Log.printf("MQTT connected\n");
+    Log.printf(PSTR("MQTT connected\n"));
   } else if (!currentlyConnected && lastConnectedState) {
-    Log.printf("MQTT disconnected\n");
+    Log.printf(PSTR("MQTT disconnected\n"));
   }
 
   lastConnectedState = currentlyConnected;
@@ -144,7 +144,7 @@ void ShineMqtt::subscribeTopics() {
 
   String commandTopicPattern = mqttconfig.topic + "/command/#";
 
-  Log.printf("MQTT Subscribing to Topic: %s\n", commandTopicPattern.c_str());
+  Log.printf(PSTR("MQTT Subscribing to Topic: %s\n"), commandTopicPattern.c_str());
 
   mqttclient->subscribe(
       commandTopicPattern.c_str(),
@@ -156,7 +156,7 @@ void ShineMqtt::subscribeTopics() {
         const char* command = topic + prefixLen;
         const char* safePayload = payload ? payload : "";
 
-        Log.printf("Received Command: %s %s\n", command, safePayload);
+        Log.printf(PSTR("Received Command: %s %s\n"), command, safePayload);
 
         JsonDocument req;
         JsonDocument res;
@@ -164,11 +164,11 @@ void ShineMqtt::subscribeTopics() {
         if (safePayload[0] != '\0') {
           DeserializationError err = deserializeJson(req, safePayload);
           if (err) {
-            Log.printf("MQTT Payload JSON parse error: %s\n", err.c_str());
+            Log.printf(PSTR("MQTT Payload JSON parse error: %s\n"), err.c_str());
 
             res["command"] = command;
             res["success"] = false;
-            res["message"] = String("Invalid JSON Payload: ") + err.c_str();
+            res["message"] = String(F("Invalid JSON Payload: ")) + err.c_str();
 
             String resultTopic = mqttconfig.topic + "/result";
             String responsePayload;

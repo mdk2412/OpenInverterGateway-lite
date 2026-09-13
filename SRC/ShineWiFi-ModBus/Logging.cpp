@@ -35,6 +35,6 @@ void configureLogging(const String& syslogIp) {
     const std::shared_ptr<LOGBase> syslogStreamPtr =
         std::make_shared<SyslogStream>(syslogStream);
     Log.addPrintStream(syslogStreamPtr);
-    Log.printf("Syslog Server IP: %s\n", syslogIp.c_str());
+    Log.printf(PSTR("Syslog Server IP: %s\n"), syslogIp.c_str());
   }
 }

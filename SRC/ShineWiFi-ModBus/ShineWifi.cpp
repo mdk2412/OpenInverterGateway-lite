@@ -16,7 +16,7 @@ void onStationModeDisconnected(const WiFiEventStationModeDisconnected& event) {
   if (!wasDisconnected) {
     wasDisconnected = true;
     disconnectedStart = millis();
-    Log.printf("WiFi disconnected! Reason: %d. Attempting Reconnect...\n",
+    Log.printf(PSTR("WiFi disconnected! Reason: %d. Attempting Reconnect...\n"),
                event.reason);
   }
 }
@@ -45,7 +45,7 @@ void WiFi_Reconnect() {
   // 3. Wenn die Verbindung wiederhergestellt ist
   if (wasDisconnected) {
     wasDisconnected = false;
-    Log.printf("WiFi reconnected | Local IP: %s | Hostname: %s\n",
+    Log.printf(PSTR("WiFi reconnected | Local IP: %s | Hostname: %s\n"),
                WiFi.localIP().toString().c_str(), WiFi.hostname().c_str());
   }
 }
