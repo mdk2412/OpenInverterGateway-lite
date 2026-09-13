@@ -249,6 +249,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
       if (!res) {
         retryCnt++;
         Modbus.clearResponseBuffer();
+        delay(1);
       }
     }
 
@@ -272,6 +273,7 @@ bool Growatt::ReadData(uint8_t maxRetries) {
       if (!res) {
         retryCnt++;
         Modbus.clearResponseBuffer();
+        delay(1);
       }
     }
 
@@ -498,8 +500,8 @@ bool Growatt::GetSingleValueByName(const String& name, double& value) {
   return false;
 }
 
-void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress,
-                           const String& Hostname) {
+void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
+                         const String& Hostname) {
   const char* unitStr[] = {"",   "W",  "kWh", "V",  "A",    "s",  "%",
                            "Hz", "°C", "VA",  "mA", "kOhm", "var"};
   const int unitStrLength = sizeof(unitStr) / sizeof(char*);
@@ -588,9 +590,11 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress,
 
   // System-Informationen
   {
-    JsonArray arrMac = doc["Mac"].to<JsonArray>();
-    arrMac.add(MacAddress);
-    arrMac.add("");
+    if (!MacAddress.isEmpty()) {
+      JsonArray arrMac = doc["Mac"].to<JsonArray>();
+      arrMac.add(MacAddress);
+      arrMac.add("");
+    }
 
     JsonArray arrCnt = doc["Cnt"].to<JsonArray>();
     arrCnt.add(_PacketCnt);
@@ -630,7 +634,7 @@ void Growatt::CreateUIJson(JsonDocument& doc, const String& MacAddress,
 
   if (doc.overflowed()) {
     Log.println(
-        F("CreateUIJson: JsonDocument overflowed! Output will be truncated"));
+        F("CreateJson: JsonDocument overflowed! Output will be truncated"));
   }
 }
 
@@ -747,7 +751,8 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 
   for (uint8_t attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) {
-      // Log.printf("Retrying Command: %s (Attempt %d/%d)...\n", command.c_str(),
+      // Log.printf("Retrying Command: %s (Attempt %d/%d)...\n",
+      // command.c_str(),
       //            attempt, retries);
       delay(100);
     }

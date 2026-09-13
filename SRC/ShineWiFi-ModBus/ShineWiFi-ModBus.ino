@@ -229,7 +229,7 @@ void sendJson(JsonDocument& doc) {
 
 void sendUiJsonSite(void) {
   JsonDocument doc;
-  Inverter.CreateUIJson(doc, WiFi.macAddress(), Wifi.hostname);
+  Inverter.CreateJson(doc, WiFi.macAddress(), Wifi.hostname);
   sendJson(doc);
 }
 
@@ -541,7 +541,7 @@ void handleUpdateUpload(ESP8266WebServer& httpServer) {
 #if MQTT_SUPPORTED == 1
 boolean sendMqttJson(void) {
   JsonDocument doc;
-  Inverter.CreateUIJson(doc, WiFi.macAddress(), "");
+  Inverter.CreateJson(doc, "", "");
   return shineMqtt.mqttPublish(doc);
 }
 #endif
@@ -812,10 +812,10 @@ void loop() {
 #if MQTT_SUPPORTED == 1
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
-    } else {
-      JsonDocument doc;
-      doc["InverterStatus"] = -1;
-      shineMqtt.mqttPublish(doc);
+    // } else {
+    //   JsonDocument doc;
+    //   doc["InverterStatus"] = -1;
+    //   shineMqtt.mqttPublish(doc);
     }
 #endif
 
