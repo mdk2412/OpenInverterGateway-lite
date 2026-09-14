@@ -347,6 +347,14 @@ void handleGetSettings(ESP8266WebServer& httpServer) {
 
 // --- Modbus Post/Web Endpunkte ---
 
+#ifndef NUM_READ_RETRIES
+#define NUM_READ_RETRIES 3
+#endif
+
+#ifndef NUM_WRITE_RETRIES
+#define NUM_WRITE_RETRIES 3
+#endif
+
 void handlePostData() {
   char msg[256];
 
@@ -355,7 +363,6 @@ void handlePostData() {
   const String widthStr = httpServer.arg(F("width"));
   const String typeStr = httpServer.arg(F("type"));
 
-  // 1. Frühe Prüfung: Operation
   if (opStr != "R" && opStr != "W") {
     httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
     return;
@@ -364,18 +371,14 @@ void handlePostData() {
   const bool isWrite = (opStr == "W");
   const bool isRead = (opStr == "R");
 
-  // 2. Frühe Prüfung: Pflichtargumente
-  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) ||
-      !httpServer.hasArg(F("type")) ||
+  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) || !httpServer.hasArg(F("type")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
     return;
   }
 
-  // 3. Frühe Prüfung: Gültige Werte für Breite und Typ
   if (widthStr != "16b" && widthStr != "32b") {
-    httpServer.send(400, F("text/plain"),
-                    F("Unknown type (expected 16b or 32b)"));
+    httpServer.send(400, F("text/plain"), F("Unknown type (expected 16b or 32b)"));
     return;
   }
 
@@ -395,8 +398,11 @@ void handlePostData() {
 
     if (is16) {
       uint16_t val = 0;
-      operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
-                            : Inverter.ReadHoldingReg(reg, &val);
+      for (int i = 0; i < NUM_READ_RETRIES; i++) {
+        operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
+                              : Inverter.ReadHoldingReg(reg, &val);
+        if (operationOk) break;
+      }
 
       if (operationOk) {
         snprintf_P(
@@ -410,8 +416,11 @@ void handlePostData() {
       }
     } else {
       uint32_t val = 0;
-      operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
-                            : Inverter.ReadHoldingReg(reg, &val);
+      for (int i = 0; i < NUM_READ_RETRIES; i++) {
+        operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
+                              : Inverter.ReadHoldingReg(reg, &val);
+        if (operationOk) break;
+      }
 
       if (operationOk) {
         snprintf_P(
@@ -446,7 +455,11 @@ void handlePostData() {
     }
 
     uint16_t val = httpServer.arg(F("val")).toInt();
-    bool ok = Inverter.WriteHoldingReg(reg, val);
+    bool ok = false;
+    for (int i = 0; i < NUM_WRITE_RETRIES; i++) {
+      ok = Inverter.WriteHoldingReg(reg, val);
+      if (ok) break;
+    }
 
     if (ok) {
       snprintf_P(msg, sizeof(msg),
