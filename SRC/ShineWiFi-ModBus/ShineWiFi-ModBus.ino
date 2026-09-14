@@ -233,7 +233,9 @@ void sendUiJsonSite(void) {
   sendJson(doc);
 }
 
-void sendMainPage(void) { httpServer.send(200, F("text/html"), FPSTR(MAIN_page)); }
+void sendMainPage(void) {
+  httpServer.send(200, F("text/html"), FPSTR(MAIN_page));
+}
 
 void rebootESP(void) {
   httpServer.send(200, F("text/html"),
@@ -245,7 +247,8 @@ void rebootESP(void) {
 #ifdef ENABLE_WEB_DEBUG
 void sendDebug(void) {
   httpServer.sendHeader(F("Location"),
-                        F("http://") + WiFi.localIP().toString() + F(":8080/"), true);
+                        F("http://") + WiFi.localIP().toString() + F(":8080/"),
+                        true);
   httpServer.send(302, F("text/plain"), F(""));
 }
 #endif
@@ -362,7 +365,8 @@ void handlePostData() {
   const bool isRead = (opStr == "R");
 
   // 2. Frühe Prüfung: Pflichtargumente
-  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) || !httpServer.hasArg(F("type")) ||
+  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) ||
+      !httpServer.hasArg(F("type")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
     return;
@@ -370,7 +374,8 @@ void handlePostData() {
 
   // 3. Frühe Prüfung: Gültige Werte für Breite und Typ
   if (widthStr != "16b" && widthStr != "32b") {
-    httpServer.send(400, F("text/plain"), F("Unknown type (expected 16b or 32b)"));
+    httpServer.send(400, F("text/plain"),
+                    F("Unknown type (expected 16b or 32b)"));
     return;
   }
 
@@ -464,8 +469,8 @@ bool sendSingleValue(void) {
     httpServer.send(503, F("text/plain"), F("Service unavailable"));
     return true;
   }
-  
-  String key = httpServer.uri().substring(7); 
+
+  String key = httpServer.uri().substring(7);
   double value;
   if (Inverter.GetSingleValueByName(key, value)) {
     httpServer.send(200, F("text/plain"), String(value));
@@ -489,7 +494,8 @@ void handleNotFound() {
 
 void handleUpdateFinished(ESP8266WebServer& httpServer) {
   bool ok = !Update.hasError();
-  String msg = ok ? String(F("Update successfull, rebooting...")) : String(F("Update failed!"));
+  String msg = ok ? String(F("Update successfull, rebooting..."))
+                  : String(F("Update failed!"));
   httpServer.send(ok ? 200 : 500, F("text/plain"), msg);
 
   delay(1000);
@@ -569,7 +575,8 @@ void handleNTPSync() {
 void setup() {
   // LittleFS Mounten & Dateisystem initialisieren
   LittleFS.begin();
-  httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css", "max-age=86400");
+  httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css",
+                         "max-age=86400");
 
   WiFiManager wm;
 
@@ -582,7 +589,7 @@ void setup() {
   // Konfigurationen laden
   loadConfig();
   loadSettingsFromPrefs();
-  
+
   configureLogging(Wifi.syslog_ip);
   Log.begin();
 
@@ -602,7 +609,8 @@ void setup() {
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {
-    Log.printf(PSTR("AP Button pressed during power up -> force_ap set to true\n"));
+    Log.printf(
+        PSTR("AP Button pressed during power up -> force_ap set to true\n"));
     Wifi.force_ap = true;
   }
 #endif
@@ -617,7 +625,7 @@ void setup() {
   if (Wifi.force_ap) {
     Wifi.force_ap = false;
     saveConfig();
-    
+
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.printf(PSTR("GrowattConfig finished\n"));
     SetLED.on(LED_RED);
@@ -637,8 +645,9 @@ void setup() {
       dns.fromString(Wifi.static_dns);
 
       Log.printf(
-          PSTR("Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
-               "Gateway: %s\n    DNS:     %s\n"),
+          PSTR(
+              "Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
+              "Gateway: %s\n    DNS:     %s\n"),
           Wifi.static_ip.c_str(), Wifi.static_netmask.c_str(),
           Wifi.static_gateway.c_str(), Wifi.static_dns.c_str());
 
