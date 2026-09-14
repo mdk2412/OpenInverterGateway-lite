@@ -113,17 +113,15 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
                                   _Protocol.InputReadFragments[i].FragmentSize);
     // for debug logging replace previous 3 lines with:
     // uint32_t start = millis();
-    // res = Modbus.readInputRegisters(
-    //     _Protocol.InputReadFragments[i].StartAddress,
-    //     _Protocol.InputReadFragments[i].FragmentSize);
+    // res =
+    //     Modbus.readInputRegisters(_Protocol.InputReadFragments[i].StartAddress,
+    //                               _Protocol.InputReadFragments[i].FragmentSize);
     // uint32_t duration = millis() - start;
     // Log.printf(
     //     "[MODBUS][INPUT] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu ms\n",
     //     _Protocol.InputReadFragments[i].StartAddress,
     //     _Protocol.InputReadFragments[i].FragmentSize,
-    //     (res == Modbus.ku8MBSuccess) ? "OK" : "FAIL",
-    //     res,
-    //     duration);
+    //     (res == Modbus.ku8MBSuccess) ? "OK" : "FAIL", res, duration);
     if (res == Modbus.ku8MBSuccess) {
 #ifdef DEBUG_MODBUS_OUTPUT
       Log.println(F("ok"));
@@ -247,7 +245,6 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     while (!res && retryCnt <= maxRetries) {
       if (retryCnt > 0) {
         Modbus.clearResponseBuffer();
-        delay(1);
       }
       res = ReadInputRegisters(inputFragOffs);
       if (!res) {
@@ -258,7 +255,8 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     if (res) {
       _PacketCnt++;  // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
+      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries
+                           // fehlgeschlagen sind
       break;               // Abbrechen, da der Abruf unvollständig ist
     }
   }
@@ -272,7 +270,6 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     while (!res && retryCnt <= maxRetries) {
       if (retryCnt > 0) {
         Modbus.clearResponseBuffer();
-        delay(1);
       }
       res = ReadHoldingRegisters(holdingFragOffs);
       if (!res) {
@@ -283,7 +280,8 @@ bool Growatt::ReadData(uint8_t maxRetries) {
     if (res) {
       _PacketCnt++;  // Erfolg für dieses Fragment
     } else {
-      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries fehlgeschlagen sind
+      _PacketCntFailed++;  // Nur 1x hochzählen, wenn alle Retries
+                           // fehlgeschlagen sind
       break;               // Abbrechen, da der Abruf unvollständig ist
     }
   }
