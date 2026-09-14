@@ -349,30 +349,42 @@ void handlePostData() {
 
   const String opStr = httpServer.arg(F("operation"));
   const String regStr = httpServer.arg(F("reg"));
-  const String valStr = httpServer.arg(F("val"));
   const String widthStr = httpServer.arg(F("width"));
   const String typeStr = httpServer.arg(F("type"));
 
+  // 1. Frühe Prüfung: Operation
+  if (opStr != "R" && opStr != "W") {
+    httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
+    return;
+  }
+
   const bool isWrite = (opStr == "W");
   const bool isRead = (opStr == "R");
-  const bool is16 = (widthStr == "16b");
-  const bool isInput = (typeStr == "I");
-  const bool isHolding = (typeStr == "H");
 
-  if (!httpServer.hasArg(F("reg")) ||
+  // 2. Frühe Prüfung: Pflichtargumente
+  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) || !httpServer.hasArg(F("type")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
     return;
   }
 
+  // 3. Frühe Prüfung: Gültige Werte für Breite und Typ
+  if (widthStr != "16b" && widthStr != "32b") {
+    httpServer.send(400, F("text/plain"), F("Unknown type (expected 16b or 32b)"));
+    return;
+  }
+
+  if (typeStr != "I" && typeStr != "H") {
+    httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
+    return;
+  }
+
+  const bool is16 = (widthStr == "16b");
+  const bool isInput = (typeStr == "I");
+  const bool isHolding = (typeStr == "H");
   const uint16_t reg = regStr.toInt();
 
   if (isRead) {
-    if (!isInput && !isHolding) {
-      httpServer.send(400, F("text/plain"), F("400: Invalid Type"));
-      return;
-    }
-
     const char* typeName = isInput ? "Input" : "Holding";
     bool operationOk = false;
 
@@ -391,8 +403,7 @@ void handlePostData() {
                    PSTR("Reading from 16-bit %s Register %u failed!"), typeName,
                    reg);
       }
-
-    } else if (widthStr == "32b") {
+    } else {
       uint32_t val = 0;
       operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
                             : Inverter.ReadHoldingReg(reg, &val);
@@ -407,17 +418,10 @@ void handlePostData() {
                    PSTR("Reading from 32-bit %s Register %u failed!"), typeName,
                    reg);
       }
-
-    } else {
-      snprintf_P(msg, sizeof(msg), PSTR("Unknown type (expected 16b or 32b)"));
     }
 
     Log.printf(PSTR("Modbus Read: %s\n"), msg);
-    if (!is16 && widthStr != "32b") {
-      httpServer.send(400, F("text/plain"), msg);
-    } else {
-      httpServer.send(operationOk ? 200 : 502, F("text/plain"), msg);
-    }
+    httpServer.send(operationOk ? 200 : 502, F("text/plain"), msg);
     return;
   }
 
@@ -436,7 +440,7 @@ void handlePostData() {
       return;
     }
 
-    uint16_t val = valStr.toInt();
+    uint16_t val = httpServer.arg(F("val")).toInt();
     bool ok = Inverter.WriteHoldingReg(reg, val);
 
     if (ok) {
@@ -453,8 +457,6 @@ void handlePostData() {
     httpServer.send(ok ? 200 : 502, F("text/plain"), msg);
     return;
   }
-
-  httpServer.send(400, F("text/plain"), F("400: Unknown operation"));
 }
 
 bool sendSingleValue(void) {
