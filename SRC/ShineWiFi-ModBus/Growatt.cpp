@@ -89,7 +89,7 @@ void Growatt::begin(Stream& serial) {
   while (Serial.available()) Serial.read();
 
   Modbus.begin(1, serial);
-  Modbus.setResponseTimeout(100);
+  Modbus.setResponseTimeout(60);
 }
 
 bool Growatt::ReadInputRegisters(uint8_t& i) {
@@ -679,7 +679,7 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 
   for (uint8_t attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) {
-      delay(100);
+      delay(60);
     }
 
     res.clear();

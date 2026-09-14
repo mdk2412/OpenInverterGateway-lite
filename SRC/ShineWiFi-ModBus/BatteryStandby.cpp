@@ -3,7 +3,8 @@
 #include <TLog.h>
 
 void batteryStandby() {
-  // --- User-Parameter (bereits als *10 skaliert) ---
+  
+  // --- User-Parameter
   uint32_t wake_threshold = User.bat_wke_thr * 10;
   uint32_t sleep_threshold = User.bat_slp_thr * 10;
 
@@ -20,7 +21,8 @@ void batteryStandby() {
   int32_t inverter_status =
       Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
   int32_t ppv = Inverter._Protocol.InputRegisters[P3000_PPV].value;
-
+// Log.printf("Sleep Check -> sysstate: %d | ptogrid: %ld (limit: %lu) | ppv: %ld (limit: %lu) | soc: %ld | stop: %ld\n", 
+//            sysstate, ptogrid, sleep_threshold, ppv, sleep_threshold, soc, discharge_stop);
   // --- Disable discharging ---
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
