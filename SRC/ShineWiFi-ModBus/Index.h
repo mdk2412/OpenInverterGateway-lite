@@ -119,6 +119,17 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- SETTINGS -->
     <section id="settings" class="tab-content" hidden>
       <form id="settingsForm">
+        <label>Hostname<input type="text" name="hostname" id="hostname" maxlength="30"></label>
+        <label>Static IP (leave blank for DHCP)<input type="text" name="static_ip" id="static_ip"></label>
+        <label>Netmask<input type="text" name="static_netmask" id="static_netmask"></label>
+        <label>Gateway<input type="text" name="static_gateway" id="static_gateway"></label>
+        <label>DNS<input type="text" name="static_dns" id="static_dns"></label>
+        <label>MQTT Server<input type="text" name="mqtt_server" id="mqtt_server"></label>
+        <label>MQTT Port<input type="number" name="mqtt_port" id="mqtt_port" min="1" max="65535"></label>
+        <label>MQTT Topic<input type="text" name="mqtt_topic" id="mqtt_topic"></label>
+        <label>MQTT Username<input type="text" name="mqtt_user" id="mqtt_user"></label>
+        <label>MQTT Password<input type="password" name="mqtt_pwd" id="mqtt_pwd"></label>
+        <label>Syslog Server IP (leave blank for none)<input type="text" name="syslog_ip" id="syslog_ip"></label>
         <hr>
         <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
         <label>Sleep Threshold (W)<input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1"
@@ -275,7 +286,17 @@ const char MAIN_page[] PROGMEM = R"=====(
             document.querySelector('input[name="accharge"]').checked = parseBool(s.accharge);
             document.querySelector('input[name="prioctrl"]').checked = parseBool(s.prioctrl);
             document.querySelector('input[name="surch"]').checked = parseBool(s.surch);
-
+            document.getElementById("hostname").value = s.hostname ?? "";
+            document.getElementById("static_ip").value = s.static_ip ?? "";
+            document.getElementById("static_netmask").value = s.static_netmask ?? "";
+            document.getElementById("static_gateway").value = s.static_gateway ?? "";
+            document.getElementById("static_dns").value = s.static_dns ?? "";
+            document.getElementById("mqtt_server").value = s.mqtt_server ?? "";
+            document.getElementById("mqtt_port").value = s.mqtt_port ?? "";
+            document.getElementById("mqtt_topic").value = s.mqtt_topic ?? "";
+            document.getElementById("mqtt_user").value = s.mqtt_user ?? "";
+            document.getElementById("mqtt_pwd").value = s.mqtt_pwd ?? "";
+            document.getElementById("syslog_ip").value = s.syslog_ip ?? "";
             document.getElementById("bat_slp_thr").value = s.bat_slp_thr ?? "";
             document.getElementById("bat_wke_thr").value = s.bat_wke_thr ?? "";
             document.getElementById("ac_max_pow").value = s.ac_max_pow ?? "";
@@ -319,7 +340,17 @@ const char MAIN_page[] PROGMEM = R"=====(
           params.append("accharge", form.accharge.checked ? "on" : "off");
           params.append("prioctrl", form.prioctrl.checked ? "on" : "off");
           params.append("surch", form.surch.checked ? "on" : "off");
-
+          params.append("hostname", form.hostname.value);
+          params.append("static_ip", form.static_ip.value);
+          params.append("static_netmask", form.static_netmask.value);
+          params.append("static_gateway", form.static_gateway.value);
+          params.append("static_dns", form.static_dns.value);
+          params.append("mqtt_server", form.mqtt_server.value);
+          params.append("mqtt_port", form.mqtt_port.value);
+          params.append("mqtt_topic", form.mqtt_topic.value);
+          params.append("mqtt_user", form.mqtt_user.value);
+          params.append("mqtt_pwd", form.mqtt_pwd.value);
+          params.append("syslog_ip", form.syslog_ip.value);
           params.append("bat_slp_thr", form.bat_slp_thr.value);
           params.append("bat_wke_thr", form.bat_wke_thr.value);
           params.append("ac_max_pow", form.ac_max_pow.value);

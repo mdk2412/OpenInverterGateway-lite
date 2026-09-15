@@ -7,7 +7,6 @@
 
 // --- System & Standard Library Includes ---
 #include <LittleFS.h>
-#include <Preferences.h>
 #include <StreamUtils.h>
 #include <TLog.h>
 #include <Updater.h>
@@ -112,6 +111,8 @@ bool initialSyncDone = false;
 #endif
 
 UserConfig User;
+static const char* USER_CONFIG_FILE = "/userconfig.json";
+static const char* LEGACY_USER_CONFIG_FILE = "/userConfig";
 
 UserConfig validateUserConfig(const UserConfig& in) {
   UserConfig out = in;
@@ -186,6 +187,21 @@ void handleNTPSync();
 bool saveSettingsToFile() {
   JsonDocument doc;
 
+  doc["hostname"] = User.hostname;
+  doc["static_ip"] = User.static_ip;
+  doc["static_netmask"] = User.static_netmask;
+  doc["static_gateway"] = User.static_gateway;
+  doc["static_dns"] = User.static_dns;
+#if MQTT_SUPPORTED == 1
+  doc["mqtt_server"] = User.mqtt.server;
+  doc["mqtt_port"] = User.mqtt.port;
+  doc["mqtt_topic"] = User.mqtt.topic;
+  doc["mqtt_user"] = User.mqtt.user;
+  doc["mqtt_pwd"] = User.mqtt.pwd;
+#endif
+  doc["syslog_ip"] = User.syslog_ip;
+  doc["force_ap"] = User.force_ap;
+
   doc["bat_standby"] = User.bat_standby;
   doc["bat_slp_thr"] = User.bat_slp_thr;
   doc["bat_wke_thr"] = User.bat_wke_thr;
@@ -198,7 +214,7 @@ bool saveSettingsToFile() {
   doc["surch"] = User.surch;
   doc["power_limit"] = User.power_limit;
 
-  File file = LittleFS.open("/userConfig", "w");
+  File file = LittleFS.open(USER_CONFIG_FILE, "w");
   if (!file) {
     return false;
   }
@@ -209,19 +225,58 @@ bool saveSettingsToFile() {
 }
 
 void loadSettingsFromFile() {
-  UserConfig raw = {
-      true, DEFAULT_SLEEP_THR, DEFAULT_WAKE_THR,
-      true, DEFAULT_AC_MAX, DEFAULT_OFFSET,
-      false, DEFAULT_PTOGRID_THR, DEFAULT_PTOUSER_THR,
-      false, DEFAULT_POWER_LIMIT};
+  UserConfig raw;
+  raw.hostname = DEFAULT_HOSTNAME;
+  raw.static_ip = "";
+  raw.static_netmask = "";
+  raw.static_gateway = "";
+  raw.static_dns = "";
+#if MQTT_SUPPORTED == 1
+  raw.mqtt.server = "";
+  raw.mqtt.port = "1883";
+  raw.mqtt.topic = "";
+  raw.mqtt.user = "";
+  raw.mqtt.pwd = "";
+#endif
+  raw.syslog_ip = "";
+  raw.force_ap = false;
+  raw.bat_standby = true;
+  raw.bat_slp_thr = DEFAULT_SLEEP_THR;
+  raw.bat_wke_thr = DEFAULT_WAKE_THR;
+  raw.accharge = true;
+  raw.ac_max_pow = DEFAULT_AC_MAX;
+  raw.ac_off_set = DEFAULT_OFFSET;
+  raw.prioctrl = false;
+  raw.ptogrid_thr = DEFAULT_PTOGRID_THR;
+  raw.ptouser_thr = DEFAULT_PTOUSER_THR;
+  raw.surch = false;
+  raw.power_limit = DEFAULT_POWER_LIMIT;
 
-  File file = LittleFS.open("/userConfig", "r");
+  File file = LittleFS.open(USER_CONFIG_FILE, "r");
+  if (!file) {
+    file = LittleFS.open(LEGACY_USER_CONFIG_FILE, "r");
+  }
   if (file) {
     JsonDocument doc;
     const DeserializationError error = deserializeJson(doc, file);
     file.close();
 
     if (!error) {
+      raw.hostname = doc["hostname"] | raw.hostname;
+      raw.static_ip = doc["static_ip"] | raw.static_ip;
+      raw.static_netmask = doc["static_netmask"] | raw.static_netmask;
+      raw.static_gateway = doc["static_gateway"] | raw.static_gateway;
+      raw.static_dns = doc["static_dns"] | raw.static_dns;
+    #if MQTT_SUPPORTED == 1
+      raw.mqtt.server = doc["mqtt_server"] | raw.mqtt.server;
+      raw.mqtt.port = doc["mqtt_port"] | raw.mqtt.port;
+      raw.mqtt.topic = doc["mqtt_topic"] | raw.mqtt.topic;
+      raw.mqtt.user = doc["mqtt_user"] | raw.mqtt.user;
+      raw.mqtt.pwd = doc["mqtt_pwd"] | raw.mqtt.pwd;
+    #endif
+      raw.syslog_ip = doc["syslog_ip"] | raw.syslog_ip;
+      raw.force_ap = doc["force_ap"] | raw.force_ap;
+
       raw.bat_standby = doc["bat_standby"] | raw.bat_standby;
       raw.bat_slp_thr = doc["bat_slp_thr"] | raw.bat_slp_thr;
       raw.bat_wke_thr = doc["bat_wke_thr"] | raw.bat_wke_thr;
@@ -265,7 +320,7 @@ void sendJson(JsonDocument& doc) {
 
 void sendUiJsonSite(void) {
   JsonDocument doc;
-  Inverter.CreateJson(doc, WiFi.macAddress(), Wifi.hostname);
+  Inverter.CreateJson(doc, WiFi.macAddress(), User.hostname);
   sendJson(doc);
 }
 
@@ -326,7 +381,22 @@ void gridFirst(void) {
 // --- Einstellungen (Settings) Handler ---
 
 void handleSaveSettings(ESP8266WebServer& httpServer) {
-  UserConfig raw;
+  UserConfig raw = User;
+
+  raw.hostname = httpServer.arg("hostname");
+  raw.static_ip = httpServer.arg("static_ip");
+  raw.static_netmask = httpServer.arg("static_netmask");
+  raw.static_gateway = httpServer.arg("static_gateway");
+  raw.static_dns = httpServer.arg("static_dns");
+#if MQTT_SUPPORTED == 1
+  raw.mqtt.server = httpServer.arg("mqtt_server");
+  raw.mqtt.port = httpServer.arg("mqtt_port");
+  raw.mqtt.topic = httpServer.arg("mqtt_topic");
+  raw.mqtt.user = httpServer.arg("mqtt_user");
+  raw.mqtt.pwd = httpServer.arg("mqtt_pwd");
+#endif
+  raw.syslog_ip = httpServer.arg("syslog_ip");
+  raw.force_ap = (httpServer.arg("force_ap") == "on");
 
   raw.bat_standby = (httpServer.arg("bat_standby") == "on");
   raw.bat_slp_thr = httpServer.arg("bat_slp_thr").toInt();
@@ -350,7 +420,10 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
 }
 
 void handleGetUserConfig(ESP8266WebServer& httpServer) {
-  File file = LittleFS.open("/userConfig", "r");
+  File file = LittleFS.open(USER_CONFIG_FILE, "r");
+  if (!file) {
+    file = LittleFS.open(LEGACY_USER_CONFIG_FILE, "r");
+  }
   if (!file) {
     httpServer.send(404, F("text/plain"), F("Configuration file not found"));
     return;
@@ -362,6 +435,21 @@ void handleGetUserConfig(ESP8266WebServer& httpServer) {
 
 void handleGetSettings(ESP8266WebServer& httpServer) {
   JsonDocument doc;
+
+  doc["hostname"] = User.hostname;
+  doc["static_ip"] = User.static_ip;
+  doc["static_netmask"] = User.static_netmask;
+  doc["static_gateway"] = User.static_gateway;
+  doc["static_dns"] = User.static_dns;
+#if MQTT_SUPPORTED == 1
+  doc["mqtt_server"] = User.mqtt.server;
+  doc["mqtt_port"] = User.mqtt.port;
+  doc["mqtt_topic"] = User.mqtt.topic;
+  doc["mqtt_user"] = User.mqtt.user;
+  doc["mqtt_pwd"] = User.mqtt.pwd;
+#endif
+  doc["syslog_ip"] = User.syslog_ip;
+  doc["force_ap"] = User.force_ap;
 
   doc["bat_standby"] = User.bat_standby;
   doc["bat_slp_thr"] = User.bat_slp_thr;
@@ -635,15 +723,14 @@ void setup() {
 #endif
 
   // Konfigurationen laden
-  loadConfig();
   loadSettingsFromFile();
 
-  configureLogging(Wifi.syslog_ip);
+  configureLogging(User.syslog_ip);
   Log.begin();
 
   // Hostname & WiFi-Basic-Settings konfigurieren
   setupWifiHost();
-  wm.setHostname(Wifi.hostname.c_str());
+  wm.setHostname(User.hostname.c_str());
 
   setupWifiManagerConfigMenu(wm);
 
@@ -653,26 +740,26 @@ void setup() {
 
   wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
-  Log.printf(PSTR("Force AP: %s\n"), Wifi.force_ap ? "true" : "false");
+  Log.printf(PSTR("Force AP: %s\n"), User.force_ap ? "true" : "false");
 
 #ifdef AP_BUTTON_PRESSED
   if (AP_BUTTON_PRESSED) {
     Log.printf(
         PSTR("AP Button pressed during power up -> force_ap set to true\n"));
-    Wifi.force_ap = true;
+    User.force_ap = true;
   }
 #endif
 
 #if ENABLE_DOUBLE_RESET == 1
   if (drd->detectDoubleReset()) {
     Log.println(F("Double reset detected"));
-    Wifi.force_ap = true;
+    User.force_ap = true;
   }
 #endif
 
-  if (Wifi.force_ap) {
-    Wifi.force_ap = false;
-    saveConfig();
+  if (User.force_ap) {
+    User.force_ap = false;
+    saveSettingsToFile();
 
     wm.startConfigPortal("GrowattConfig", APPassword);
     Log.printf(PSTR("GrowattConfig finished\n"));
@@ -682,22 +769,22 @@ void setup() {
   }
 
   // Statische IP validieren
-  if (!Wifi.static_ip.isEmpty() && !Wifi.static_netmask.isEmpty()) {
+  if (!User.static_ip.isEmpty() && !User.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
 
-    bool ipOk = ip.fromString(Wifi.static_ip);
-    bool netmaskOk = netmask.fromString(Wifi.static_netmask);
+    bool ipOk = ip.fromString(User.static_ip);
+    bool netmaskOk = netmask.fromString(User.static_netmask);
 
     if (ipOk && netmaskOk) {
-      gateway.fromString(Wifi.static_gateway);
-      dns.fromString(Wifi.static_dns);
+      gateway.fromString(User.static_gateway);
+      dns.fromString(User.static_dns);
 
       Log.printf(
           PSTR(
               "Static IP Configuration:\n    IP:      %s\n    Netmask: %s\n    "
               "Gateway: %s\n    DNS:     %s\n"),
-          Wifi.static_ip.c_str(), Wifi.static_netmask.c_str(),
-          Wifi.static_gateway.c_str(), Wifi.static_dns.c_str());
+          User.static_ip.c_str(), User.static_netmask.c_str(),
+          User.static_gateway.c_str(), User.static_dns.c_str());
 
       if (dns != INADDR_NONE && dns != IPAddress(0, 0, 0, 0)) {
         wm.setSTAStaticIPConfig(ip, gateway, netmask, dns);
@@ -729,7 +816,7 @@ void setup() {
 #error "Please define an OTA_PASSWORD in Config.h"
 #endif
   ArduinoOTA.setPassword(OTA_PASSWORD);
-  ArduinoOTA.setHostname(Wifi.hostname.c_str());
+  ArduinoOTA.setHostname(User.hostname.c_str());
   ArduinoOTA.begin();
 #endif
 
@@ -737,7 +824,7 @@ void setup() {
 #ifdef MQTTS_ENABLED
   espClient.setCACert(MQTTS_BROKER_CA_CERT);
 #endif
-  shineMqtt.mqttSetup(Wifi.mqtt);
+  shineMqtt.mqttSetup(User.mqtt);
 #endif
 
   // --- HTTP Server Routes ---
@@ -816,8 +903,8 @@ void loop() {
 
   if (StartedConfigAfterBoot) {
     Log.println(F("StartedConfigAfterBoot"));
-    Wifi.force_ap = true;
-    saveConfig();
+    User.force_ap = true;
+    saveSettingsToFile();
     SetLED.on(LED_RED);
     delay(3000);
     ESP.restart();

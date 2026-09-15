@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Config.h"
+#include "UserConfig.h"
 
 #if MQTT_SUPPORTED == 1
 #include <Arduino.h>
@@ -8,14 +9,6 @@
 #include "Growatt.h"
 #include <PicoMQTT.h>
 #include <stdbool.h>
-
-typedef struct {
-  String server;
-  String port;
-  String topic;
-  String user;
-  String pwd;
-} MqttConfig;
 
 class ShineMqtt {
  public:
