@@ -23,6 +23,7 @@
 #include "SetLED.h"
 #include "ShineWifi.h"
 #include "SurplusCharge.h"
+#include "UserConfig.h"
 #include "WifiManager.h"
 
 // --- Bedingte / Feature Includes ---
@@ -141,7 +142,8 @@ UserConfig validateUserConfig(const UserConfig& in) {
 
 // VORWÄRTSDEKLARATIONEN (PROTOTYPES)
 
-void loadSettingsFromPrefs();
+bool saveSettingsToFile();
+void loadSettingsFromFile();
 void sendJson(JsonDocument& doc);
 void sendUiJsonSite(void);
 void sendMainPage(void);
@@ -154,6 +156,7 @@ void gridFirst(void);
 
 void handlePostData();
 void handleSaveSettings(ESP8266WebServer& httpServer);
+void handleGetUserConfig(ESP8266WebServer& httpServer);
 void handleGetSettings(ESP8266WebServer& httpServer);
 void handleUpdateFinished(ESP8266WebServer& httpServer);
 void handleUpdateUpload(ESP8266WebServer& httpServer);
@@ -178,27 +181,60 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value);
 void handleNTPSync();
 #endif
 
-// KONFIGURATION & PREFERENCES
+// KONFIGURATION & LITTLEFS
 
-void loadSettingsFromPrefs() {
-  Preferences prefs;
-  prefs.begin("config", true);
+bool saveSettingsToFile() {
+  JsonDocument doc;
 
-  UserConfig raw;
+  doc["bat_standby"] = User.bat_standby;
+  doc["bat_slp_thr"] = User.bat_slp_thr;
+  doc["bat_wke_thr"] = User.bat_wke_thr;
+  doc["accharge"] = User.accharge;
+  doc["ac_max_pow"] = User.ac_max_pow;
+  doc["ac_off_set"] = User.ac_off_set;
+  doc["prioctrl"] = User.prioctrl;
+  doc["ptogrid_thr"] = User.ptogrid_thr;
+  doc["ptouser_thr"] = User.ptouser_thr;
+  doc["surch"] = User.surch;
+  doc["power_limit"] = User.power_limit;
 
-  raw.bat_standby = prefs.getBool("bat_standby", true);
-  raw.bat_slp_thr = prefs.getInt("bat_slp_thr", DEFAULT_SLEEP_THR);
-  raw.bat_wke_thr = prefs.getInt("bat_wke_thr", DEFAULT_WAKE_THR);
-  raw.accharge = prefs.getBool("accharge", true);
-  raw.ac_max_pow = prefs.getInt("ac_max_pow", DEFAULT_AC_MAX);
-  raw.ac_off_set = prefs.getInt("ac_off_set", DEFAULT_OFFSET);
-  raw.prioctrl = prefs.getBool("prioctrl", false);
-  raw.ptogrid_thr = prefs.getInt("ptogrid_thr", DEFAULT_PTOGRID_THR);
-  raw.ptouser_thr = prefs.getInt("ptouser_thr", DEFAULT_PTOUSER_THR);
-  raw.surch = prefs.getBool("surch", false);
-  raw.power_limit = prefs.getInt("power_limit", DEFAULT_POWER_LIMIT);
+  File file = LittleFS.open("/userConfig", "w");
+  if (!file) {
+    return false;
+  }
 
-  prefs.end();
+  const size_t written = serializeJson(doc, file);
+  file.close();
+  return written > 0;
+}
+
+void loadSettingsFromFile() {
+  UserConfig raw = {
+      true, DEFAULT_SLEEP_THR, DEFAULT_WAKE_THR,
+      true, DEFAULT_AC_MAX, DEFAULT_OFFSET,
+      false, DEFAULT_PTOGRID_THR, DEFAULT_PTOUSER_THR,
+      false, DEFAULT_POWER_LIMIT};
+
+  File file = LittleFS.open("/userConfig", "r");
+  if (file) {
+    JsonDocument doc;
+    const DeserializationError error = deserializeJson(doc, file);
+    file.close();
+
+    if (!error) {
+      raw.bat_standby = doc["bat_standby"] | raw.bat_standby;
+      raw.bat_slp_thr = doc["bat_slp_thr"] | raw.bat_slp_thr;
+      raw.bat_wke_thr = doc["bat_wke_thr"] | raw.bat_wke_thr;
+      raw.accharge = doc["accharge"] | raw.accharge;
+      raw.ac_max_pow = doc["ac_max_pow"] | raw.ac_max_pow;
+      raw.ac_off_set = doc["ac_off_set"] | raw.ac_off_set;
+      raw.prioctrl = doc["prioctrl"] | raw.prioctrl;
+      raw.ptogrid_thr = doc["ptogrid_thr"] | raw.ptogrid_thr;
+      raw.ptouser_thr = doc["ptouser_thr"] | raw.ptouser_thr;
+      raw.surch = doc["surch"] | raw.surch;
+      raw.power_limit = doc["power_limit"] | raw.power_limit;
+    }
+  }
 
   User = validateUserConfig(raw);
 }
@@ -290,9 +326,6 @@ void gridFirst(void) {
 // --- Einstellungen (Settings) Handler ---
 
 void handleSaveSettings(ESP8266WebServer& httpServer) {
-  Preferences prefs;
-  prefs.begin("config", false);
-
   UserConfig raw;
 
   raw.bat_standby = (httpServer.arg("bat_standby") == "on");
@@ -309,20 +342,22 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
 
   User = validateUserConfig(raw);
 
-  prefs.putBool("bat_standby", User.bat_standby);
-  prefs.putInt("bat_slp_thr", User.bat_slp_thr);
-  prefs.putInt("bat_wke_thr", User.bat_wke_thr);
-  prefs.putBool("accharge", User.accharge);
-  prefs.putInt("ac_max_pow", User.ac_max_pow);
-  prefs.putInt("ac_off_set", User.ac_off_set);
-  prefs.putBool("prioctrl", User.prioctrl);
-  prefs.putInt("ptogrid_thr", User.ptogrid_thr);
-  prefs.putInt("ptouser_thr", User.ptouser_thr);
-  prefs.putBool("surch", User.surch);
-  prefs.putInt("power_limit", User.power_limit);
+  if (saveSettingsToFile()) {
+    httpServer.send(200, F("text/plain"), F("Settings saved"));
+  } else {
+    httpServer.send(500, F("text/plain"), F("Could not save settings"));
+  }
+}
 
-  prefs.end();
-  httpServer.send(200, F("text/plain"), F("Settings saved"));
+void handleGetUserConfig(ESP8266WebServer& httpServer) {
+  File file = LittleFS.open("/userConfig", "r");
+  if (!file) {
+    httpServer.send(404, F("text/plain"), F("Configuration file not found"));
+    return;
+  }
+
+  httpServer.streamFile(file, F("application/json"));
+  file.close();
 }
 
 void handleGetSettings(ESP8266WebServer& httpServer) {
@@ -601,7 +636,7 @@ void setup() {
 
   // Konfigurationen laden
   loadConfig();
-  loadSettingsFromPrefs();
+  loadSettingsFromFile();
 
   configureLogging(Wifi.syslog_ip);
   Log.begin();
@@ -726,6 +761,9 @@ void setup() {
 
   httpServer.on("/saveSettings", HTTP_POST,
                 []() { handleSaveSettings(httpServer); });
+
+  httpServer.on("/userConfig", HTTP_GET,
+                []() { handleGetUserConfig(httpServer); });
 
   httpServer.on("/getSettings", HTTP_GET,
                 []() { handleGetSettings(httpServer); });

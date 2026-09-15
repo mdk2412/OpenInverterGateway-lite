@@ -107,6 +107,7 @@ const char MAIN_page[] PROGMEM = R"=====(
     <section id="system" class="tab-content" hidden>
       <div class="grid">
         <button type="button" onclick="location.href='./uiStatus'">UI JSON</button>
+        <button type="button" onclick="location.href='./userConfig'">User Config JSON</button>
       </div>
       <div class="grid">
         <button type="button" class="secondary" onclick="if(confirm('Start Config AP?'))location.href='./startAp'">Start
