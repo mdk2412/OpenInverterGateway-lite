@@ -150,11 +150,9 @@ void sendUiJsonSite(void);
 void sendMainPage(void);
 void startConfigAccessPoint(void);
 void rebootESP(void);
-
 void loadFirst(void);
 void batteryFirst(void);
 void gridFirst(void);
-
 void handlePostData();
 void handleSaveSettings(ESP8266WebServer& httpServer);
 void handleGetUserConfig(ESP8266WebServer& httpServer);
@@ -201,7 +199,6 @@ bool saveSettingsToFile() {
 #endif
   doc["syslog_ip"] = User.syslog_ip;
   doc["force_ap"] = User.force_ap;
-
   doc["bat_standby"] = User.bat_standby;
   doc["bat_slp_thr"] = User.bat_slp_thr;
   doc["bat_wke_thr"] = User.bat_wke_thr;
@@ -276,7 +273,6 @@ void loadSettingsFromFile() {
 #endif
       raw.syslog_ip = doc["syslog_ip"] | raw.syslog_ip;
       raw.force_ap = doc["force_ap"] | raw.force_ap;
-
       raw.bat_standby = doc["bat_standby"] | raw.bat_standby;
       raw.bat_slp_thr = doc["bat_slp_thr"] | raw.bat_slp_thr;
       raw.bat_wke_thr = doc["bat_wke_thr"] | raw.bat_wke_thr;
@@ -398,7 +394,6 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
 #endif
   raw.syslog_ip = httpServer.arg("syslog_ip");
   raw.force_ap = (httpServer.arg("force_ap") == "on");
-
   raw.bat_standby = (httpServer.arg("bat_standby") == "on");
   raw.bat_slp_thr = httpServer.arg("bat_slp_thr").toInt();
   raw.bat_wke_thr = httpServer.arg("bat_wke_thr").toInt();
@@ -490,15 +485,12 @@ void handleGetSettings(ESP8266WebServer& httpServer) {
 #endif
   doc["syslog_ip"] = User.syslog_ip;
   doc["force_ap"] = User.force_ap;
-
   doc["bat_standby"] = User.bat_standby;
   doc["bat_slp_thr"] = User.bat_slp_thr;
   doc["bat_wke_thr"] = User.bat_wke_thr;
-
   doc["accharge"] = User.accharge;
   doc["ac_max_pow"] = User.ac_max_pow;
   doc["ac_off_set"] = User.ac_off_set;
-
   doc["prioctrl"] = User.prioctrl;
   doc["ptogrid_thr"] = User.ptogrid_thr;
   doc["ptouser_thr"] = User.ptouser_thr;
