@@ -267,13 +267,13 @@ void loadSettingsFromFile() {
       raw.static_netmask = doc["static_netmask"] | raw.static_netmask;
       raw.static_gateway = doc["static_gateway"] | raw.static_gateway;
       raw.static_dns = doc["static_dns"] | raw.static_dns;
-    #if MQTT_SUPPORTED == 1
+#if MQTT_SUPPORTED == 1
       raw.mqtt.server = doc["mqtt_server"] | raw.mqtt.server;
       raw.mqtt.port = doc["mqtt_port"] | raw.mqtt.port;
       raw.mqtt.topic = doc["mqtt_topic"] | raw.mqtt.topic;
       raw.mqtt.user = doc["mqtt_user"] | raw.mqtt.user;
       raw.mqtt.pwd = doc["mqtt_pwd"] | raw.mqtt.pwd;
-    #endif
+#endif
       raw.syslog_ip = doc["syslog_ip"] | raw.syslog_ip;
       raw.force_ap = doc["force_ap"] | raw.force_ap;
 
@@ -381,6 +381,7 @@ void gridFirst(void) {
 // --- Einstellungen (Settings) Handler ---
 
 void handleSaveSettings(ESP8266WebServer& httpServer) {
+  // Aktuellen Zustand als Referenz sichern
   UserConfig raw = User;
 
   raw.hostname = httpServer.arg("hostname");
@@ -410,8 +411,47 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   raw.surch = (httpServer.arg("surch") == "on");
   raw.power_limit = httpServer.arg("power_limit").toInt();
 
-  User = validateUserConfig(raw);
+  // Validierte neue Konfiguration erstellen
+  UserConfig validatedNew = validateUserConfig(raw);
 
+  // Prüfen, ob sich im Vergleich zum globalen 'User'-Objekt etwas geändert hat
+  bool hasChanged = (validatedNew.hostname != User.hostname ||
+                     validatedNew.static_ip != User.static_ip ||
+                     validatedNew.static_netmask != User.static_netmask ||
+                     validatedNew.static_gateway != User.static_gateway ||
+                     validatedNew.static_dns != User.static_dns ||
+#if MQTT_SUPPORTED == 1
+                     validatedNew.mqtt.server != User.mqtt.server ||
+                     validatedNew.mqtt.port != User.mqtt.port ||
+                     validatedNew.mqtt.topic != User.mqtt.topic ||
+                     validatedNew.mqtt.user != User.mqtt.user ||
+                     validatedNew.mqtt.pwd != User.mqtt.pwd ||
+#endif
+                     validatedNew.syslog_ip != User.syslog_ip ||
+                     validatedNew.force_ap != User.force_ap ||
+                     validatedNew.bat_standby != User.bat_standby ||
+                     validatedNew.bat_slp_thr != User.bat_slp_thr ||
+                     validatedNew.bat_wke_thr != User.bat_wke_thr ||
+                     validatedNew.accharge != User.accharge ||
+                     validatedNew.ac_max_pow != User.ac_max_pow ||
+                     validatedNew.ac_off_set != User.ac_off_set ||
+                     validatedNew.prioctrl != User.prioctrl ||
+                     validatedNew.ptogrid_thr != User.ptogrid_thr ||
+                     validatedNew.ptouser_thr != User.ptouser_thr ||
+                     validatedNew.surch != User.surch ||
+                     validatedNew.power_limit != User.power_limit);
+
+  // Objekt direkt aktualisieren
+  User = validatedNew;
+
+  // Wenn keine Änderungen vorliegen, direkt erfolgreich antworten ohne Flash zu
+  // beschreiben
+  if (!hasChanged) {
+    httpServer.send(200, F("text/plain"), F("Settings unchanged"));
+    return;
+  }
+
+  // Ansonsten regulär speichern
   if (saveSettingsToFile()) {
     httpServer.send(200, F("text/plain"), F("Settings saved"));
   } else {
@@ -494,14 +534,16 @@ void handlePostData() {
   const bool isWrite = (opStr == "W");
   const bool isRead = (opStr == "R");
 
-  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) || !httpServer.hasArg(F("type")) ||
+  if (!httpServer.hasArg(F("reg")) || !httpServer.hasArg(F("width")) ||
+      !httpServer.hasArg(F("type")) ||
       (isWrite && !httpServer.hasArg(F("val")))) {
     httpServer.send(400, F("text/plain"), F("400: Invalid Request"));
     return;
   }
 
   if (widthStr != "16b" && widthStr != "32b") {
-    httpServer.send(400, F("text/plain"), F("Unknown type (expected 16b or 32b)"));
+    httpServer.send(400, F("text/plain"),
+                    F("Unknown type (expected 16b or 32b)"));
     return;
   }
 
