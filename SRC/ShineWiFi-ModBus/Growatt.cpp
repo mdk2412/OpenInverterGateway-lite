@@ -104,7 +104,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
   // read each fragment separately
   for (; i < _Protocol.InputFragmentCount; i++) {
 #ifdef DEBUG_MODBUS_OUTPUT
-    Log.printf("Modbus: Reading Segment from 0x%02X with Length %d ...",
+    Log.printf(F("Modbus: Reading Segment from 0x%02X with Length %d ..."),
                _Protocol.InputReadFragments[i].StartAddress,
                _Protocol.InputReadFragments[i].FragmentSize);
 #endif
@@ -118,7 +118,7 @@ bool Growatt::ReadInputRegisters(uint8_t& i) {
     //                               _Protocol.InputReadFragments[i].FragmentSize);
     // uint32_t duration = millis() - start;
     // Log.printf(
-    //     "[MODBUS][INPUT] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu ms\n",
+    //     F("[MODBUS][INPUT] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu ms\n"),
     //     _Protocol.InputReadFragments[i].StartAddress,
     //     _Protocol.InputReadFragments[i].FragmentSize,
     //     (res == Modbus.ku8MBSuccess) ? "OK" : "FAIL", res, duration);
@@ -191,8 +191,8 @@ bool Growatt::ReadHoldingRegisters(uint8_t& i) {
     //     _Protocol.HoldingReadFragments[i].FragmentSize);
     // uint32_t duration = millis() - start;
     // Log.printf(
-    //     "[MODBUS][HOLDING] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu ms\n",
-    //     _Protocol.HoldingReadFragments[i].StartAddress,
+    //     F("[MODBUS][HOLDING] Addr=0x%04X Len=%u Result=%s (%u) Time=%lu
+    //     ms\n"), _Protocol.HoldingReadFragments[i].StartAddress,
     //     _Protocol.HoldingReadFragments[i].FragmentSize,
     //     (res == Modbus.ku8MBSuccess) ? "OK" : "FAIL",
     //     res,
@@ -521,9 +521,9 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
   if (!Hostname.isEmpty()) {
-    JsonArray arr = doc["Hostname"].to<JsonArray>();
+    JsonArray arr = doc[F("Hostname")].to<JsonArray>();
     arr.add(Hostname);
-    arr.add("");
+    arr.add(F(""));
   }
 
   // Input Registers verarbeiten
@@ -591,45 +591,45 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   // System-Informationen
   {
     if (!MacAddress.isEmpty()) {
-      JsonArray arrMac = doc["Mac"].to<JsonArray>();
+      JsonArray arrMac = doc[F("Mac")].to<JsonArray>();
       arrMac.add(MacAddress);
-      arrMac.add("");
+      arrMac.add(F(""));
     }
 
-    JsonArray arrCnt = doc["Cnt"].to<JsonArray>();
+    JsonArray arrCnt = doc[F("Cnt")].to<JsonArray>();
     arrCnt.add(_PacketCnt);
-    arrCnt.add("");
+    arrCnt.add(F(""));
 
-    JsonArray arrCntFailed = doc["CntFailed"].to<JsonArray>();
+    JsonArray arrCntFailed = doc[F("CntFailed")].to<JsonArray>();
     arrCntFailed.add(_PacketCntFailed);
-    arrCntFailed.add("");
+    arrCntFailed.add(F(""));
 
-    JsonArray arrUptime = doc["Uptime"].to<JsonArray>();
+    JsonArray arrUptime = doc[F("Uptime")].to<JsonArray>();
     arrUptime.add(millis() / 1000);
-    arrUptime.add("s");
+    arrUptime.add(F("s"));
 
-    JsonArray arrRssi = doc["WifiRSSI"].to<JsonArray>();
+    JsonArray arrRssi = doc[F("WifiRSSI")].to<JsonArray>();
     arrRssi.add(WiFi.RSSI());
-    arrRssi.add("dBm");
+    arrRssi.add(F("dBm"));
 
-    JsonArray arrHeap = doc["HeapFree"].to<JsonArray>();
+    JsonArray arrHeap = doc[F("HeapFree")].to<JsonArray>();
     arrHeap.add(ESP.getFreeHeap());
-    arrHeap.add("B");
+    arrHeap.add(F("B"));
 
     static uint32_t heap_min_free = ESP.getFreeHeap();
     heap_min_free = (std::min)(ESP.getFreeHeap(), heap_min_free);
 
-    JsonArray arrHeapMax = doc["HeapMaxAlloc"].to<JsonArray>();
+    JsonArray arrHeapMax = doc[F("HeapMaxAlloc")].to<JsonArray>();
     arrHeapMax.add(ESP.getMaxFreeBlockSize());
-    arrHeapMax.add("B");
+    arrHeapMax.add(F("B"));
 
-    JsonArray arrHeapMin = doc["HeapMinFree"].to<JsonArray>();
+    JsonArray arrHeapMin = doc[F("HeapMinFree")].to<JsonArray>();
     arrHeapMin.add(heap_min_free);
-    arrHeapMin.add("B");
+    arrHeapMin.add(F("B"));
 
-    JsonArray arrHeapFrag = doc["HeapFragmentation"].to<JsonArray>();
+    JsonArray arrHeapFrag = doc[F("HeapFragmentation")].to<JsonArray>();
     arrHeapFrag.add(ESP.getHeapFragmentation());
-    arrHeapFrag.add("%");
+    arrHeapFrag.add(F("%"));
   }
 
   if (doc.overflowed()) {
@@ -649,23 +649,28 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 
   // 1. Metadaten sichern
   uint8_t retries = 0;
-  if (req["retry"].is<uint8_t>()) {
-    retries = req["retry"].as<uint8_t>();
+  if (req[F("retry")].is<uint8_t>()) {
+    retries = req[F("retry")].as<uint8_t>();
   }
 
   String correlationId = "";
-  if (req["correlationId"].is<String>()) {
-    correlationId = req["correlationId"].as<String>();
+  if (req[F("correlationId")].is<String>()) {
+    correlationId = req[F("correlationId")].as<String>();
   }
 
   // 2. Command-Handler suchen
   auto it = handlers.find(command);
   if (it == handlers.end()) {
     Log.printf("Unknown Command: %s\n", command.c_str());
-    if (!correlationId.isEmpty()) res["correlationId"] = correlationId;
-    res["command"] = command;
-    res["success"] = false;
-    res["message"] = String(F("Unknown Command: ")) + command;
+    if (!correlationId.isEmpty()) res[F("correlationId")] = correlationId;
+    res[F("command")] = command;
+    res[F("success")] = false;
+
+    String err_msg;
+    err_msg.reserve(25 + command.length());
+    err_msg = F("Unknown Command: ");
+    err_msg += command;
+    res[F("message")] = err_msg;
     return;
   }
 
@@ -692,13 +697,13 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 
   // 4. Status und Metadaten im Response-JSON setzen
   if (!correlationId.isEmpty()) {
-    res["correlationId"] = correlationId;
+    res[F("correlationId")] = correlationId;
   }
-  res["command"] = command;
-  res["success"] = success;
-  res["message"] = message;
+  res[F("command")] = command;
+  res[F("success")] = success;
+  res[F("message")] = message;
 
-  const char* msg = res["message"].as<const char*>();
+  const char* msg = res[F("message")].as<const char*>();
   if (msg && msg[0] != '\0') {
     Log.println(msg);
   }
@@ -707,21 +712,27 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
 std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
-  if (!req["text"].is<String>()) {
-    return std::make_tuple(
-        false, String(F("'text' Field is required and must be a String")));
+  if (!req[F("text")].is<String>()) {
+    return std::make_tuple(false,
+                           F("'text' Field is required and must be a String"));
   }
-  String text = req["text"].as<String>();
-  res["text"] = String(F("Echo: ")) + text;
-  return std::make_tuple(true, "");
+  String text = req[F("text")].as<String>();
+
+  String echo_msg;
+  echo_msg.reserve(7 + text.length());
+  echo_msg = F("Echo: ");
+  echo_msg += text;
+
+  res[F("text")] = echo_msg;
+  return std::make_tuple(true, F(""));
 }
 
 std::tuple<bool, String> Growatt::handleCommandList(const JsonDocument& req,
                                                     JsonDocument& res,
                                                     Growatt& inverter) {
-  JsonArray commands = res["commands"].to<JsonArray>();
+  JsonArray commands = res[F("commands")].to<JsonArray>();
   for (const auto& pair : handlers) {
     commands.add(pair.first);
   }
-  return std::make_tuple(true, "");
+  return std::make_tuple(true, F(""));
 }

@@ -3,7 +3,6 @@
 #include <TLog.h>
 
 void batteryStandby() {
-  
   // --- User-Parameter
   uint32_t wake_threshold = User.bat_wke_thr * 10;
   uint32_t sleep_threshold = User.bat_slp_thr * 10;
@@ -21,18 +20,22 @@ void batteryStandby() {
   int32_t inverter_status =
       Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
   int32_t ppv = Inverter._Protocol.InputRegisters[P3000_PPV].value;
-// Log.printf("Sleep Check -> sysstate: %d | ptogrid: %ld (limit: %lu) | ppv: %ld (limit: %lu) | soc: %ld | stop: %ld\n", 
-//            sysstate, ptogrid, sleep_threshold, ppv, sleep_threshold, soc, discharge_stop);
+
+  // Log.printf("Sleep Check -> sysstate: %d | ptogrid: %ld (limit: %lu) | ppv:
+  // %ld (limit: %lu) | soc: %ld | stop: %ld\n",
+  //            sysstate, ptogrid, sleep_threshold, ppv, sleep_threshold, soc,
+  //            discharge_stop);
+
   // --- Disable discharging ---
   if (soc >= 10 && soc <= discharge_stop) {
     if (discharge_rate != 0) {
       JsonDocument req, res;
-      req["value"] = 0;
-      req["retry"] = NUM_WRITE_RETRIES;
+      req[F("value")] = 0;
+      req[F("retry")] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", req, res);
 
-      if (res["success"] == true) {
+      if (res[F("success")] == true) {
         Log.println(F("Battery discharging deactivated"));
       } else {
         Log.println(F("Battery discharging still activated!"));
@@ -44,12 +47,12 @@ void batteryStandby() {
   else if (soc >= (discharge_stop + 5)) {
     if (discharge_rate != 100) {
       JsonDocument req, res;
-      req["value"] = 100;
-      req["retry"] = NUM_WRITE_RETRIES;
+      req[F("value")] = 100;
+      req[F("retry")] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("bdc/set/dischargepowerrate", req, res);
 
-      if (res["success"] == true) {
+      if (res[F("success")] == true) {
         Log.println(F("Battery discharging activated"));
       } else {
         Log.println(F("Battery discharging still deactivated!"));
@@ -61,8 +64,8 @@ void batteryStandby() {
   if (sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
       JsonDocument req, res;
-      req["value"] = 3;
-      req["retry"] = NUM_WRITE_RETRIES;
+      req[F("value")] = 3;
+      req[F("retry")] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("onoff/set", req, res);
     }
@@ -73,8 +76,8 @@ void batteryStandby() {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
       JsonDocument req, res;
-      req["value"] = 2;
-      req["retry"] = NUM_WRITE_RETRIES;
+      req[F("value")] = 2;
+      req[F("retry")] = NUM_WRITE_RETRIES;
 
       Inverter.HandleCommand("onoff/set", req, res);
     }

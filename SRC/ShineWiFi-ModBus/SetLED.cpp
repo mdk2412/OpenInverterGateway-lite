@@ -4,158 +4,118 @@
 SetLEDClass SetLED;
 
 // zentrale LED-Schreibfunktion
-void SetLEDClass::writeLed(LedState &l, bool on)
-{
-    digitalWrite(l.pin, (on == l.activeLevel) ? HIGH : LOW);
+void SetLEDClass::writeLed(LedState &l, bool on) {
+  digitalWrite(l.pin, (on == l.activeLevel) ? HIGH : LOW);
 }
 
-void SetLEDClass::begin()
-{
-    // 255 = LED nicht vorhanden
-    leds[LED_RED] = {
-        LED_RD,
-        LED_OFF,
-        false,              // state
-        0,                  // interval
-        0,                  // lastToggle (WICHTIG!)
-        false,              // enabled
-        LED_RD_ACTIVE_LEVEL  // Polarität aus config.h
-    };
+void SetLEDClass::begin() {
+  // 255 = LED nicht vorhanden
+  leds[LED_RED] = {
+      LED_RD,
+      LED_OFF,
+      false,               // state
+      0,                   // interval
+      0,                   // lastToggle (WICHTIG!)
+      false,               // enabled
+      LED_RD_ACTIVE_LEVEL  // Polarität aus config.h
+  };
 
-    leds[LED_GREEN] = {
-        LED_GN,
-        LED_OFF,
-        false,
-        0,
-        0,
-        false,
-        LED_GN_ACTIVE_LEVEL
-    };
+  leds[LED_GREEN] = {LED_GN, LED_OFF, false, 0, 0, false, LED_GN_ACTIVE_LEVEL};
 
-    leds[LED_BLUE] = {
-        LED_BL,
-        LED_OFF,
-        false,
-        0,
-        0,
-        false,
-        LED_BL_ACTIVE_LEVEL
-    };
+  leds[LED_BLUE] = {LED_BL, LED_OFF, false, 0, 0, false, LED_BL_ACTIVE_LEVEL};
 
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        if (leds[i].pin != 255)
-        {
-            pinMode(leds[i].pin, OUTPUT);
-            writeLed(leds[i], false);   // LED AUS
-        }
+  for (uint8_t i = 0; i < 3; i++) {
+    if (leds[i].pin != 255) {
+      pinMode(leds[i].pin, OUTPUT);
+      writeLed(leds[i], false);  // LED AUS
     }
+  }
 }
 
-void SetLEDClass::set(LedColor led, LedMode mode, uint32_t blinkMs)
-{
-    LedState &l = leds[led];
+void SetLEDClass::set(LedColor led, LedMode mode, uint32_t blinkMs) {
+  LedState &l = leds[led];
 
-    if (l.pin == 255)
-        return;
+  if (l.pin == 255) return;
 
-    if (l.mode == mode && l.interval == blinkMs)
-        return;
+  if (l.mode == mode && l.interval == blinkMs) return;
 
-    l.mode = mode;
+  l.mode = mode;
 
-    switch (mode)
-    {
-        case LED_OFF:
-            l.enabled = false;
-            l.state = false;
-            writeLed(l, false);
-            break;
+  switch (mode) {
+    case LED_OFF:
+      l.enabled = false;
+      l.state = false;
+      writeLed(l, false);
+      break;
 
-        case LED_ON:
-            l.enabled = true;
-            l.interval = 0;
-            l.state = true;
-            writeLed(l, true);
-            break;
+    case LED_ON:
+      l.enabled = true;
+      l.interval = 0;
+      l.state = true;
+      writeLed(l, true);
+      break;
 
-        case LED_BLINK:
-            l.enabled = true;
-            l.interval = blinkMs;
-            l.lastToggle = millis();
-            l.state = true;
-            writeLed(l, true);
-            break;
+    case LED_BLINK:
+      l.enabled = true;
+      l.interval = blinkMs;
+      l.lastToggle = millis();
+      l.state = true;
+      writeLed(l, true);
+      break;
+  }
+}
+
+void SetLEDClass::on(LedColor led) { set(led, LED_ON, 0); }
+
+void SetLEDClass::off(LedColor led) { set(led, LED_OFF, 0); }
+
+void SetLEDClass::blink(LedColor led, uint32_t interval) {
+  set(led, LED_BLINK, interval);
+}
+
+void SetLEDClass::loop() {
+  uint32_t now = millis();
+
+  for (uint8_t i = 0; i < 3; i++) {
+    LedState &l = leds[i];
+
+    if (l.pin == 255) continue;
+
+    if (!l.enabled) continue;
+
+    if (l.mode != LED_BLINK) continue;
+
+    if (now - l.lastToggle >= l.interval) {
+      l.lastToggle = now;
+      l.state = !l.state;
+      writeLed(l, l.state);
     }
+  }
 }
 
-void SetLEDClass::on(LedColor led)
-{
-    set(led, LED_ON, 0);
-}
-
-void SetLEDClass::off(LedColor led)
-{
-    set(led, LED_OFF, 0);
-}
-
-void SetLEDClass::blink(LedColor led, uint32_t interval)
-{
-    set(led, LED_BLINK, interval);
-}
-
-void SetLEDClass::loop()
-{
-    uint32_t now = millis();
-
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        LedState &l = leds[i];
-
-        if (l.pin == 255)
-            continue;
-
-        if (!l.enabled)
-            continue;
-
-        if (l.mode != LED_BLINK)
-            continue;
-
-        if (now - l.lastToggle >= l.interval)
-        {
-            l.lastToggle = now;
-            l.state = !l.state;
-            writeLed(l, l.state);
-        }
-    }
-}
-
-// ... (bestehender Code von SetLED.cpp bleibt unverändert) ...
-
-void SetLEDClass::updateStatus(bool wifiOK, bool modbusOK, bool mqttOK)
-{
-    if (wifiOK && modbusOK && mqttOK) {
-        blink(LED_GREEN, 500);
-        off(LED_RED);
-        off(LED_BLUE);
-        return;
-    }
-
-    if (wifiOK && modbusOK && !mqttOK) {
-        blink(LED_BLUE, 500);
-        off(LED_GREEN);
-        off(LED_RED);
-        return;
-    }
-
-    if (modbusOK && !wifiOK) {
-        blink(LED_RED, 500);
-        off(LED_GREEN);
-        off(LED_BLUE);
-        return;
-    }
-
-    off(LED_GREEN);
+void SetLEDClass::updateStatus(bool wifiOK, bool modbusOK, bool mqttOK) {
+  if (wifiOK && modbusOK && mqttOK) {
+    blink(LED_GREEN, 500);
     off(LED_RED);
     off(LED_BLUE);
+    return;
+  }
+
+  if (wifiOK && modbusOK && !mqttOK) {
+    blink(LED_BLUE, 500);
+    off(LED_GREEN);
+    off(LED_RED);
+    return;
+  }
+
+  if (modbusOK && !wifiOK) {
+    blink(LED_RED, 500);
+    off(LED_GREEN);
+    off(LED_BLUE);
+    return;
+  }
+
+  off(LED_GREEN);
+  off(LED_RED);
+  off(LED_BLUE);
 }

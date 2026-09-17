@@ -35,8 +35,8 @@ void surplusCharge() {
     int value = targetpowerrate;
 
     JsonDocument req, res;
-    req["value"] = value;
-    req["retry"] = NUM_WRITE_RETRIES;
+    req[F("value")] = value;
+    req[F("retry")] = NUM_WRITE_RETRIES;
 
     Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
   }

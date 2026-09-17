@@ -38,11 +38,11 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
   uint16_t port = mqttconfig.port.toInt();
   if (port == 0) port = 1883;
 
-  Log.printf(
-      PSTR("MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   %s\n    MQTT "
-           "Port:   %u\n    MQTT Topic:  %s\n"),
-      mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
-      mqttconfig.topic.c_str());
+  Log.printf(PSTR("MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   "
+                  "%s\n    MQTT "
+                  "Port:   %u\n    MQTT Topic:  %s\n"),
+             mqttconfig.server.c_str(), mqttconfig.user.c_str(), port,
+             mqttconfig.topic.c_str());
 
   if (mqttclient != nullptr) {
     delete mqttclient;
@@ -107,7 +107,8 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
 
   // 1. Stream starten
-  auto publishStream = mqttclient->begin_publish(t.c_str(), measureJson(doc), qos, retain);
+  auto publishStream =
+      mqttclient->begin_publish(t.c_str(), measureJson(doc), qos, retain);
 
   // 2. JSON in den Stream schreiben
   serializeJson(doc, publishStream);
@@ -121,9 +122,7 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
 // =======================================================
 // 5. STATUS-ABFRAGEN & PRÜFUNGEN
 // =======================================================
-boolean ShineMqtt::mqttEnabled() { 
-  return !mqttconfig.server.isEmpty(); 
-}
+boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
 
 boolean ShineMqtt::mqttConnected() {
   return mqttclient && mqttclient->connected();
@@ -142,55 +141,73 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  String commandTopicPattern = mqttconfig.topic + "/command/#";
+  String commandTopicPattern;
+  commandTopicPattern.reserve(mqttconfig.topic.length() + 12);
+  commandTopicPattern = mqttconfig.topic;
+  commandTopicPattern += F("/command/#");
 
-  Log.printf(PSTR("MQTT Subscribing to Topic: %s\n"), commandTopicPattern.c_str());
+  Log.printf(PSTR("MQTT Subscribing to Topic: %s\n"),
+             commandTopicPattern.c_str());
 
-  mqttclient->subscribe(
-      commandTopicPattern.c_str(),
-      [this](const char* topic, const char* payload) {
-        const size_t prefixLen = mqttconfig.topic.length() + 9; // strlen("/command/") = 9
+  mqttclient->subscribe(commandTopicPattern.c_str(), [this](
+                                                         const char* topic,
+                                                         const char* payload) {
+    const size_t prefixLen =
+        mqttconfig.topic.length() + 9;  // strlen("/command/") = 9
 
-        if (strlen(topic) < prefixLen) return;
+    if (strlen(topic) < prefixLen) return;
 
-        const char* command = topic + prefixLen;
-        const char* safePayload = payload ? payload : "";
+    const char* command = topic + prefixLen;
+    const char* safePayload = payload ? payload : "";
 
-        Log.printf(PSTR("Received Command: %s %s\n"), command, safePayload);
+    Log.printf(PSTR("Received Command: %s %s\n"), command, safePayload);
 
-        JsonDocument req;
-        JsonDocument res;
+    JsonDocument req;
+    JsonDocument res;
 
-        if (safePayload[0] != '\0') {
-          DeserializationError err = deserializeJson(req, safePayload);
-          if (err) {
-            Log.printf(PSTR("MQTT Payload JSON parse error: %s\n"), err.c_str());
+    if (safePayload[0] != '\0') {
+      DeserializationError err = deserializeJson(req, safePayload);
+      if (err) {
+        Log.printf(PSTR("MQTT Payload JSON parse error: %s\n"), err.c_str());
 
-            res["command"] = command;
-            res["success"] = false;
-            res["message"] = String(F("Invalid JSON Payload: ")) + err.c_str();
+        res[F("command")] = command;
+        res[F("success")] = false;
 
-            String resultTopic = mqttconfig.topic + "/result";
-            String responsePayload;
-            serializeJson(res, responsePayload);
+        String err_msg;
+        err_msg.reserve(23 + strlen(err.c_str()));
+        err_msg = F("Invalid JSON Payload: ");
+        err_msg += err.c_str();
+        res[F("message")] = err_msg;
 
-            mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
-            return;
-          }
-        }
+        String resultTopic;
+        resultTopic.reserve(mqttconfig.topic.length() + 8);
+        resultTopic = mqttconfig.topic;
+        resultTopic += F("/result");
 
-        // Inverter Befehl ausführen
-        inverter.HandleCommand(command, req, res);
+        String responsePayload;
+        serializeJson(res, responsePayload);
 
-        // Antwort zurücksenden
-        if (!res.isNull()) {
-          String resultTopic = mqttconfig.topic + "/result";
-          String responsePayload;
-          serializeJson(res, responsePayload);
+        mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+        return;
+      }
+    }
 
-          mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
-        }
-      });
+    // Inverter Befehl ausführen
+    inverter.HandleCommand(command, req, res);
+
+    // Antwort zurücksenden
+    if (!res.isNull()) {
+      String resultTopic;
+      resultTopic.reserve(mqttconfig.topic.length() + 8);
+      resultTopic = mqttconfig.topic;
+      resultTopic += F("/result");
+
+      String responsePayload;
+      serializeJson(res, responsePayload);
+
+      mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+    }
+  });
 #endif
 }
 

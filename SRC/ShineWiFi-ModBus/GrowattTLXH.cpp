@@ -21,28 +21,30 @@ std::tuple<bool, String> getDateTime(const JsonDocument& req, JsonDocument& res,
   }
 
   if (success) {
-    char buf[30];
+    char buf[20];  // Optimiert von 30 auf 20 Bytes (genau passend für
+                   // YYYY-MM-DD HH:MM:SS)
     snprintf(buf, sizeof(buf), "%04hu-%02hu-%02hu %02hu:%02hu:%02hu", year,
              month, day, hour, minute, second);
 
     res["value"] = buf;
 
-    String message = String(F("Read Date/Time: ")) + buf;
+    String message = F("Read Date/Time: ");
+    message += buf;
     return std::make_tuple(true, message);
   } else {
-    return std::make_tuple(false, String(F("Failed to read Date/Time!")));
+    return std::make_tuple(false, F("Failed to read Date/Time!"));
   }
 };
 
 std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
                                      Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'value' Field is required")));
+    return std::make_tuple(false, F("'value' Field is required"));
   }
 
   String datetime = req["value"].as<String>();
   if (datetime.length() != 19) {
-    return std::make_tuple(false, String(F("Invalid Date/Time Format!")));
+    return std::make_tuple(false, F("Invalid Date/Time Format!"));
   }
 
   uint16_t year = datetime.substring(0, 4).toInt();
@@ -55,8 +57,7 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
   // --- NEU: Plausibilitätsprüfung der Zahlenwerte ---
   if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 ||
       minute > 59 || second > 59) {
-    return std::make_tuple(false,
-                           String(F("Invalid Date/Time values out of range!")));
+    return std::make_tuple(false, F("Invalid Date/Time values out of range!"));
   }
 
   // Umrechnung für Growatt (z.B. 2026 -> 26)
@@ -66,11 +67,12 @@ std::tuple<bool, String> setDateTime(const JsonDocument& req, JsonDocument& res,
 
   bool success = inverter.WriteHoldingRegFrag(45, 6, values);
   if (success) {
-    String message = String(F("Wrote Date/Time: ")) + datetime;
+    String message = F("Wrote Date/Time: ");
+    message += datetime;
     return std::make_tuple(true, message);
   }
 
-  return std::make_tuple(false, String(F("Failed to write Date/Time!")));
+  return std::make_tuple(false, F("Failed to write Date/Time!"));
 };
 
 // std::tuple<bool, String> getOnOff(const JsonDocument& req,
@@ -130,13 +132,19 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req, JsonDocument& res,
 
   // --- Logging & result ---
   if (!ok) {
-    String msg = String(F("Failed to set OnOff Mode: ")) + mode_text;
+    String msg = F("Failed to set OnOff Mode: ");
+    msg += mode_text;
     // Log.println(msg);
     return std::make_tuple(false, msg);
   }
 
-  String msg =
-      String(F("OnOff Mode set to ")) + value + F(" (") + mode_text + F(")");
+  String msg;
+  msg.reserve(40);
+  msg = F("OnOff Mode set to ");
+  msg += value;
+  msg += F(" (");
+  msg += mode_text;
+  msg += F(")");
   // Log.println(msg);
 
   res["success"] = true;
@@ -152,141 +160,153 @@ std::tuple<bool, String> getPowerActiveRate(const JsonDocument& req,
   uint16_t value;
 
   if (!inverter.ReadHoldingReg(3, &value)) {
-    return std::make_tuple(false, String(F("Failed to read active Rate!")));
+    return std::make_tuple(false, F("Failed to read active Rate!"));
   }
 
   res["value"] = value;
 
-  return std::make_tuple(true, String(F("Read active Rate")));
+  return std::make_tuple(true, F("Read active Rate"));
 };
 
 std::tuple<bool, String> setPowerActiveRate(const JsonDocument& req,
                                             JsonDocument& res,
                                             Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'value' Field is required")));
+    return std::make_tuple(false, F("'value' Field is required"));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 100 && value != 255) {
-    return std::make_tuple(false, String(F("'value' Field not in Range")));
+    return std::make_tuple(false, F("'value' Field not in Range"));
   }
 
   if (!inverter.WriteHoldingReg(3, value)) {
-    return std::make_tuple(false, String(F("Failed to write active Rate!")));
+    return std::make_tuple(false, F("Failed to write active Rate!"));
   }
 
-  return std::make_tuple(true, String(F("Updated active Rate")));
+  return std::make_tuple(true, F("Updated active Rate"));
 };
 
 std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
                                                   JsonDocument& res,
                                                   Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'Value' Field is required")));
+    return std::make_tuple(false, F("'Value' Field is required"));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 100) {
-    return std::make_tuple(false, String(F("'Value' Field not in Range")));
+    return std::make_tuple(false, F("'Value' Field not in Range"));
   }
 
   if (!inverter.WriteHoldingReg(3036, value)) {
-    return std::make_tuple(false,
-                           String(F("Failed to set BDCDischargePowerRate!")));
+    return std::make_tuple(false, F("Failed to set BDCDischargePowerRate!"));
   }
 
-  return std::make_tuple(
-      true, String(F("Set BDCDischargePowerRate to ")) + value + F(" %"));
+  String msg;
+  msg.reserve(35);
+  msg = F("Set BDCDischargePowerRate to ");
+  msg += value;
+  msg += F(" %");
+  return std::make_tuple(true, msg);
 };
 
 std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
                                                 JsonDocument& res,
                                                 Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'Value' Field is required")));
+    return std::make_tuple(false, F("'Value' Field is required"));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 100) {
-    return std::make_tuple(false, String(F("'Value' Field not in Range")));
+    return std::make_tuple(false, F("'Value' Field not in Range"));
   }
 
   if (!inverter.WriteHoldingReg(3037, value)) {
-    return std::make_tuple(false,
-                           String(F("Failed to set BDCDischargeStopSOC!")));
+    return std::make_tuple(false, F("Failed to set BDCDischargeStopSOC!"));
   }
 
-  return std::make_tuple(
-      true, String(F("Set BDCDischargeStopSOC to ")) + value + F(" %"));
+  String msg;
+  msg.reserve(35);
+  msg = F("Set BDCDischargeStopSOC to ");
+  msg += value;
+  msg += F(" %");
+  return std::make_tuple(true, msg);
 };
 
 std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
                                                JsonDocument& res,
                                                Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'Value' Field is required")));
+    return std::make_tuple(false, F("'Value' Field is required"));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 100) {
-    return std::make_tuple(false, String(F("'Value' Field not in Range")));
+    return std::make_tuple(false, F("'Value' Field not in Range"));
   }
 
   if (!inverter.WriteHoldingReg(3047, value)) {
-    return std::make_tuple(false,
-                           String(F("Failed to set BDCChargePowerRate!")));
+    return std::make_tuple(false, F("Failed to set BDCChargePowerRate!"));
   }
 
-  return std::make_tuple(
-      true, String(F("Set BDCChargePowerRate: ")) + value + F(" %"));
+  String msg;
+  msg.reserve(35);
+  msg = F("Set BDCChargePowerRate: ");
+  msg += value;
+  msg += F(" %");
+  return std::make_tuple(true, msg);
 };
 
 std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
                                              JsonDocument& res,
                                              Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'Value' Field is required")));
+    return std::make_tuple(false, F("'Value' Field is required"));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 100) {
-    return std::make_tuple(false, String(F("'Value' Field not in Range")));
+    return std::make_tuple(false, F("'Value' Field not in Range"));
   }
 
   if (!inverter.WriteHoldingReg(3048, value)) {
-    return std::make_tuple(false, String(F("Failed to set BDCChargeStopSOC!")));
+    return std::make_tuple(false, F("Failed to set BDCChargeStopSOC!"));
   }
 
-  return std::make_tuple(
-      true, String(F("Set BDCChargeStopSOC to ")) + value + F(" %"));
+  String msg;
+  msg.reserve(35);
+  msg = F("Set BDCChargeStopSOC to ");
+  msg += value;
+  msg += F(" %");
+  return std::make_tuple(true, msg);
 };
 
 std::tuple<bool, String> setBDCACChargeEnabled(const JsonDocument& req,
                                                JsonDocument& res,
                                                Growatt& inverter) {
   if (req["value"].isNull()) {
-    return std::make_tuple(false, String(F("'Value' Field is required")));
+    return std::make_tuple(false, F("'Value' Field is required"));
   }
 
   uint16_t value = req["value"].as<uint16_t>();
 
   if (value > 1) {
-    return std::make_tuple(
-        false, String(F("'Value' must be 0 (Disabled) or 1 (Enabled)")));
+    return std::make_tuple(false,
+                           F("'Value' must be 0 (Disabled) or 1 (Enabled)"));
   }
 
   if (!inverter.WriteHoldingReg(3049, value)) {
-    return std::make_tuple(false,
-                           String(F("Failed to set BDCACChargeEnabled!")));
+    return std::make_tuple(false, F("Failed to set BDCACChargeEnabled!"));
   }
 
-  return std::make_tuple(true, String(F("Set BDCACChargeEnabled")));
+  return std::make_tuple(true, F("Set BDCACChargeEnabled"));
 }
 
 std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,

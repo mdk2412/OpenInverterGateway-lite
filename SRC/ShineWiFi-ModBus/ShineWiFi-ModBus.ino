@@ -184,31 +184,31 @@ void handleNTPSync();
 bool saveSettingsToFile() {
   JsonDocument doc;
 
-  doc["hostname"] = User.hostname;
-  doc["static_ip"] = User.static_ip;
-  doc["static_netmask"] = User.static_netmask;
-  doc["static_gateway"] = User.static_gateway;
-  doc["static_dns"] = User.static_dns;
+  doc[F("hostname")] = User.hostname;
+  doc[F("static_ip")] = User.static_ip;
+  doc[F("static_netmask")] = User.static_netmask;
+  doc[F("static_gateway")] = User.static_gateway;
+  doc[F("static_dns")] = User.static_dns;
 #if MQTT_SUPPORTED == 1
-  doc["mqtt_server"] = User.mqtt.server;
-  doc["mqtt_port"] = User.mqtt.port;
-  doc["mqtt_topic"] = User.mqtt.topic;
-  doc["mqtt_user"] = User.mqtt.user;
-  doc["mqtt_pwd"] = User.mqtt.pwd;
+  doc[F("mqtt_server")] = User.mqtt.server;
+  doc[F("mqtt_port")] = User.mqtt.port;
+  doc[F("mqtt_topic")] = User.mqtt.topic;
+  doc[F("mqtt_user")] = User.mqtt.user;
+  doc[F("mqtt_pwd")] = User.mqtt.pwd;
 #endif
-  doc["syslog_ip"] = User.syslog_ip;
-  doc["force_ap"] = User.force_ap;
-  doc["bat_standby"] = User.bat_standby;
-  doc["bat_slp_thr"] = User.bat_slp_thr;
-  doc["bat_wke_thr"] = User.bat_wke_thr;
-  doc["accharge"] = User.accharge;
-  doc["ac_max_pow"] = User.ac_max_pow;
-  doc["ac_off_set"] = User.ac_off_set;
-  doc["prioctrl"] = User.prioctrl;
-  doc["ptogrid_thr"] = User.ptogrid_thr;
-  doc["ptouser_thr"] = User.ptouser_thr;
-  doc["surch"] = User.surch;
-  doc["power_limit"] = User.power_limit;
+  doc[F("syslog_ip")] = User.syslog_ip;
+  doc[F("force_ap")] = User.force_ap;
+  doc[F("bat_standby")] = User.bat_standby;
+  doc[F("bat_slp_thr")] = User.bat_slp_thr;
+  doc[F("bat_wke_thr")] = User.bat_wke_thr;
+  doc[F("accharge")] = User.accharge;
+  doc[F("ac_max_pow")] = User.ac_max_pow;
+  doc[F("ac_off_set")] = User.ac_off_set;
+  doc[F("prioctrl")] = User.prioctrl;
+  doc[F("ptogrid_thr")] = User.ptogrid_thr;
+  doc[F("ptouser_thr")] = User.ptouser_thr;
+  doc[F("surch")] = User.surch;
+  doc[F("power_limit")] = User.power_limit;
 
   File file = LittleFS.open(USER_CONFIG_FILE, "w");
   if (!file) {
@@ -258,31 +258,31 @@ void loadSettingsFromFile() {
     file.close();
 
     if (!error) {
-      raw.hostname = doc["hostname"] | raw.hostname;
-      raw.static_ip = doc["static_ip"] | raw.static_ip;
-      raw.static_netmask = doc["static_netmask"] | raw.static_netmask;
-      raw.static_gateway = doc["static_gateway"] | raw.static_gateway;
-      raw.static_dns = doc["static_dns"] | raw.static_dns;
+      raw.hostname = doc[F("hostname")] | raw.hostname;
+      raw.static_ip = doc[F("static_ip")] | raw.static_ip;
+      raw.static_netmask = doc[F("static_netmask")] | raw.static_netmask;
+      raw.static_gateway = doc[F("static_gateway")] | raw.static_gateway;
+      raw.static_dns = doc[F("static_dns")] | raw.static_dns;
 #if MQTT_SUPPORTED == 1
-      raw.mqtt.server = doc["mqtt_server"] | raw.mqtt.server;
-      raw.mqtt.port = doc["mqtt_port"] | raw.mqtt.port;
-      raw.mqtt.topic = doc["mqtt_topic"] | raw.mqtt.topic;
-      raw.mqtt.user = doc["mqtt_user"] | raw.mqtt.user;
-      raw.mqtt.pwd = doc["mqtt_pwd"] | raw.mqtt.pwd;
+      raw.mqtt.server = doc[F("mqtt_server")] | raw.mqtt.server;
+      raw.mqtt.port = doc[F("mqtt_port")] | raw.mqtt.port;
+      raw.mqtt.topic = doc[F("mqtt_topic")] | raw.mqtt.topic;
+      raw.mqtt.user = doc[F("mqtt_user")] | raw.mqtt.user;
+      raw.mqtt.pwd = doc[F("mqtt_pwd")] | raw.mqtt.pwd;
 #endif
-      raw.syslog_ip = doc["syslog_ip"] | raw.syslog_ip;
-      raw.force_ap = doc["force_ap"] | raw.force_ap;
-      raw.bat_standby = doc["bat_standby"] | raw.bat_standby;
-      raw.bat_slp_thr = doc["bat_slp_thr"] | raw.bat_slp_thr;
-      raw.bat_wke_thr = doc["bat_wke_thr"] | raw.bat_wke_thr;
-      raw.accharge = doc["accharge"] | raw.accharge;
-      raw.ac_max_pow = doc["ac_max_pow"] | raw.ac_max_pow;
-      raw.ac_off_set = doc["ac_off_set"] | raw.ac_off_set;
-      raw.prioctrl = doc["prioctrl"] | raw.prioctrl;
-      raw.ptogrid_thr = doc["ptogrid_thr"] | raw.ptogrid_thr;
-      raw.ptouser_thr = doc["ptouser_thr"] | raw.ptouser_thr;
-      raw.surch = doc["surch"] | raw.surch;
-      raw.power_limit = doc["power_limit"] | raw.power_limit;
+      raw.syslog_ip = doc[F("syslog_ip")] | raw.syslog_ip;
+      raw.force_ap = doc[F("force_ap")] | raw.force_ap;
+      raw.bat_standby = doc[F("bat_standby")] | raw.bat_standby;
+      raw.bat_slp_thr = doc[F("bat_slp_thr")] | raw.bat_slp_thr;
+      raw.bat_wke_thr = doc[F("bat_wke_thr")] | raw.bat_wke_thr;
+      raw.accharge = doc[F("accharge")] | raw.accharge;
+      raw.ac_max_pow = doc[F("ac_max_pow")] | raw.ac_max_pow;
+      raw.ac_off_set = doc[F("ac_off_set")] | raw.ac_off_set;
+      raw.prioctrl = doc[F("prioctrl")] | raw.prioctrl;
+      raw.ptogrid_thr = doc[F("ptogrid_thr")] | raw.ptogrid_thr;
+      raw.ptouser_thr = doc[F("ptouser_thr")] | raw.ptouser_thr;
+      raw.surch = doc[F("surch")] | raw.surch;
+      raw.power_limit = doc[F("power_limit")] | raw.power_limit;
     }
   }
 
@@ -345,13 +345,13 @@ void loadFirst(void) {
   httpServer.send(200, F("text/plain"), F("Load First"));
 
   JsonDocument req1, res1;
-  req1["mode"] = 0;
-  req1["retry"] = NUM_WRITE_RETRIES;
+  req1[F("mode")] = 0;
+  req1[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("priority/set", req1, res1);
 
   JsonDocument req2, res2;
-  req2["value"] = 100;
-  req2["retry"] = NUM_WRITE_RETRIES;
+  req2[F("value")] = 100;
+  req2[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
 }
 
@@ -359,8 +359,8 @@ void batteryFirst(void) {
   httpServer.send(200, F("text/plain"), F("Battery First"));
 
   JsonDocument req, res;
-  req["mode"] = 1;
-  req["retry"] = NUM_WRITE_RETRIES;
+  req[F("mode")] = 1;
+  req[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("priority/set", req, res);
 }
 
@@ -368,15 +368,14 @@ void gridFirst(void) {
   httpServer.send(200, F("text/plain"), F("Grid First"));
 
   JsonDocument req, res;
-  req["mode"] = 2;
-  req["retry"] = NUM_WRITE_RETRIES;
+  req[F("mode")] = 2;
+  req[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("priority/set", req, res);
 }
 
 // --- Einstellungen (Settings) Handler ---
 
 void handleSaveSettings(ESP8266WebServer& httpServer) {
-  // Aktuellen Zustand als Referenz sichern
   UserConfig raw = User;
 
   raw.hostname = httpServer.arg("hostname");
@@ -405,10 +404,8 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   raw.surch = (httpServer.arg("surch") == "on");
   raw.power_limit = httpServer.arg("power_limit").toInt();
 
-  // Validierte neue Konfiguration erstellen
   UserConfig validatedNew = validateUserConfig(raw);
 
-  // Prüfen, ob sich im Vergleich zum globalen 'User'-Objekt etwas geändert hat
   bool hasChanged = (validatedNew.hostname != User.hostname ||
                      validatedNew.static_ip != User.static_ip ||
                      validatedNew.static_netmask != User.static_netmask ||
@@ -435,17 +432,13 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
                      validatedNew.surch != User.surch ||
                      validatedNew.power_limit != User.power_limit);
 
-  // Objekt direkt aktualisieren
   User = validatedNew;
 
-  // Wenn keine Änderungen vorliegen, direkt erfolgreich antworten ohne Flash zu
-  // beschreiben
   if (!hasChanged) {
     httpServer.send(200, F("text/plain"), F("Settings unchanged"));
     return;
   }
 
-  // Ansonsten regulär speichern
   if (saveSettingsToFile()) {
     httpServer.send(200, F("text/plain"), F("Settings saved"));
   } else {
@@ -470,31 +463,31 @@ void handleGetUserConfig(ESP8266WebServer& httpServer) {
 void handleGetSettings(ESP8266WebServer& httpServer) {
   JsonDocument doc;
 
-  doc["hostname"] = User.hostname;
-  doc["static_ip"] = User.static_ip;
-  doc["static_netmask"] = User.static_netmask;
-  doc["static_gateway"] = User.static_gateway;
-  doc["static_dns"] = User.static_dns;
+  doc[F("hostname")] = User.hostname;
+  doc[F("static_ip")] = User.static_ip;
+  doc[F("static_netmask")] = User.static_netmask;
+  doc[F("static_gateway")] = User.static_gateway;
+  doc[F("static_dns")] = User.static_dns;
 #if MQTT_SUPPORTED == 1
-  doc["mqtt_server"] = User.mqtt.server;
-  doc["mqtt_port"] = User.mqtt.port;
-  doc["mqtt_topic"] = User.mqtt.topic;
-  doc["mqtt_user"] = User.mqtt.user;
-  doc["mqtt_pwd"] = User.mqtt.pwd;
+  doc[F("mqtt_server")] = User.mqtt.server;
+  doc[F("mqtt_port")] = User.mqtt.port;
+  doc[F("mqtt_topic")] = User.mqtt.topic;
+  doc[F("mqtt_user")] = User.mqtt.user;
+  doc[F("mqtt_pwd")] = User.mqtt.pwd;
 #endif
-  doc["syslog_ip"] = User.syslog_ip;
-  doc["force_ap"] = User.force_ap;
-  doc["bat_standby"] = User.bat_standby;
-  doc["bat_slp_thr"] = User.bat_slp_thr;
-  doc["bat_wke_thr"] = User.bat_wke_thr;
-  doc["accharge"] = User.accharge;
-  doc["ac_max_pow"] = User.ac_max_pow;
-  doc["ac_off_set"] = User.ac_off_set;
-  doc["prioctrl"] = User.prioctrl;
-  doc["ptogrid_thr"] = User.ptogrid_thr;
-  doc["ptouser_thr"] = User.ptouser_thr;
-  doc["surch"] = User.surch;
-  doc["power_limit"] = User.power_limit;
+  doc[F("syslog_ip")] = User.syslog_ip;
+  doc[F("force_ap")] = User.force_ap;
+  doc[F("bat_standby")] = User.bat_standby;
+  doc[F("bat_slp_thr")] = User.bat_slp_thr;
+  doc[F("bat_wke_thr")] = User.bat_wke_thr;
+  doc[F("accharge")] = User.accharge;
+  doc[F("ac_max_pow")] = User.ac_max_pow;
+  doc[F("ac_off_set")] = User.ac_off_set;
+  doc[F("prioctrl")] = User.prioctrl;
+  doc[F("ptogrid_thr")] = User.ptogrid_thr;
+  doc[F("ptouser_thr")] = User.ptouser_thr;
+  doc[F("surch")] = User.surch;
+  doc[F("power_limit")] = User.power_limit;
 
   sendJson(doc);
 }
@@ -733,7 +726,7 @@ void handleNTPSync() {
     localtime_r(&t, &tm);
 
     strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", &tm);
-    req["value"] = buff;
+    req[F("value")] = buff;
     Inverter.HandleCommand("datetime/set", req, res);
   }
 }
@@ -742,7 +735,6 @@ void handleNTPSync() {
 // SETUP
 
 void setup() {
-  // LittleFS Mounten & Dateisystem initialisieren
   LittleFS.begin();
   httpServer.serveStatic("/pico.lime.min.css", LittleFS, "/pico.lime.min.css",
                          "max-age=86400");
@@ -755,13 +747,11 @@ void setup() {
   drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
 #endif
 
-  // Konfigurationen laden
   loadSettingsFromFile();
 
   configureLogging(User.syslog_ip);
   Log.begin();
 
-  // Zentrale WiFi- und WiFiManager-Konfiguration
   setupShineWifi(wm);
 
   SetLED.on(LED_BLUE);
@@ -796,7 +786,6 @@ void setup() {
     ESP.restart();
   }
 
-  // Statische IP validieren
   if (!User.static_ip.isEmpty() && !User.static_netmask.isEmpty()) {
     IPAddress ip, netmask, gateway, dns;
 
@@ -837,7 +826,6 @@ void setup() {
 
   SetLED.off(LED_BLUE);
   Log.println(F("WiFi connected"));
-  // printFlashPartitionInfo();
 
 #if OTA_SUPPORTED == 1
 #if !defined(OTA_PASSWORD)
@@ -855,7 +843,6 @@ void setup() {
   shineMqtt.mqttSetup(User.mqtt);
 #endif
 
-  // --- HTTP Server Routes ---
   httpServer.on("/uiStatus", sendUiJsonSite);
   httpServer.on("/startAp", startConfigAccessPoint);
   httpServer.on("/reboot", rebootESP);
@@ -963,7 +950,6 @@ void loop() {
     mqttOK = shineMqtt.mqttConnected();
 #endif
 
-    // Status-LEDs aktualisieren
     SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
                         mqttOK);
 
