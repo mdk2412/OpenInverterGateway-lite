@@ -20,8 +20,7 @@ static void onStationModeDisconnected(
   if (!wasDisconnected) {
     wasDisconnected = true;
     disconnectedStart = millis();
-    Log.printf(PSTR("WiFi disconnected! Reason: %d. Native stack handling "
-                    "reconnect...\n"),
+    Log.printf(PSTR("WiFi disconnected! Reason: %d. Reconnecting...\n"),
                event.reason);
   }
 }
@@ -71,8 +70,7 @@ void WiFi_Reconnect() {
 
     // Harter Neustart nach 5 Minuten (300.000 ms) ohne Verbindung
     if (wasDisconnected && (currentMillis - disconnectedStart > 300000)) {
-      Log.println(
-          F("WiFi Reconnect timed out (5 minutes). Rebooting ESP8266..."));
+      Log.println(F("WiFi Reconnect timed out (5 Minutes). Rebooting..."));
       ESP.restart();
     }
 
