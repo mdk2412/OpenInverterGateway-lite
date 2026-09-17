@@ -23,7 +23,7 @@
 #include "ShineWifi.h"
 #include "SurplusCharge.h"
 #include "UserConfig.h"
-#include "WifiManager.h"
+// #include "WifiManager.h"
 
 // --- Bedingte / Feature Includes ---
 #if MQTT_SUPPORTED == 1
@@ -69,7 +69,6 @@ constexpr int DEFAULT_POWER_LIMIT = 6132;
 // --- Globale Hardware- & System-Instanzen ---
 Growatt Inverter;
 ESP8266WebServer httpServer(80);
-WiFiEventHandler disconnectHandler;
 
 #if MQTT_SUPPORTED == 1
 ShineMqtt shineMqtt(Inverter);
@@ -762,17 +761,12 @@ void setup() {
   configureLogging(User.syslog_ip);
   Log.begin();
 
-  // Hostname & WiFi-Basic-Settings konfigurieren
-  setupWifiHost();
-  wm.setHostname(User.hostname.c_str());
-
-  setupWifiManagerConfigMenu(wm);
+  // Zentrale WiFi- und WiFiManager-Konfiguration
+  setupShineWifi(wm);
 
   SetLED.on(LED_BLUE);
   SetLED.off(LED_RED);
   SetLED.off(LED_GREEN);
-
-  wm.setConfigPortalTimeout(CONFIG_PORTAL_MAX_TIME_SECONDS);
 
   Log.printf(PSTR("Force AP: %s\n"), User.force_ap ? "true" : "false");
 
