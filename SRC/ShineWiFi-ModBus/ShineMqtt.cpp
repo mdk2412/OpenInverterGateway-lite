@@ -142,7 +142,6 @@ void ShineMqtt::subscribeTopics() {
   if (!mqttclient) return;
 
   String commandTopicPattern;
-  commandTopicPattern.reserve(mqttconfig.topic.length() + 12);
   commandTopicPattern = mqttconfig.topic;
   commandTopicPattern += F("/command/#");
 
@@ -174,13 +173,11 @@ void ShineMqtt::subscribeTopics() {
         res[F("success")] = false;
 
         String err_msg;
-        err_msg.reserve(23 + strlen(err.c_str()));
         err_msg = F("Invalid JSON Payload: ");
         err_msg += err.c_str();
         res[F("message")] = err_msg;
 
         String resultTopic;
-        resultTopic.reserve(mqttconfig.topic.length() + 8);
         resultTopic = mqttconfig.topic;
         resultTopic += F("/result");
 
@@ -198,7 +195,6 @@ void ShineMqtt::subscribeTopics() {
     // Antwort zurücksenden
     if (!res.isNull()) {
       String resultTopic;
-      resultTopic.reserve(mqttconfig.topic.length() + 8);
       resultTopic = mqttconfig.topic;
       resultTopic += F("/result");
 

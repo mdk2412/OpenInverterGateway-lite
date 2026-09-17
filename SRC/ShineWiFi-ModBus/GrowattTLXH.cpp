@@ -139,7 +139,6 @@ std::tuple<bool, String> setOnOff(const JsonDocument& req, JsonDocument& res,
   }
 
   String msg;
-  msg.reserve(40);
   msg = F("OnOff Mode set to ");
   msg += value;
   msg += F(" (");
@@ -206,7 +205,6 @@ std::tuple<bool, String> setBDCDischargePowerRate(const JsonDocument& req,
   }
 
   String msg;
-  msg.reserve(35);
   msg = F("Set BDCDischargePowerRate to ");
   msg += value;
   msg += F(" %");
@@ -231,7 +229,6 @@ std::tuple<bool, String> setBDCDischargeStopSOC(const JsonDocument& req,
   }
 
   String msg;
-  msg.reserve(35);
   msg = F("Set BDCDischargeStopSOC to ");
   msg += value;
   msg += F(" %");
@@ -256,7 +253,6 @@ std::tuple<bool, String> setBDCChargePowerRate(const JsonDocument& req,
   }
 
   String msg;
-  msg.reserve(35);
   msg = F("Set BDCChargePowerRate: ");
   msg += value;
   msg += F(" %");
@@ -281,7 +277,6 @@ std::tuple<bool, String> setBDCChargeStopSOC(const JsonDocument& req,
   }
 
   String msg;
-  msg.reserve(35);
   msg = F("Set BDCChargeStopSOC to ");
   msg += value;
   msg += F(" %");
@@ -334,7 +329,6 @@ std::tuple<bool, String> setPriority(const JsonDocument& req, JsonDocument& res,
   }
 
   String msg;
-  msg.reserve(40);
   msg = F("Set Priority Mode: ");
   msg += mode;
   msg += F(" (");

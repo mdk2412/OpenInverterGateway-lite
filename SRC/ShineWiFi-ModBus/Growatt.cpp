@@ -667,7 +667,6 @@ void Growatt::HandleCommand(const String& command, JsonDocument& req,
     res[F("success")] = false;
 
     String err_msg;
-    err_msg.reserve(25 + command.length());
     err_msg = F("Unknown Command: ");
     err_msg += command;
     res[F("message")] = err_msg;
@@ -719,7 +718,6 @@ std::tuple<bool, String> Growatt::handleEcho(const JsonDocument& req,
   String text = req[F("text")].as<String>();
 
   String echo_msg;
-  echo_msg.reserve(7 + text.length());
   echo_msg = F("Echo: ");
   echo_msg += text;
 
