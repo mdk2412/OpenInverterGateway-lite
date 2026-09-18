@@ -13,7 +13,7 @@ void batteryStandby() {
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_STOPSOC].value;
   int32_t discharge_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_DISCHARGE_P_RATE].value;
-  int32_t sysstate =
+  int32_t bdc_sysstate =
       Inverter._Protocol.InputRegisters[P3000_BDC_SYSSTATE].value;
   int32_t ptogrid =
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
@@ -21,9 +21,9 @@ void batteryStandby() {
       Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
   int32_t ppv = Inverter._Protocol.InputRegisters[P3000_PPV].value;
 
-  // Log.printf("Sleep Check -> sysstate: %d | ptogrid: %ld (limit: %lu) | ppv:
+  // Log.printf("Sleep Check -> bdc_sysstate: %d | ptogrid: %ld (limit: %lu) | ppv:
   // %ld (limit: %lu) | soc: %ld | stop: %ld\n",
-  //            sysstate, ptogrid, sleep_threshold, ppv, sleep_threshold, soc,
+  //            bdc_sysstate, ptogrid, sleep_threshold, ppv, sleep_threshold, soc,
   //            discharge_stop);
 
   // --- Disable discharging ---
@@ -61,7 +61,7 @@ void batteryStandby() {
   }
 
   // --- Battery OFF → wake ---
-  if (sysstate == 0) {
+  if (bdc_sysstate == 0) {
     if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
       JsonDocument req, res;
       req[F("value")] = 3;
@@ -72,7 +72,7 @@ void batteryStandby() {
   }
 
   // --- Battery ON → sleep ---
-  else if (sysstate == 1) {
+  else if (bdc_sysstate == 1) {
     if (ptogrid <= (int32_t)sleep_threshold &&
         ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
       JsonDocument req, res;
