@@ -129,7 +129,7 @@ boolean ShineMqtt::mqttConnected() {
   return mqttclient && mqttclient->connected();
 }
 
-bool ShineMqtt::mqttReconnect() {
+bool ShineMqtt::isReadyToConnect() {
   // Diese Methode existiert nur zur Abwärtskompatibilität.
   // In picoMQTT prüft man nur, ob die Verbindung betriebsbereit ist.
   return mqttEnabled() && (WiFi.status() == WL_CONNECTED);

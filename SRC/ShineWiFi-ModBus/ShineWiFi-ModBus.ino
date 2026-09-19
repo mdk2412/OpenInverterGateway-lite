@@ -929,7 +929,7 @@ void loop() {
 
 #if MQTT_SUPPORTED == 1
   if (wifiState == WL_CONNECTED) {
-    shineMqtt.mqttReconnect();
+    shineMqtt.isReadyToConnect();
     shineMqtt.loop();
   }
 #endif
