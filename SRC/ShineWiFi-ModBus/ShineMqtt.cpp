@@ -142,9 +142,8 @@ void ShineMqtt::subscribeTopics() {
 #if MQTT_COMMANDS == 1
   if (!mqttclient) return;
 
-  String commandTopicPattern;
-  commandTopicPattern = mqttconfig.topic;
-  commandTopicPattern += F("/command/#");
+  // Vereinfachte String-Verknüpfung
+  String commandTopicPattern = mqttconfig.topic + F("/command/#");
 
   Log.printf(PSTR("MQTT Subscribing to Topic: %s\n"),
              commandTopicPattern.c_str());
@@ -173,14 +172,11 @@ void ShineMqtt::subscribeTopics() {
         res[F("command")] = command;
         res[F("success")] = false;
 
-        String err_msg;
-        err_msg = F("Invalid JSON Payload: ");
-        err_msg += err.c_str();
-        res[F("message")] = err_msg;
+        // Vereinfachte String-Verknüpfung für die Fehlermeldung
+        res[F("message")] = String(F("Invalid JSON Payload: ")) + err.c_str();
 
-        String resultTopic;
-        resultTopic = mqttconfig.topic;
-        resultTopic += F("/result");
+        // Vereinfachte String-Verknüpfung für das Result-Topic
+        String resultTopic = mqttconfig.topic + F("/result");
 
         String responsePayload;
         serializeJson(res, responsePayload);
@@ -195,9 +191,8 @@ void ShineMqtt::subscribeTopics() {
 
     // Antwort zurücksenden
     if (!res.isNull()) {
-      String resultTopic;
-      resultTopic = mqttconfig.topic;
-      resultTopic += F("/result");
+      // Vereinfachte String-Verknüpfung für das Result-Topic
+      String resultTopic = mqttconfig.topic + F("/result");
 
       String responsePayload;
       serializeJson(res, responsePayload);
