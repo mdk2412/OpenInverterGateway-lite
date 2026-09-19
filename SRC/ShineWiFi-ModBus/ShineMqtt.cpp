@@ -34,9 +34,10 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
     mqttconfig.topic.remove(mqttconfig.topic.length() - 1);
   }
 
-  // 1. Port zwingend VOR der Verwendung parsen
-  uint16_t port = mqttconfig.port.toInt();
-  if (port == 0) port = 1883;
+  // 1. Port sicher parsen und validieren (1 bis 65535)
+  long parsedPort = mqttconfig.port.toInt();
+  uint16_t port =
+      (parsedPort > 0 && parsedPort <= 65535) ? (uint16_t)parsedPort : 1883;
 
   Log.printf(PSTR("MQTT Configuration:\n    MQTT Server: %s\n    MQTT User:   "
                   "%s\n    MQTT "
@@ -49,7 +50,7 @@ void ShineMqtt::mqttSetup(const MqttConfig& config) {
     mqttclient = nullptr;
   }
 
-  // 2. Jetzt ist 'port' bekannt und kann übergeben werden
+  // 2. Jetzt ist 'port' bekannt und validiert
   mqttclient = new PicoMQTT::Client(mqttconfig.server.c_str(), port, clientId);
 
   if (!mqttconfig.user.isEmpty()) {
