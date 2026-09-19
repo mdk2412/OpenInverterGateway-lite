@@ -123,16 +123,15 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
 // =======================================================
 // 5. STATUS-ABFRAGEN & PRÜFUNGEN
 // =======================================================
-boolean ShineMqtt::mqttEnabled() { return !mqttconfig.server.isEmpty(); }
+boolean ShineMqtt::mqttEnabled() const { return !mqttconfig.server.isEmpty(); }
 
-boolean ShineMqtt::mqttConnected() {
+boolean ShineMqtt::mqttConnected() const {
   return mqttclient && mqttclient->connected();
 }
 
-bool ShineMqtt::isReadyToConnect() {
-  // Diese Methode existiert nur zur Abwärtskompatibilität.
-  // In picoMQTT prüft man nur, ob die Verbindung betriebsbereit ist.
-  return mqttEnabled() && (WiFi.status() == WL_CONNECTED);
+bool ShineMqtt::isReadyToConnect() const {
+  // Prüft, ob MQTT aktiviert ist und eine gültige WLAN-Verbindung besteht.
+  return !mqttconfig.server.isEmpty() && (WiFi.status() == WL_CONNECTED);
 }
 
 // =======================================================
