@@ -119,39 +119,57 @@ const char MAIN_page[] PROGMEM = R"=====(
     <!-- SETTINGS -->
     <section id="settings" class="tab-content" hidden>
       <form id="settingsForm">
-        <label>Hostname<input type="text" name="hostname" id="hostname" maxlength="30"></label>
-        <label>Static IP (leave blank for DHCP)<input type="text" name="static_ip" id="static_ip"></label>
-        <label>Netmask<input type="text" name="static_netmask" id="static_netmask"></label>
-        <label>Gateway<input type="text" name="static_gateway" id="static_gateway"></label>
-        <label>DNS<input type="text" name="static_dns" id="static_dns"></label>
-        <label>MQTT Server<input type="text" name="mqtt_server" id="mqtt_server"></label>
-        <label>MQTT Port<input type="number" name="mqtt_port" id="mqtt_port" min="1" max="65535"></label>
-        <label>MQTT Topic<input type="text" name="mqtt_topic" id="mqtt_topic"></label>
-        <label>MQTT Username<input type="text" name="mqtt_user" id="mqtt_user"></label>
-        <label>MQTT Password<input type="password" name="mqtt_pwd" id="mqtt_pwd"></label>
-        <label>Syslog Server IP (leave blank for none)<input type="text" name="syslog_ip" id="syslog_ip"></label>
-        <hr>
-        <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
-        <label>Sleep Threshold (W)<input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1"
-            placeholder="0"></label>
-        <label>Wake Threshold (W)<input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1"
-            placeholder="0"></label>
-        <hr>
-        <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
-        <label>Inverter Maximum Power (W)<input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500"
-            step="50" placeholder="2500"></label>
-        <label>Offset (W)<input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1"
-            placeholder="0"></label>
-        <hr>
-        <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
-        <label>Power to Grid threshold (W)<input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1"
-            placeholder="0"></label>
-        <label>Power to User threshold (W)<input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1"
-            placeholder="0"></label>
-        <hr>
-        <label><input name="surch" type="checkbox" role="switch"> Surplus Charging</label>
-        <label>Power Limit (W)<input type="number" name="power_limit" id="power_limit" min="0" step="1"
-            placeholder="0"></label>
+
+        <!-- Abschnitt 1: Netzwerk, MQTT & System (Als eigenes Aufklapp-Menü) -->
+        <details>
+          <summary>Network</summary>
+          <label>Hostname<input type="text" name="hostname" id="hostname" maxlength="30"></label>
+          <label>Static IP (leave blank for DHCP)<input type="text" name="static_ip" id="static_ip"></label>
+          <label>Netmask<input type="text" name="static_netmask" id="static_netmask"></label>
+          <label>Gateway<input type="text" name="static_gateway" id="static_gateway"></label>
+          <label>DNS<input type="text" name="static_dns" id="static_dns"></label>
+          <label>MQTT Server<input type="text" name="mqtt_server" id="mqtt_server"></label>
+          <label>MQTT Port<input type="number" name="mqtt_port" id="mqtt_port" min="1" max="65535"></label>
+          <label>MQTT Topic<input type="text" name="mqtt_topic" id="mqtt_topic"></label>
+          <label>MQTT Username<input type="text" name="mqtt_user" id="mqtt_user"></label>
+          <label>MQTT Password<input type="password" name="mqtt_pwd" id="mqtt_pwd"></label>
+          <label>Syslog Server IP (leave blank for none)<input type="text" name="syslog_ip" id="syslog_ip"></label>
+        </details>
+
+        <!-- Abschnitt 2: Alle anderen Einstellungen (Vereint in einem, standardmäßig offenen Aufklapp-Menü) -->
+        <details open>
+          <summary>Inverter Settings</summary>
+
+          <label><input name="bat_standby" type="checkbox" role="switch"> Battery Standby</label>
+          <label>Sleep Threshold (W)<input type="number" name="bat_slp_thr" id="bat_slp_thr" min="0" step="1"
+              placeholder="0"></label>
+          <label>Wake Threshold (W)<input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1"
+              placeholder="0"></label>
+
+          <hr>
+
+          <label><input name="accharge" type="checkbox" role="switch"> AC Charging</label>
+          <label>Inverter Maximum Power (W)<input type="number" name="ac_max_pow" id="ac_max_pow" min="2500" max="12500"
+              step="50" placeholder="2500"></label>
+          <label>Offset (W)<input type="number" name="ac_off_set" id="ac_off_set" min="-100" max="100" step="1"
+              placeholder="0"></label>
+
+          <hr>
+
+          <label><input name="prioctrl" type="checkbox" role="switch"> Priority Control</label>
+          <label>Power to Grid threshold (W)<input type="number" name="ptogrid_thr" id="ptogrid_thr" min="0" step="1"
+              placeholder="0"></label>
+          <label>Power to User threshold (W)<input type="number" name="ptouser_thr" id="ptouser_thr" min="0" step="1"
+              placeholder="0"></label>
+
+          <hr>
+
+          <label><input name="surch" type="checkbox" role="switch"> Surplus Charging</label>
+          <label>Power Limit (W)<input type="number" name="power_limit" id="power_limit" min="0" step="1"
+              placeholder="0"></label>
+        </details>
+
+        <!-- Speicher-Button bleibt immer sichtbar am Ende -->
         <div class="grid">
           <button type="button" onclick="saveSettings()">Save Settings</button>
         </div>
