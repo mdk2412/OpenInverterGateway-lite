@@ -145,6 +145,8 @@ const char MAIN_page[] PROGMEM = R"=====(
               placeholder="0"></label>
           <label>Wake Threshold (W)<input type="number" name="bat_wke_thr" id="bat_wke_thr" min="0" step="1"
               placeholder="0"></label>
+            <label>Discharge Stop SOC (%)<input type="number" name="bat_dis_soc" id="bat_dis_soc" min="10" max="100"
+              step="1" placeholder="10"></label>
 
           <hr>
 
@@ -317,6 +319,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             document.getElementById("syslog_ip").value = s.syslog_ip ?? "";
             document.getElementById("bat_slp_thr").value = s.bat_slp_thr ?? "";
             document.getElementById("bat_wke_thr").value = s.bat_wke_thr ?? "";
+            document.getElementById("bat_dis_soc").value = s.bat_dis_soc ?? "";
             document.getElementById("ac_max_pow").value = s.ac_max_pow ?? "";
             document.getElementById("ac_off_set").value = s.ac_off_set ?? "";
             document.getElementById("ptogrid_thr").value = s.ptogrid_thr ?? "";
@@ -371,6 +374,7 @@ const char MAIN_page[] PROGMEM = R"=====(
           params.append("syslog_ip", form.syslog_ip.value);
           params.append("bat_slp_thr", form.bat_slp_thr.value);
           params.append("bat_wke_thr", form.bat_wke_thr.value);
+          params.append("bat_dis_soc", form.bat_dis_soc.value);
           params.append("ac_max_pow", form.ac_max_pow.value);
           params.append("ac_off_set", form.ac_off_set.value);
           params.append("ptogrid_thr", form.ptogrid_thr.value);

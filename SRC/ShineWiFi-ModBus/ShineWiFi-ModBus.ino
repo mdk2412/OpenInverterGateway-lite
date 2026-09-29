@@ -60,6 +60,7 @@ extern "C" uint8_t sntp_getreachability(uint8_t);
 
 constexpr int DEFAULT_SLEEP_THR = 50;
 constexpr int DEFAULT_WAKE_THR = 75;
+constexpr int DEFAULT_BAT_DIS_SOC = 10;
 constexpr int DEFAULT_AC_MAX = 3750;
 constexpr int DEFAULT_OFFSET = 0;
 constexpr int DEFAULT_PTOGRID_THR = 100;
@@ -119,6 +120,8 @@ UserConfig validateUserConfig(const UserConfig& in) {
   // BATTERY STANDBY
   if (out.bat_slp_thr <= 0) out.bat_slp_thr = DEFAULT_SLEEP_THR;
   if (out.bat_wke_thr <= 0) out.bat_wke_thr = DEFAULT_WAKE_THR;
+  if (out.bat_dis_soc < 10 || out.bat_dis_soc > 100)
+    out.bat_dis_soc = DEFAULT_BAT_DIS_SOC;
 
   // AC Max Power (2500–12500)
   if (out.ac_max_pow < 2500 || out.ac_max_pow > 12500)
@@ -201,6 +204,7 @@ bool saveSettingsToFile() {
   doc[F("bat_standby")] = User.bat_standby;
   doc[F("bat_slp_thr")] = User.bat_slp_thr;
   doc[F("bat_wke_thr")] = User.bat_wke_thr;
+  doc[F("bat_dis_soc")] = User.bat_dis_soc;
   doc[F("accharge")] = User.accharge;
   doc[F("ac_max_pow")] = User.ac_max_pow;
   doc[F("ac_off_set")] = User.ac_off_set;
@@ -239,6 +243,7 @@ void loadSettingsFromFile() {
   raw.bat_standby = true;
   raw.bat_slp_thr = DEFAULT_SLEEP_THR;
   raw.bat_wke_thr = DEFAULT_WAKE_THR;
+  raw.bat_dis_soc = DEFAULT_BAT_DIS_SOC;
   raw.accharge = true;
   raw.ac_max_pow = DEFAULT_AC_MAX;
   raw.ac_off_set = DEFAULT_OFFSET;
@@ -275,6 +280,7 @@ void loadSettingsFromFile() {
       raw.bat_standby = doc[F("bat_standby")] | raw.bat_standby;
       raw.bat_slp_thr = doc[F("bat_slp_thr")] | raw.bat_slp_thr;
       raw.bat_wke_thr = doc[F("bat_wke_thr")] | raw.bat_wke_thr;
+      raw.bat_dis_soc = doc[F("bat_dis_soc")] | raw.bat_dis_soc;
       raw.accharge = doc[F("accharge")] | raw.accharge;
       raw.ac_max_pow = doc[F("ac_max_pow")] | raw.ac_max_pow;
       raw.ac_off_set = doc[F("ac_off_set")] | raw.ac_off_set;
@@ -395,6 +401,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   raw.bat_standby = (httpServer.arg("bat_standby") == "on");
   raw.bat_slp_thr = httpServer.arg("bat_slp_thr").toInt();
   raw.bat_wke_thr = httpServer.arg("bat_wke_thr").toInt();
+  raw.bat_dis_soc = httpServer.arg("bat_dis_soc").toInt();
   raw.accharge = (httpServer.arg("accharge") == "on");
   raw.ac_max_pow = httpServer.arg("ac_max_pow").toInt();
   raw.ac_off_set = httpServer.arg("ac_off_set").toInt();
@@ -423,6 +430,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
                      validatedNew.bat_standby != User.bat_standby ||
                      validatedNew.bat_slp_thr != User.bat_slp_thr ||
                      validatedNew.bat_wke_thr != User.bat_wke_thr ||
+                     validatedNew.bat_dis_soc != User.bat_dis_soc ||
                      validatedNew.accharge != User.accharge ||
                      validatedNew.ac_max_pow != User.ac_max_pow ||
                      validatedNew.ac_off_set != User.ac_off_set ||
@@ -452,8 +460,15 @@ void handleGetUserConfig(ESP8266WebServer& httpServer) {
     file = LittleFS.open(LEGACY_USER_CONFIG_FILE, "r");
   }
   if (!file) {
-    httpServer.send(404, F("text/plain"), F("Configuration file not found"));
-    return;
+    if (!saveSettingsToFile()) {
+      httpServer.send(500, F("text/plain"), F("Could not create configuration file"));
+      return;
+    }
+    file = LittleFS.open(USER_CONFIG_FILE, "r");
+    if (!file) {
+      httpServer.send(500, F("text/plain"), F("Could not open configuration file"));
+      return;
+    }
   }
 
   httpServer.streamFile(file, F("application/json"));
@@ -480,6 +495,7 @@ void handleGetSettings(ESP8266WebServer& httpServer) {
   doc[F("bat_standby")] = User.bat_standby;
   doc[F("bat_slp_thr")] = User.bat_slp_thr;
   doc[F("bat_wke_thr")] = User.bat_wke_thr;
+  doc[F("bat_dis_soc")] = User.bat_dis_soc;
   doc[F("accharge")] = User.accharge;
   doc[F("ac_max_pow")] = User.ac_max_pow;
   doc[F("ac_off_set")] = User.ac_off_set;

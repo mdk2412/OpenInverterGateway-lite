@@ -30,6 +30,7 @@ struct UserConfig {
     bool bat_standby;
     int bat_slp_thr;
     int bat_wke_thr;
+    int bat_dis_soc;
 
     bool accharge;
     int ac_max_pow;
