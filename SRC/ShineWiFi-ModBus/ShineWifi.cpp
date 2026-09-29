@@ -11,8 +11,7 @@ WiFiClient espClient;
 // Statische Variablen für die Reconnect-Überwachung
 static bool wasDisconnected = false;
 static unsigned long disconnectedStart = 0;
-static uint8_t lastDisconnectReason =
-    0;  // Speichert den Disconnect-Grund für das spätere Loggen
+static uint8_t lastDisconnectReason = 0;  // Initial 0 (kein Grund)
 
 // Nativer Event-Handler für Disconnects
 WiFiEventHandler disconnectHandler;
@@ -23,8 +22,7 @@ static void onStationModeDisconnected(
   if (!wasDisconnected) {
     wasDisconnected = true;
     disconnectedStart = millis();
-    lastDisconnectReason = event.reason;  // Grund sichern (wird erst geloggt,
-                                          // wenn Netz wieder da ist)
+    lastDisconnectReason = event.reason;  // Grund sichern
   }
 }
 
@@ -107,6 +105,10 @@ void setupShineWifi(WiFiManager& wm) {
   WiFi.setSleepMode(
       WIFI_NONE_SLEEP);  // Verhindert Sleep-Probleme beim AP-Rekeying
 
+  // Verhindert das dauerhafte Schreiben/Cachen ungültiger Session-Tokens im
+  // Flash, was bei WPA2/WPA3-Transition-Mode oft zu Reason 6 führt.
+  WiFi.persistent(false);
+
   // 2. Nativen Event-Handler registrieren
 #ifdef ESP8266
   disconnectHandler = WiFi.onStationModeDisconnected(onStationModeDisconnected);
@@ -137,8 +139,6 @@ void WiFi_Reconnect() {
       ESP.restart();
     }
 
-    // Kein manuelles WiFi.reconnect() nötig (wird nativ im Hintergrund
-    // erledigt)
     return;
   }
 
@@ -146,11 +146,20 @@ void WiFi_Reconnect() {
   if (wasDisconnected) {
     wasDisconnected = false;
 
-    // Gibt jetzt sowohl den Grund-Code als auch den Text aus, sobald die
-    // Netzverbindung wieder aktiv ist
-    Log.printf(PSTR("WiFi reconnected | Reason: %d (%s) | Local IP: %s | RSSI: "
-                    "%d dBm\n"),
-               lastDisconnectReason, getWiFiReasonText(lastDisconnectReason),
-               WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    // Nur Grund ausgeben, wenn er beim Disconnect auch tatsächlich gesetzt
+    // wurde
+    if (lastDisconnectReason > 0) {
+      Log.printf(
+          PSTR("WiFi reconnected | Reason: %d (%s) | Local IP: %s | RSSI: "
+               "%d dBm\n"),
+          lastDisconnectReason, getWiFiReasonText(lastDisconnectReason),
+          WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    } else {
+      Log.printf(PSTR("WiFi reconnected | Local IP: %s | RSSI: %d dBm\n"),
+                 WiFi.localIP().toString().c_str(), WiFi.RSSI());
+    }
+
+    // Grund für das nächste Event zurücksetzen
+    lastDisconnectReason = 0;
   }
 }
