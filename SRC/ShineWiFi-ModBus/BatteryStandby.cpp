@@ -7,7 +7,7 @@ void batteryStandby() {
   uint32_t wake_threshold = User.bat_wke_thr * 10;
   uint32_t sleep_threshold = User.bat_slp_thr * 10;
   int32_t discharge_stop = User.bat_dis_soc;
-  
+
   // --- Register EINMAL auslesen ---
   int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   int32_t discharge_rate =
@@ -26,7 +26,7 @@ void batteryStandby() {
   //            discharge_stop);
 
   // --- Disable discharging ---
-  if (soc >= 10 && soc <= discharge_stop) {
+  if (soc <= discharge_stop) {
     if (discharge_rate != 0) {
       JsonDocument req, res;
       req[F("value")] = 0;
