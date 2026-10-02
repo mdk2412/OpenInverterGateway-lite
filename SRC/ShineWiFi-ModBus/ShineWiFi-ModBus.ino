@@ -327,8 +327,7 @@ void sendUiJsonSite(void) {
 }
 
 void sendMainPage(void) {
-  httpServer.sendHeader(F("Connection"), F("close"));
-  httpServer.send(200, F("text/html"), FPSTR(MAIN_page));
+  httpServer.send_P(200, "text/html", MAIN_page);
 }
 
 void rebootESP(void) {
