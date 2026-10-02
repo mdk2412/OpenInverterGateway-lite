@@ -314,6 +314,7 @@ void startConfigAccessPoint(void) {
 }
 
 void sendJson(JsonDocument& doc) {
+  httpServer.sendHeader(F("Connection"), F("close"));
   httpServer.setContentLength(measureJson(doc));
   httpServer.send(200, F("application/json"), F(""));
   serializeJson(doc, httpServer.client());
@@ -326,6 +327,7 @@ void sendUiJsonSite(void) {
 }
 
 void sendMainPage(void) {
+  httpServer.sendHeader(F("Connection"), F("close"));
   httpServer.send(200, F("text/html"), FPSTR(MAIN_page));
 }
 
