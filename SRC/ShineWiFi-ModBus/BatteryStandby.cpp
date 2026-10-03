@@ -3,9 +3,9 @@
 #include <TLog.h>
 
 void batteryStandby() {
-  // --- User-Parameter
-  uint32_t wake_threshold = User.bat_wke_thr * 10;
-  uint32_t sleep_threshold = User.bat_slp_thr * 10;
+  // --- User-Parameter (einheitlich als int32_t deklariert)
+  int32_t wake_threshold = User.bat_wke_thr * 10;
+  int32_t sleep_threshold = User.bat_slp_thr * 10;
   int32_t discharge_stop = User.bat_dis_soc;
 
   // --- Register EINMAL auslesen ---
@@ -19,11 +19,6 @@ void batteryStandby() {
   int32_t inverter_status =
       Inverter._Protocol.InputRegisters[P3000_INVERTER_STATUS].value;
   int32_t ppv = Inverter._Protocol.InputRegisters[P3000_PPV].value;
-
-  // Log.printf("Sleep Check -> bdc_sysstate: %d | ptogrid: %ld (limit: %lu) | ppv:
-  // %ld (limit: %lu) | soc: %ld | stop: %ld\n",
-  //            bdc_sysstate, ptogrid, sleep_threshold, ppv, sleep_threshold, soc,
-  //            discharge_stop);
 
   // --- Disable discharging ---
   if (soc <= discharge_stop) {
@@ -61,7 +56,7 @@ void batteryStandby() {
 
   // --- Battery OFF → wake ---
   if (bdc_sysstate == 0) {
-    if (ptogrid >= (int32_t)wake_threshold && inverter_status == 1) {
+    if (ptogrid >= wake_threshold && inverter_status == 1) {
       JsonDocument req, res;
       req[F("value")] = 3;
       req[F("retry")] = NUM_WRITE_RETRIES;
@@ -72,8 +67,8 @@ void batteryStandby() {
 
   // --- Battery ON → sleep ---
   else if (bdc_sysstate == 1) {
-    if (ptogrid <= (int32_t)sleep_threshold &&
-        ppv <= (int32_t)sleep_threshold && soc >= 10 && soc <= discharge_stop) {
+    if (ptogrid <= sleep_threshold && ppv <= sleep_threshold && soc >= 10 &&
+        soc <= discharge_stop) {
       JsonDocument req, res;
       req[F("value")] = 2;
       req[F("retry")] = NUM_WRITE_RETRIES;
