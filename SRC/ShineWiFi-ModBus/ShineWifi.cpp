@@ -149,14 +149,10 @@ void WiFi_Reconnect() {
     // Nur Grund ausgeben, wenn er beim Disconnect auch tatsächlich gesetzt
     // wurde
     if (lastDisconnectReason > 0) {
-      Log.printf(
-          PSTR("WiFi reconnected | Reason: %d (%s) | Local IP: %s | RSSI: "
-               "%d dBm\n"),
-          lastDisconnectReason, getWiFiReasonText(lastDisconnectReason),
-          WiFi.localIP().toString().c_str(), WiFi.RSSI());
+      Log.printf(PSTR("WiFi reconnected | Reason: %d (%s)\n"),
+                 lastDisconnectReason, getWiFiReasonText(lastDisconnectReason));
     } else {
-      Log.printf(PSTR("WiFi reconnected | Local IP: %s | RSSI: %d dBm\n"),
-                 WiFi.localIP().toString().c_str(), WiFi.RSSI());
+      Log.printf(PSTR("WiFi reconnected\n"));
     }
 
     // Grund für das nächste Event zurücksetzen
