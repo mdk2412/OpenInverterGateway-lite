@@ -69,56 +69,82 @@ void WebSerialStream::begin() {
       return;
     };
     unsigned long prevAt = _server->arg("at").toInt();
-    String out = "{\"at\":" + String(_at) + ",\"buff\":\"";
+
+    _server->setContentLength(CONTENT_LENGTH_UNKNOWN);
+    _server->send(200, "application/json", "");
+
+    String chunk;
+    chunk.reserve(64);
+    auto flushChunk = [&]() {
+      if (!chunk.isEmpty()) {
+        _server->sendContent(chunk);
+        chunk.remove(0);
+      }
+    };
+    auto append = [&](const char* text) {
+      while (*text) {
+        if (chunk.length() == 64) flushChunk();
+        chunk += *text++;
+      }
+    };
+
+    char header[48];
+    snprintf(header, sizeof(header), "{\"at\":%lu,\"buff\":\"", _at);
+    append(header);
 
     // reset browsers from the future (e.g. after a reset)
     if (prevAt > _at) {
-      out += "<font color=red><hr><i>.. log reset..</i></font><hr>";
+      append("<font color=red><hr><i>.. log reset..</i></font><hr>");
       prevAt = _at;
     };
     if (_at > sizeof(_buff) && prevAt < _at - sizeof(_buff)) {
-      out += "<font color=red><hr><i>.. skipping " +
-             String(_at - sizeof(_buff) - prevAt) +
-             " bytes of log - no longer in buffer ..</i><hr></font>";
+      char skippedMessage[112];
+      snprintf(skippedMessage, sizeof(skippedMessage),
+               "<font color=red><hr><i>.. skipping %lu bytes of log - no "
+               "longer in buffer ..</i><hr></font>",
+               _at - sizeof(_buff) - prevAt);
+      append(skippedMessage);
       prevAt = _at - sizeof(_buff);
     };
     for (; prevAt != _at; prevAt++) {
       char c = _buff[prevAt % sizeof(_buff)];
       switch (c) {
         case '<':
-          out += "&lt;";
+          append("&lt;");
           break;
         case '>':
-          out += "&gt;";
+          append("&gt;");
           break;
         case '\b':
-          out += "\\b";
+          append("\\b");
           break;
         case '\n':
-          out += "\\n";
+          append("\\n");
           break;
         case '\r':
-          out += "\\r";
+          append("\\r");
           break;
         case '\f':
-          out += "\\f";
+          append("\\f");
           break;
         case '\t':
-          out += "\\t";
+          append("\\t");
           break;
         case '"':
-          out += "\\\"";
+          append("\\\"");
           break;
         case '\\':
-          out += "\\\\";
+          append("\\\\");
           break;
         default:
-          out += c;
+          if (chunk.length() == 64) flushChunk();
+          chunk += c;
           break;
       };
     };
-    out += "\"}";
-    _server->send(200, "application/json", out);
+    append("\"}");
+    flushChunk();
+    _server->sendContent("");
   });
   _server->begin();
 };

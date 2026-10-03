@@ -8,7 +8,6 @@ TelnetSerialStream telnetSerialStream = TelnetSerialStream();
 
 #ifdef ENABLE_WEB_DEBUG
 #include <WebSerialStream.h>
-WebSerialStream webSerialStream = WebSerialStream(8080);
 #endif
 
 #include <SyslogStream.h>
@@ -27,7 +26,7 @@ void configureLogging(const String& syslogIp) {
 #endif
 
 #ifdef ENABLE_WEB_DEBUG
-  Log.addPrintStream(std::make_shared<WebSerialStream>(webSerialStream));
+  Log.addPrintStream(std::make_shared<WebSerialStream>(8080));
 #endif
 
   if (!syslogIp.isEmpty()) {

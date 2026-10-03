@@ -163,6 +163,14 @@ void ShineMqtt::subscribeTopics() {
     JsonDocument req;
     JsonDocument res;
 
+    auto publishResult = [this](JsonDocument& response) {
+      String resultTopic = mqttconfig.topic + F("/result");
+      auto publishStream = mqttclient->begin_publish(
+          resultTopic.c_str(), measureJson(response), 0, false);
+      serializeJson(response, publishStream);
+      publishStream.flush();
+    };
+
     if (safePayload[0] != '\0') {
       DeserializationError err = deserializeJson(req, safePayload);
       if (err) {
@@ -174,13 +182,7 @@ void ShineMqtt::subscribeTopics() {
         // Vereinfachte String-Verknüpfung für die Fehlermeldung
         res[F("message")] = String(F("Invalid JSON Payload: ")) + err.c_str();
 
-        // Vereinfachte String-Verknüpfung für das Result-Topic
-        String resultTopic = mqttconfig.topic + F("/result");
-
-        String responsePayload;
-        serializeJson(res, responsePayload);
-
-        mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+        publishResult(res);
         return;
       }
     }
@@ -190,13 +192,7 @@ void ShineMqtt::subscribeTopics() {
 
     // Antwort zurücksenden
     if (!res.isNull()) {
-      // Vereinfachte String-Verknüpfung für das Result-Topic
-      String resultTopic = mqttconfig.topic + F("/result");
-
-      String responsePayload;
-      serializeJson(res, responsePayload);
-
-      mqttclient->publish(resultTopic.c_str(), responsePayload.c_str());
+      publishResult(res);
     }
   });
 #endif
