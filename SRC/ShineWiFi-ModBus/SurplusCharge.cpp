@@ -30,9 +30,20 @@ void surplusCharge() {
   uint16_t targetpowerrate = std::clamp<int32_t>(rate, 0, 100);
 
   // --- Steuerung ausführen ---
-  // Nur senden, wenn die aktuelle Rate zu NIEDRIG ist (Hochregeln)
+  // 1. Hochregeln: Nur wenn die aktuelle Rate zu NIEDRIG ist
   if (current_rate < targetpowerrate) {
     int value = targetpowerrate;
+
+    JsonDocument req, res;
+    req[F("value")] = value;
+    req[F("retry")] = NUM_WRITE_RETRIES;
+
+    Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
+  }
+  // 2. Runterregeln: Wenn die aktuelle Rate GRÖSSER ist als nötig, um 1
+  // verringern
+  else if (current_rate > targetpowerrate) {
+    int value = current_rate - 1;
 
     JsonDocument req, res;
     req[F("value")] = value;
