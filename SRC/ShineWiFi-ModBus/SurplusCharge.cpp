@@ -42,13 +42,13 @@ void surplusCharge() {
   }
   // 2. Runterregeln: Wenn die aktuelle Rate GRÖSSER ist als nötig, um 1
   // verringern
-  else if (current_rate > targetpowerrate) {
-    int value = current_rate - 1;
+  // else if (current_rate > targetpowerrate) {
+  //   int value = current_rate - 1;
 
-    JsonDocument req, res;
-    req[F("value")] = value;
-    req[F("retry")] = NUM_WRITE_RETRIES;
+  //   JsonDocument req, res;
+  //   req[F("value")] = value;
+  //   req[F("retry")] = NUM_WRITE_RETRIES;
 
-    Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
-  }
+  //   Inverter.HandleCommand("bdc/set/chargepowerrate", req, res);
+  // }
 }
