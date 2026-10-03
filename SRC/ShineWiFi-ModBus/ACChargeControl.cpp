@@ -4,7 +4,7 @@
 
 void acchargeControl() {
   // --- User-Parameter laden ---
-  uint32_t max_power = User.ac_max_pow;
+  int32_t max_power = User.ac_max_pow;
   int32_t off_set = User.ac_off_set * 10;
 
   // --- Register EINMAL auslesen ---
