@@ -28,6 +28,21 @@
 
 ModbusMaster Modbus;
 
+namespace {
+bool equalsFlashString(const __FlashStringHelper* lhs,
+                       const __FlashStringHelper* rhs) {
+  const char* lhsBytes = reinterpret_cast<const char*>(lhs);
+  const char* rhsBytes = reinterpret_cast<const char*>(rhs);
+
+  while (true) {
+    const uint8_t lhsByte = pgm_read_byte(lhsBytes++);
+    const uint8_t rhsByte = pgm_read_byte(rhsBytes++);
+    if (lhsByte != rhsByte) return false;
+    if (lhsByte == '\0') return true;
+  }
+}
+}  // namespace
+
 // Constructor
 Growatt::Growatt() {
   _PacketCnt = 0;
@@ -538,18 +553,18 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 
         const auto regVal = _Protocol.InputRegisters[i].value;
 
-        if ((String(regName) == F("InverterStatus") ||
-             String(regName) == F("BDCSysState")) &&
+        if ((equalsFlashString(regName, F("InverterStatus")) ||
+             equalsFlashString(regName, F("BDCSysState"))) &&
             regVal >= 0 && regVal < statusStrLength) {
           arr.add(statusStr[regVal]);
-        } else if (String(regName) == F("BDCSysMode") && regVal >= 0 &&
+        } else if (equalsFlashString(regName, F("BDCSysMode")) && regVal >= 0 &&
                    regVal < bdcModeStrLength) {
           arr.add(bdcModeStr[regVal]);
-        } else if (String(regName) == F("Priority") && regVal >= 0 &&
+        } else if (equalsFlashString(regName, F("Priority")) && regVal >= 0 &&
                    regVal < priorityStrLength) {
           arr.add(priorityStr[regVal]);
-        } else if ((String(regName) == F("InverterOnOff") ||
-                    String(regName) == F("BDCOnOff")) &&
+        } else if ((equalsFlashString(regName, F("InverterOnOff")) ||
+                    equalsFlashString(regName, F("BDCOnOff"))) &&
                    regVal >= 0 && regVal < onoffStrLength) {
           arr.add(onoffStr[regVal]);
         } else {
@@ -573,10 +588,10 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
 
         const auto regVal = _Protocol.HoldingRegisters[i].value;
 
-        if (String(regName) == F("InverterStatus") && regVal >= 0 &&
+        if (equalsFlashString(regName, F("InverterStatus")) && regVal >= 0 &&
             regVal < statusStrLength) {
           arr.add(statusStr[regVal]);
-        } else if (String(regName) == F("OnOff") && regVal >= 0 &&
+        } else if (equalsFlashString(regName, F("OnOff")) && regVal >= 0 &&
                    regVal < onoffStrLength) {
           arr.add(onoffStr[regVal]);
         } else {
