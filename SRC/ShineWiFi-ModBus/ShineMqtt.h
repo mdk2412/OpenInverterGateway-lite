@@ -20,7 +20,6 @@ class ShineMqtt {
   void loop();
   boolean mqttEnabled() const;
   boolean mqttConnected() const;
-  bool isReadyToConnect() const;
 
   boolean mqttPublish(JsonDocument& doc, const String& topic = "",
                       uint8_t qos = 0, bool retain = false);

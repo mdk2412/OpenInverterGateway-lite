@@ -129,11 +129,6 @@ boolean ShineMqtt::mqttConnected() const {
   return mqttclient && mqttclient->connected();
 }
 
-bool ShineMqtt::isReadyToConnect() const {
-  // Prüft, ob MQTT aktiviert ist und eine gültige WLAN-Verbindung besteht.
-  return !mqttconfig.server.isEmpty() && (WiFi.status() == WL_CONNECTED);
-}
-
 // =======================================================
 // 6. INTERNE HELPER (Private Subscriptions / Handler)
 // =======================================================

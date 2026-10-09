@@ -946,7 +946,6 @@ void loop() {
 
 #if MQTT_SUPPORTED == 1
   if (wifiState == WL_CONNECTED) {
-    shineMqtt.isReadyToConnect();
     shineMqtt.loop();
   }
 #endif
