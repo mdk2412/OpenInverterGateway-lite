@@ -915,7 +915,6 @@ void loop() {
 
   Log.loop();
   unsigned long now = millis();
-  wl_status_t wifiState = WiFi.status();
 
 #ifdef AP_BUTTON_PRESSED
   if (now - ButtonTimer > BUTTON_TIMER) {
@@ -945,9 +944,7 @@ void loop() {
   WiFi_Reconnect();
 
 #if MQTT_SUPPORTED == 1
-  if (wifiState == WL_CONNECTED) {
-    shineMqtt.loop();
-  }
+  shineMqtt.loop();
 #endif
 
   httpServer.handleClient();
