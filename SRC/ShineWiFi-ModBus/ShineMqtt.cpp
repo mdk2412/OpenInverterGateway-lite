@@ -174,8 +174,10 @@ void ShineMqtt::subscribeTopics() {
         res[F("command")] = command;
         res[F("success")] = false;
 
-        // Vereinfachte String-Verknüpfung für die Fehlermeldung
-        res[F("message")] = String(F("Invalid JSON Payload: ")) + err.c_str();
+        char message[64];
+        snprintf_P(message, sizeof(message), PSTR("Invalid JSON Payload: %s"),
+                   err.c_str());
+        res[F("message")] = message;
 
         publishResult(res);
         return;

@@ -535,6 +535,33 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
   const char* bdcModeStr[] = {"(Idle)", "(Charging)", "(Discharging)"};
   const int bdcModeStrLength = sizeof(bdcModeStr) / sizeof(char*);
 
+  auto appendRegisterValue = [&](const __FlashStringHelper* regName,
+                                double value, int regVal, uint8_t unit) {
+    JsonArray arr = doc[regName].to<JsonArray>();
+    arr.add(value);
+
+    if ((equalsFlashString(regName, F("InverterStatus")) ||
+         equalsFlashString(regName, F("BDCSysState"))) &&
+        regVal >= 0 && regVal < statusStrLength) {
+      arr.add(statusStr[regVal]);
+    } else if (equalsFlashString(regName, F("BDCSysMode")) && regVal >= 0 &&
+               regVal < bdcModeStrLength) {
+      arr.add(bdcModeStr[regVal]);
+    } else if (equalsFlashString(regName, F("Priority")) && regVal >= 0 &&
+               regVal < priorityStrLength) {
+      arr.add(priorityStr[regVal]);
+    } else if ((equalsFlashString(regName, F("InverterOnOff")) ||
+                equalsFlashString(regName, F("BDCOnOff"))) &&
+               regVal >= 0 && regVal < onoffStrLength) {
+      arr.add(onoffStr[regVal]);
+    } else if (equalsFlashString(regName, F("OnOff")) && regVal >= 0 &&
+               regVal < onoffStrLength) {
+      arr.add(onoffStr[regVal]);
+    } else {
+      arr.add(unit < unitStrLength ? unitStr[unit] : "");
+    }
+  };
+
   if (!Hostname.isEmpty()) {
     JsonArray arr = doc[F("Hostname")].to<JsonArray>();
     arr.add(Hostname);
@@ -548,30 +575,8 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
     if (!isnan(val)) {
       const auto regName = _Protocol.InputRegisters[i].name;
       if (regName) {
-        JsonArray arr = doc[regName].to<JsonArray>();
-        arr.add(val);
-
-        const auto regVal = _Protocol.InputRegisters[i].value;
-
-        if ((equalsFlashString(regName, F("InverterStatus")) ||
-             equalsFlashString(regName, F("BDCSysState"))) &&
-            regVal >= 0 && regVal < statusStrLength) {
-          arr.add(statusStr[regVal]);
-        } else if (equalsFlashString(regName, F("BDCSysMode")) && regVal >= 0 &&
-                   regVal < bdcModeStrLength) {
-          arr.add(bdcModeStr[regVal]);
-        } else if (equalsFlashString(regName, F("Priority")) && regVal >= 0 &&
-                   regVal < priorityStrLength) {
-          arr.add(priorityStr[regVal]);
-        } else if ((equalsFlashString(regName, F("InverterOnOff")) ||
-                    equalsFlashString(regName, F("BDCOnOff"))) &&
-                   regVal >= 0 && regVal < onoffStrLength) {
-          arr.add(onoffStr[regVal]);
-        } else {
-          // Sicherer Zugriff auf unitStr
-          uint8_t unitIdx = _Protocol.InputRegisters[i].unit;
-          arr.add(unitIdx < unitStrLength ? unitStr[unitIdx] : "");
-        }
+        appendRegisterValue(regName, val, _Protocol.InputRegisters[i].value,
+                            _Protocol.InputRegisters[i].unit);
       }
     }
   }
@@ -583,22 +588,8 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
     if (!isnan(val)) {
       const auto regName = _Protocol.HoldingRegisters[i].name;
       if (regName) {
-        JsonArray arr = doc[regName].to<JsonArray>();
-        arr.add(val);
-
-        const auto regVal = _Protocol.HoldingRegisters[i].value;
-
-        if (equalsFlashString(regName, F("InverterStatus")) && regVal >= 0 &&
-            regVal < statusStrLength) {
-          arr.add(statusStr[regVal]);
-        } else if (equalsFlashString(regName, F("OnOff")) && regVal >= 0 &&
-                   regVal < onoffStrLength) {
-          arr.add(onoffStr[regVal]);
-        } else {
-          // Sicherer Zugriff auf unitStr
-          uint8_t unitIdx = _Protocol.HoldingRegisters[i].unit;
-          arr.add(unitIdx < unitStrLength ? unitStr[unitIdx] : "");
-        }
+        appendRegisterValue(regName, val, _Protocol.HoldingRegisters[i].value,
+                            _Protocol.HoldingRegisters[i].unit);
       }
     }
   }
