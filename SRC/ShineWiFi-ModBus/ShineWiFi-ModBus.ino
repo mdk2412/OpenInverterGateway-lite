@@ -367,11 +367,12 @@ void startConfigAccessPoint(void) {
 
 void sendJson(JsonDocument& doc) {
   httpServer.sendHeader(F("Connection"), F("close"));
-  const size_t contentLength = measureJson(doc);
-  String body;
-  body.reserve(contentLength);
-  serializeJson(doc, body);
-  httpServer.send(200, F("application/json"), body);
+  httpServer.setContentLength(measureJson(doc));
+  httpServer.send(200, F("application/json"), F(""));
+  WiFiClient client = httpServer.client();
+  WriteBufferingStream bufferedClient{client, BUFFER_SIZE};
+  serializeJson(doc, bufferedClient);
+  bufferedClient.flush();
 }
 
 void sendUiJsonSite(void) {
