@@ -618,15 +618,26 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
     arrRssi.add(WiFi.RSSI());
     arrRssi.add(F("dBm"));
 
+    const uint32_t freeHeap = ESP.getFreeHeap();
     JsonArray arrHeap = doc[F("HeapFree")].to<JsonArray>();
-    arrHeap.add(ESP.getFreeHeap());
+    arrHeap.add(freeHeap);
     arrHeap.add(F("B"));
 
-    static uint32_t heap_min_free = ESP.getFreeHeap();
-    heap_min_free = (std::min)(ESP.getFreeHeap(), heap_min_free);
+    static uint32_t heap_min_free = freeHeap;
+    heap_min_free = (std::min)(freeHeap, heap_min_free);
 
     JsonArray arrHeapMax = doc[F("HeapMaxAlloc")].to<JsonArray>();
-    arrHeapMax.add(ESP.getMaxFreeBlockSize());
+#ifdef ESP8266
+    const uint32_t maxHeapAlloc = ESP.getMaxFreeBlockSize();
+    const uint32_t heapFragmentation = ESP.getHeapFragmentation();
+#elif defined(ESP32)
+    const uint32_t maxHeapAlloc = ESP.getMaxAllocHeap();
+    const uint32_t heapFragmentation =
+        freeHeap > maxHeapAlloc
+            ? ((freeHeap - maxHeapAlloc) * 100) / freeHeap
+            : 0;
+#endif
+    arrHeapMax.add(maxHeapAlloc);
     arrHeapMax.add(F("B"));
 
     JsonArray arrHeapMin = doc[F("HeapMinFree")].to<JsonArray>();
@@ -634,7 +645,7 @@ void Growatt::CreateJson(JsonDocument& doc, const String& MacAddress,
     arrHeapMin.add(F("B"));
 
     JsonArray arrHeapFrag = doc[F("HeapFragmentation")].to<JsonArray>();
-    arrHeapFrag.add(ESP.getHeapFragmentation());
+    arrHeapFrag.add(heapFragmentation);
     arrHeapFrag.add(F("%"));
   }
 

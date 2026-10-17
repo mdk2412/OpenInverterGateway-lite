@@ -1,6 +1,6 @@
 #include "ACChargeControl.h"
 #include <ArduinoJson.h>
-#include <algorithm>  // std::clamp
+#include <algorithm>
 
 void acchargeControl() {
   // --- User-Parameter laden ---
@@ -46,7 +46,7 @@ void acchargeControl() {
     int32_t rawRate = (delta * 10) / max_power;
 
     // --- clamp auf 0–100 ---
-    uint16_t targetpowerrate = std::clamp(rawRate, 0, 100);
+    uint16_t targetpowerrate = std::max<int32_t>(0, std::min<int32_t>(rawRate, 100));
 
     if (current_rate != targetpowerrate) {
       JsonDocument req, res;

@@ -12,8 +12,13 @@ ShineMqtt::ShineMqtt(Growatt& inverter)
       inverter(inverter),
       lastMqttLoop(0),
       lastConnectedState(false) {
+#ifdef ESP8266
   snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%08x",
-           (uint32_t)ESP.getChipId());
+           static_cast<uint32_t>(ESP.getChipId()));
+#elif defined(ESP32)
+  snprintf(clientId, sizeof(clientId), "growatt-min_tl-xh-%012llx",
+           static_cast<unsigned long long>(ESP.getEfuseMac() & 0xFFFFFFFFFFFFULL));
+#endif
 }
 
 ShineMqtt::~ShineMqtt() {

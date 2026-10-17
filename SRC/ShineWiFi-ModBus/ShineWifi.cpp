@@ -14,9 +14,12 @@ static unsigned long disconnectedStart = 0;
 static uint8_t lastDisconnectReason = 0;  // Initial 0 (kein Grund)
 
 // Nativer Event-Handler für Disconnects
+#ifdef ESP8266
 WiFiEventHandler disconnectHandler;
+#endif
 
 // Nativer Event-Handler Callback (läuft direkt im ESP-SDK Context)
+#ifdef ESP8266
 static void onStationModeDisconnected(
     const WiFiEventStationModeDisconnected& event) {
   if (!wasDisconnected) {
@@ -25,6 +28,17 @@ static void onStationModeDisconnected(
     lastDisconnectReason = event.reason;  // Grund sichern
   }
 }
+#elif defined(ESP32)
+static void onStationModeDisconnected(WiFiEvent_t event,
+                                     WiFiEventInfo_t info) {
+  (void)event;
+  if (!wasDisconnected) {
+    wasDisconnected = true;
+    disconnectedStart = millis();
+    lastDisconnectReason = info.wifi_sta_disconnected.reason;
+  }
+}
+#endif
 
 // Helper-Funktion: Übersetzt die ESP8266 WiFi-Reason-ID in Klartext
 const char* getWiFiReasonText(uint8_t reason) {
@@ -102,8 +116,12 @@ void setupShineWifi(WiFiManager& wm) {
   // 1. Native Stack Grundeinstellungen vornehmen
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);  // Nativen Auto-Reconnect des ESP8266 aktivieren
+#ifdef ESP8266
   WiFi.setSleepMode(
       WIFI_NONE_SLEEP);  // Verhindert Sleep-Probleme beim AP-Rekeying
+#elif defined(ESP32)
+  WiFi.setSleep(false);
+#endif
 
   // Verhindert das dauerhafte Schreiben/Cachen ungültiger Session-Tokens im
   // Flash, was bei WPA2/WPA3-Transition-Mode oft zu Reason 6 führt.
@@ -112,6 +130,8 @@ void setupShineWifi(WiFiManager& wm) {
   // 2. Nativen Event-Handler registrieren
 #ifdef ESP8266
   disconnectHandler = WiFi.onStationModeDisconnected(onStationModeDisconnected);
+#elif defined(ESP32)
+  WiFi.onEvent(onStationModeDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 #endif
 
   WiFi.hostname(User.hostname.c_str());

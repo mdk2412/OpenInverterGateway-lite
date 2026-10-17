@@ -1,7 +1,7 @@
 #include "SurplusCharge.h"
 #include <ArduinoJson.h>
 // #include <TLog.h>
-#include <algorithm>  // std::clamp, std::max
+#include <algorithm>
 
 void surplusCharge() {
   // --- User-Parameter laden ---
@@ -27,7 +27,7 @@ void surplusCharge() {
   int32_t rate = (delta * 10) / max_power;
 
   // clamp auf 0–100
-  uint16_t targetpowerrate = std::clamp<int32_t>(rate, 0, 100);
+  uint16_t targetpowerrate = std::max<int32_t>(0, std::min<int32_t>(rate, 100));
 
   // --- Steuerung ausführen ---
   // 1. Hochregeln: Nur wenn die aktuelle Rate zu NIEDRIG ist

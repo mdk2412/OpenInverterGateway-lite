@@ -9,8 +9,16 @@
 #include <LittleFS.h>
 #include <StreamUtils.h>
 #include <TLog.h>
+#ifdef ESP32
+#include <Update.h>
+#else
 #include <Updater.h>
+#endif
 #include <vector>
+
+#ifdef ESP32
+#include <esp_task_wdt.h>
+#endif
 
 // --- Projekt Header ---
 #include "ACChargeControl.h"
@@ -69,7 +77,7 @@ constexpr int DEFAULT_POWER_LIMIT = 6132;
 
 // --- Globale Hardware- & System-Instanzen ---
 Growatt Inverter;
-ESP8266WebServer httpServer(80);
+ShineWebServer httpServer(80);
 
 #if MQTT_SUPPORTED == 1
 ShineMqtt shineMqtt(Inverter);
@@ -156,11 +164,11 @@ void loadFirst(void);
 void batteryFirst(void);
 void gridFirst(void);
 void handlePostData();
-void handleSaveSettings(ESP8266WebServer& httpServer);
-void handleGetUserConfig(ESP8266WebServer& httpServer);
-void handleGetSettings(ESP8266WebServer& httpServer);
-void handleUpdateFinished(ESP8266WebServer& httpServer);
-void handleUpdateUpload(ESP8266WebServer& httpServer);
+void handleSaveSettings(ShineWebServer& httpServer);
+void handleGetUserConfig(ShineWebServer& httpServer);
+void handleGetSettings(ShineWebServer& httpServer);
+void handleUpdateFinished(ShineWebServer& httpServer);
+void handleUpdateUpload(ShineWebServer& httpServer);
 void handleNotFound();
 bool sendSingleValue(void);
 
@@ -180,6 +188,38 @@ bool modbusWriteHoldingRegister(uint16_t address, uint16_t value);
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
 void handleNTPSync();
+#endif
+
+#ifdef ESP32
+void startWdt() {
+  Log.println(F("Configuring task watchdog"));
+  const esp_err_t deinitResult = esp_task_wdt_deinit();
+  if (deinitResult != ESP_OK) {
+    Log.printf(PSTR("Could not deinitialize task watchdog: %d\n"),
+               static_cast<int>(deinitResult));
+  }
+
+  const esp_err_t initResult = esp_task_wdt_init(WDT_TIMEOUT, true);
+  if (initResult != ESP_OK) {
+    Log.printf(PSTR("Could not initialize task watchdog: %d\n"),
+               static_cast<int>(initResult));
+    return;
+  }
+
+  const esp_err_t addResult = esp_task_wdt_add(nullptr);
+  if (addResult != ESP_OK) {
+    Log.printf(PSTR("Could not add loop task to watchdog: %d\n"),
+               static_cast<int>(addResult));
+  }
+}
+
+void resetWdt() {
+  const esp_err_t resetResult = esp_task_wdt_reset();
+  if (resetResult != ESP_OK) {
+    Log.printf(PSTR("Could not reset task watchdog: %d\n"),
+               static_cast<int>(resetResult));
+  }
+}
 #endif
 
 // KONFIGURATION & LITTLEFS
@@ -317,7 +357,8 @@ void sendJson(JsonDocument& doc) {
   httpServer.sendHeader(F("Connection"), F("close"));
   httpServer.setContentLength(measureJson(doc));
   httpServer.send(200, F("application/json"), F(""));
-  serializeJson(doc, httpServer.client());
+  WiFiClient client = httpServer.client();
+  serializeJson(doc, client);
 }
 
 void sendUiJsonSite(void) {
@@ -339,9 +380,10 @@ void rebootESP(void) {
 
 #ifdef ENABLE_WEB_DEBUG
 void sendDebug(void) {
-  httpServer.sendHeader(F("Location"),
-                        F("http://") + WiFi.localIP().toString() + F(":8080/"),
-                        true);
+  String redirect = F("http://");
+  redirect += WiFi.localIP().toString();
+  redirect += F(":8080/");
+  httpServer.sendHeader(F("Location"), redirect, true);
   httpServer.send(302, F("text/plain"), F(""));
 }
 #endif
@@ -382,7 +424,7 @@ void gridFirst(void) {
 
 // --- Einstellungen (Settings) Handler ---
 
-void handleSaveSettings(ESP8266WebServer& httpServer) {
+void handleSaveSettings(ShineWebServer& httpServer) {
   UserConfig raw = User;
 
   raw.hostname = httpServer.arg("hostname");
@@ -455,7 +497,7 @@ void handleSaveSettings(ESP8266WebServer& httpServer) {
   }
 }
 
-void handleGetUserConfig(ESP8266WebServer& httpServer) {
+void handleGetUserConfig(ShineWebServer& httpServer) {
   File file = LittleFS.open(USER_CONFIG_FILE, "r");
   if (!file) {
     file = LittleFS.open(LEGACY_USER_CONFIG_FILE, "r");
@@ -476,7 +518,7 @@ void handleGetUserConfig(ESP8266WebServer& httpServer) {
   file.close();
 }
 
-void handleGetSettings(ESP8266WebServer& httpServer) {
+void handleGetSettings(ShineWebServer& httpServer) {
   JsonDocument doc;
 
   doc[F("hostname")] = User.hostname;
@@ -671,7 +713,7 @@ void handleNotFound() {
 
 // --- Firmware-Update Handler ---
 
-void handleUpdateFinished(ESP8266WebServer& httpServer) {
+void handleUpdateFinished(ShineWebServer& httpServer) {
   bool ok = !Update.hasError();
   String msg = ok ? String(F("Update successfull, rebooting..."))
                   : String(F("Update failed!"));
@@ -684,7 +726,7 @@ void handleUpdateFinished(ESP8266WebServer& httpServer) {
   }
 }
 
-void handleUpdateUpload(ESP8266WebServer& httpServer) {
+void handleUpdateUpload(ShineWebServer& httpServer) {
   HTTPUpload& upload = httpServer.upload();
 
   if (upload.status == UPLOAD_FILE_START) {
@@ -767,7 +809,6 @@ void setup() {
   loadSettingsFromFile();
 
   configureLogging(User.syslog_ip);
-  Log.begin();
 
   setupShineWifi(wm);
 
@@ -841,6 +882,7 @@ void setup() {
     ESP.restart();
   }
 
+  Log.begin();
   SetLED.off(LED_BLUE);
   Log.println(F("WiFi connected"));
 
@@ -901,7 +943,15 @@ void setup() {
 #endif
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
+#ifdef ESP32
+  configTzTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
+#else
   configTime(DEFAULT_TZ_INFO, DEFAULT_NTP_SERVER);
+#endif
+#endif
+
+#ifdef ESP32
+  startWdt();
 #endif
 }
 
@@ -978,6 +1028,10 @@ void loop() {
       delay(3000);
       ESP.restart();
     }
+#endif
+
+#ifdef ESP32
+    resetWdt();
 #endif
   }
 

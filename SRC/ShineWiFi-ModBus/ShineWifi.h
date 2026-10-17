@@ -8,12 +8,14 @@
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+using ShineWebServer = ESP8266WebServer;
 #if OTA_SUPPORTED == 0
 #include <ESP8266mDNS.h>
 #endif
 #elif defined(ESP32)
 #include <WebServer.h>
 #include <WiFi.h>
+using ShineWebServer = WebServer;
 #ifdef MQTTS_BROKER_CA_CERT
 #define MQTTS_ENABLED 1
 #endif
@@ -33,7 +35,9 @@ extern WiFiClient espClient;
 #define CONFIG_PORTAL_MAX_TIME_SECONDS 300
 
 // Event-Handler extern bereitstellen
+#ifdef ESP8266
 extern WiFiEventHandler disconnectHandler;
+#endif
 
 /**
  * Zentrale Initialisierung für WLAN, Hostnamen, Menü und WiFiManager.
