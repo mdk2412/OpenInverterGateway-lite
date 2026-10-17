@@ -233,9 +233,11 @@ const char MAIN_page[] PROGMEM = R"=====(
         });
 
         // Main Refresh
+        let dashboardRefreshInProgress = false;
         async function refreshDashboard() {
           const mainSec = document.getElementById("main");
-          if (mainSec.hidden) return;
+          if (mainSec.hidden || dashboardRefreshInProgress) return;
+          dashboardRefreshInProgress = true;
           try {
             const res = await fetch("/uiStatus");
             if (!res.ok) return;
@@ -267,6 +269,8 @@ const char MAIN_page[] PROGMEM = R"=====(
             updateCell("batteryDischarge", data.BDCDischargePower, data.BDCDischargePowerRate);
           } catch (err) {
             console.error("Error fetching Data:", err);
+          } finally {
+            dashboardRefreshInProgress = false;
           }
         }
 

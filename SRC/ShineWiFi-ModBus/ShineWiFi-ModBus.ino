@@ -191,29 +191,41 @@ void handleNTPSync();
 #endif
 
 #ifdef ESP32
+bool loopTaskWdtEnabled = false;
+
 void startWdt() {
   Log.println(F("Configuring task watchdog"));
-  const esp_err_t deinitResult = esp_task_wdt_deinit();
-  if (deinitResult != ESP_OK) {
-    Log.printf(PSTR("Could not deinitialize task watchdog: %d\n"),
-               static_cast<int>(deinitResult));
-  }
 
-  const esp_err_t initResult = esp_task_wdt_init(WDT_TIMEOUT, true);
-  if (initResult != ESP_OK) {
-    Log.printf(PSTR("Could not initialize task watchdog: %d\n"),
-               static_cast<int>(initResult));
+  esp_err_t status = esp_task_wdt_status(nullptr);
+  if (status == ESP_ERR_INVALID_STATE) {
+    const esp_err_t initResult = esp_task_wdt_init(WDT_TIMEOUT, true);
+    if (initResult != ESP_OK) {
+      Log.printf(PSTR("Could not initialize task watchdog: %d\n"),
+                 static_cast<int>(initResult));
+      return;
+    }
+    status = ESP_ERR_NOT_FOUND;
+  } else if (status != ESP_OK && status != ESP_ERR_NOT_FOUND) {
+    Log.printf(PSTR("Could not check task watchdog status: %d\n"),
+               static_cast<int>(status));
     return;
   }
 
-  const esp_err_t addResult = esp_task_wdt_add(nullptr);
-  if (addResult != ESP_OK) {
-    Log.printf(PSTR("Could not add loop task to watchdog: %d\n"),
-               static_cast<int>(addResult));
+  if (status == ESP_ERR_NOT_FOUND) {
+    const esp_err_t addResult = esp_task_wdt_add(nullptr);
+    if (addResult != ESP_OK) {
+      Log.printf(PSTR("Could not add loop task to watchdog: %d\n"),
+                 static_cast<int>(addResult));
+      return;
+    }
   }
+
+  loopTaskWdtEnabled = true;
 }
 
 void resetWdt() {
+  if (!loopTaskWdtEnabled) return;
+
   const esp_err_t resetResult = esp_task_wdt_reset();
   if (resetResult != ESP_OK) {
     Log.printf(PSTR("Could not reset task watchdog: %d\n"),
@@ -355,10 +367,11 @@ void startConfigAccessPoint(void) {
 
 void sendJson(JsonDocument& doc) {
   httpServer.sendHeader(F("Connection"), F("close"));
-  httpServer.setContentLength(measureJson(doc));
-  httpServer.send(200, F("application/json"), F(""));
-  WiFiClient client = httpServer.client();
-  serializeJson(doc, client);
+  const size_t contentLength = measureJson(doc);
+  String body;
+  body.reserve(contentLength);
+  serializeJson(doc, body);
+  httpServer.send(200, F("application/json"), body);
 }
 
 void sendUiJsonSite(void) {
