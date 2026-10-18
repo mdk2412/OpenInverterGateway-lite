@@ -765,7 +765,12 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
 
 #if MQTT_SUPPORTED == 1
 boolean sendMqttJson(void) {
+#if defined(ESP32)
+  static JsonDocument doc;
+  doc.clear();
+#else
   JsonDocument doc;
+#endif
   Inverter.CreateJson(doc, "", "");
   return shineMqtt.mqttPublish(doc);
 }
