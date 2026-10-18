@@ -1,5 +1,7 @@
 #include "ShineMqtt.h"
 
+#include <string>
+
 #if MQTT_SUPPORTED == 1
 #include <TLog.h>
 
@@ -111,18 +113,15 @@ boolean ShineMqtt::mqttPublish(JsonDocument& doc, const String& topic,
   if (!mqttConnected()) return false;
 
   const String& t = !topic.isEmpty() ? topic : mqttconfig.topic;
+  static std::string payload;
+  payload.clear();
 
-  // 1. Stream starten
-  auto publishStream =
-      mqttclient->begin_publish(t.c_str(), measureJson(doc), qos, retain);
+  const size_t payloadSize = serializeJson(doc, payload);
+  if (payloadSize != payload.size()) return false;
 
-  // 2. JSON in den Stream schreiben
-  serializeJson(doc, publishStream);
-
-  // 3. Stream leeren/schließen (gibt void zurück)
-  publishStream.flush();
-
-  return true;
+  return mqttclient->publish(t.c_str(),
+                             static_cast<const void*>(payload.data()),
+                             payloadSize, qos, retain);
 }
 
 // =======================================================
