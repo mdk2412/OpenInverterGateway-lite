@@ -765,7 +765,8 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
 
 #if MQTT_SUPPORTED == 1
 boolean sendMqttJson(void) {
-  JsonDocument doc;
+  static JsonDocument doc;
+  doc.clear();
   Inverter.CreateJson(doc, "", "");
   return shineMqtt.mqttPublish(doc);
 }
