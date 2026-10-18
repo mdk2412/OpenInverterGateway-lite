@@ -1,4 +1,5 @@
 #include "PriorityControl.h"
+#include "ACChargeControl.h"
 #include <ArduinoJson.h>
 // #include <TLog.h>
 
@@ -45,7 +46,7 @@ void priorityControl() {
     Inverter.HandleCommand("priority/set", req1, res1);
 
     JsonDocument req2, res2;
-    req2[F("value")] = 0;
+    req2[F("value")] = calculateAcChargeTargetPowerRate();
     req2[F("retry")] = NUM_WRITE_RETRIES;
 
     Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);

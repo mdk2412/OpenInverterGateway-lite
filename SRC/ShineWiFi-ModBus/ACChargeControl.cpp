@@ -2,21 +2,32 @@
 #include <ArduinoJson.h>
 #include <algorithm>
 
-void acchargeControl() {
-  // --- User-Parameter laden ---
+uint16_t calculateAcChargeTargetPowerRate() {
   int32_t max_power = User.ac_max_pow;
-  int32_t off_set = User.ac_off_set * 10;
+  if (max_power <= 0) {
+    return 0;
+  }
 
-  // --- Register EINMAL auslesen ---
-  int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
-  int32_t ac_enabled =
-      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
-  int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
+  int32_t off_set = User.ac_off_set * 10;
   int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
   int32_t p_togrid =
       Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
   int32_t p_touser =
       Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
+
+  int64_t delta = p_chr + p_togrid - p_touser + off_set;
+  int32_t rawRate = (delta * 10) / max_power;
+
+  return std::max<int32_t>(0, std::min<int32_t>(rawRate, 100));
+}
+
+void acchargeControl() {
+  // --- User-Parameter laden ---
+  // --- Register EINMAL auslesen ---
+  int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
+  int32_t ac_enabled =
+      Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_AC_ENABLED].value;
+  int32_t soc = Inverter._Protocol.InputRegisters[P3000_BDC_SOC].value;
   uint16_t current_rate =
       Inverter._Protocol.HoldingRegisters[P3000_BDC_CHARGE_P_RATE].value;
 
@@ -39,14 +50,7 @@ void acchargeControl() {
       return;
     }
 
-    // --- Delta berechnen ---
-    int64_t delta = p_chr + p_togrid - p_touser + off_set;
-
-    // --- Integer-Mathematik ---
-    int32_t rawRate = (delta * 10) / max_power;
-
-    // --- clamp auf 0–100 ---
-    uint16_t targetpowerrate = std::max<int32_t>(0, std::min<int32_t>(rawRate, 100));
+    uint16_t targetpowerrate = calculateAcChargeTargetPowerRate();
 
     if (current_rate != targetpowerrate) {
       JsonDocument req, res;
