@@ -3,7 +3,6 @@
 #include <ArduinoJson.h>
 #include <StreamUtils.h>
 
-#define JSON_DOCUMENT_SIZE 4096
 #define BUFFER_SIZE 3072
 
 typedef enum {
