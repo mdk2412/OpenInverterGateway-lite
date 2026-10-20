@@ -602,14 +602,6 @@ void handleGetSettings(ShineWebServer& httpServer) {
 
 // --- Modbus Post/Web Endpunkte ---
 
-#ifndef NUM_READ_RETRIES
-#define NUM_READ_RETRIES 3
-#endif
-
-#ifndef NUM_WRITE_RETRIES
-#define NUM_WRITE_RETRIES 3
-#endif
-
 void handlePostData() {
   char msg[256];
 

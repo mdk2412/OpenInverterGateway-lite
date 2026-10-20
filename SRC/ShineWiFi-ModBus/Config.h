@@ -33,10 +33,6 @@
 #define OTA_SUPPORTED 0
 #define OTA_PASSWORD "enter_ota_secret_here"
 
-// Enable direct modbus read/write support via the WebGUI. Enabling this is a
-// potential security issue.
-#define ENABLE_MODBUS_COMMUNICATION 1
-
 // Enable standby for battery to save power
 // if SoC = BDCDischargeStopSOC & PVTotalPower & TotalReversePower <= sleep
 // battery threshold (configure in WiFiManager) battery is put to sleep if
