@@ -217,7 +217,11 @@ void startWdt() {
 
   esp_err_t status = esp_task_wdt_status(nullptr);
   if (status == ESP_ERR_INVALID_STATE) {
-    const esp_err_t initResult = esp_task_wdt_init(WDT_TIMEOUT, true);
+    esp_task_wdt_config_t config = {};
+    config.timeout_ms = WDT_TIMEOUT * 1000;
+    config.idle_core_mask = 0;
+    config.trigger_panic = true;
+    const esp_err_t initResult = esp_task_wdt_init(&config);
     if (initResult != ESP_OK) {
       Log.printf(PSTR("Could not initialize task watchdog: %d\n"),
                  static_cast<int>(initResult));
