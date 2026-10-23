@@ -123,9 +123,7 @@ void setupShineWifi(WiFiManager& wm) {
   WiFi.setSleep(false);
 #endif
 
-  // Verhindert das dauerhafte Schreiben/Cachen ungültiger Session-Tokens im
-  // Flash, was bei WPA2/WPA3-Transition-Mode oft zu Reason 6 führt.
-  WiFi.persistent(false);
+  WiFi.persistent(true);
 
   // 2. Nativen Event-Handler registrieren
 #ifdef ESP8266
