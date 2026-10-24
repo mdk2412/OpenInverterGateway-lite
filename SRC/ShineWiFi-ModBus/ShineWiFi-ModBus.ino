@@ -257,7 +257,11 @@ void resetWdt() {
 }
 
 void lockInverter() {
-  if (inverterMutex != nullptr) xSemaphoreTake(inverterMutex, portMAX_DELAY);
+  if (inverterMutex == nullptr) return;
+
+  while (xSemaphoreTake(inverterMutex, pdMS_TO_TICKS(10)) != pdTRUE) {
+    if (xPortGetCoreID() == 1) SetLED.loop();
+  }
 }
 
 void unlockInverter() {
