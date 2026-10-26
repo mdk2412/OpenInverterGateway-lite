@@ -18,10 +18,6 @@
 
 #ifdef ESP32
 #include <esp_task_wdt.h>
-#include <atomic>
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
 #endif
 
 // --- Projekt Header ---
@@ -101,19 +97,7 @@ DoubleResetDetector* drd;
 
 // --- Globale Status-Variablen ---
 bool StartedConfigAfterBoot = false;
-#ifdef ESP32
-std::atomic<bool> readoutSucceeded{false};
-SemaphoreHandle_t inverterMutex = nullptr;
-std::atomic<bool> backgroundTaskStarted{false};
-std::atomic<bool> readoutStatusPending{false};
-#if PINGER_SUPPORTED == 1
-std::atomic<bool> pingerFailed{false};
-#endif
-#else
-boolean readoutSucceeded = false;
-void lockInverter() {}
-void unlockInverter() {}
-#endif
+bool readoutSucceeded = false;
 
 #if defined(AP_BUTTON_PRESSED)
 byte btnPressed = 0;
@@ -214,7 +198,6 @@ void startWdt() {
 
   esp_task_wdt_config_t config = {};
   config.timeout_ms = WDT_TIMEOUT * 1000;
-  config.idle_core_mask = 0;
   config.trigger_panic = true;
 
   esp_err_t status = esp_task_wdt_status(nullptr);
@@ -261,17 +244,6 @@ void resetWdt() {
   }
 }
 
-void lockInverter() {
-  if (inverterMutex == nullptr) return;
-
-  while (xSemaphoreTake(inverterMutex, pdMS_TO_TICKS(10)) != pdTRUE) {
-    if (xPortGetCoreID() == 1) SetLED.loop();
-  }
-}
-
-void unlockInverter() {
-  if (inverterMutex != nullptr) xSemaphoreGive(inverterMutex);
-}
 #endif
 
 // KONFIGURATION & LITTLEFS
@@ -417,9 +389,7 @@ void sendJson(JsonDocument& doc) {
 
 void sendUiJsonSite(void) {
   JsonDocument doc;
-  lockInverter();
   Inverter.CreateJson(doc, WiFi.macAddress(), User.hostname);
-  unlockInverter();
   sendJson(doc);
 }
 
@@ -449,7 +419,6 @@ void sendDebug(void) {
 void loadFirst(void) {
   httpServer.send(200, F("text/plain"), F("Load First"));
 
-  lockInverter();
   JsonDocument req1, res1;
   req1[F("mode")] = 0;
   req1[F("retry")] = NUM_WRITE_RETRIES;
@@ -459,29 +428,24 @@ void loadFirst(void) {
   req2[F("value")] = 100;
   req2[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("bdc/set/chargepowerrate", req2, res2);
-  unlockInverter();
 }
 
 void batteryFirst(void) {
   httpServer.send(200, F("text/plain"), F("Battery First"));
 
-  lockInverter();
   JsonDocument req, res;
   req[F("mode")] = 1;
   req[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("priority/set", req, res);
-  unlockInverter();
 }
 
 void gridFirst(void) {
   httpServer.send(200, F("text/plain"), F("Grid First"));
 
-  lockInverter();
   JsonDocument req, res;
   req[F("mode")] = 2;
   req[F("retry")] = NUM_WRITE_RETRIES;
   Inverter.HandleCommand("priority/set", req, res);
-  unlockInverter();
 }
 
 // --- Einstellungen (Settings) Handler ---
@@ -660,14 +624,11 @@ void handlePostData() {
 
     if (is16) {
       uint16_t val = 0;
-      lockInverter();
       for (int i = 0; i < NUM_READ_RETRIES; i++) {
         operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
                               : Inverter.ReadHoldingReg(reg, &val);
         if (operationOk) break;
       }
-      unlockInverter();
-
       if (operationOk) {
         snprintf_P(
             msg, sizeof(msg),
@@ -680,14 +641,11 @@ void handlePostData() {
       }
     } else {
       uint32_t val = 0;
-      lockInverter();
       for (int i = 0; i < NUM_READ_RETRIES; i++) {
         operationOk = isInput ? Inverter.ReadInputReg(reg, &val)
                               : Inverter.ReadHoldingReg(reg, &val);
         if (operationOk) break;
       }
-      unlockInverter();
-
       if (operationOk) {
         snprintf_P(
             msg, sizeof(msg),
@@ -722,13 +680,10 @@ void handlePostData() {
 
     uint16_t val = httpServer.arg(F("val")).toInt();
     bool ok = false;
-    lockInverter();
     for (int i = 0; i < NUM_WRITE_RETRIES; i++) {
       ok = Inverter.WriteHoldingReg(reg, val);
       if (ok) break;
     }
-    unlockInverter();
-
     if (ok) {
       snprintf_P(msg, sizeof(msg),
                  PSTR("Writing Value %u to Holding Register %u succeeded"), val,
@@ -753,9 +708,7 @@ bool sendSingleValue(void) {
 
   String key = httpServer.uri().substring(7);
   double value;
-  lockInverter();
   bool found = Inverter.GetSingleValueByName(key, value);
-  unlockInverter();
   if (found) {
     httpServer.send(200, F("text/plain"), String(value));
     return true;
@@ -846,68 +799,22 @@ boolean sendMqttJson(void) {
 #else
   JsonDocument doc;
 #endif
-  lockInverter();
   Inverter.CreateJson(doc, "", "");
-  unlockInverter();
   return shineMqtt.mqttPublish(doc);
-}
-#endif
-
-#ifdef ESP32
-void backgroundTaskCode(void* parameter) {
-  const esp_err_t addResult = esp_task_wdt_add(nullptr);
-  if (addResult != ESP_OK) {
-    backgroundTaskStarted = false;
-    Log.printf(PSTR("Could not add background task to watchdog: %d\n"),
-               static_cast<int>(addResult));
-    vTaskDelete(nullptr);
-    return;
-  }
-
-  TickType_t lastWakeTime = xTaskGetTickCount();
-  for (;;) {
-    lockInverter();
-    readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
-    unlockInverter();
-
-#if PINGER_SUPPORTED == 1
-    if (!pinger.Ping(GATEWAY_IP)) {
-      pingerFailed = true;
-    }
-#endif
-    readoutStatusPending = true;
-
-    const esp_err_t resetResult = esp_task_wdt_reset();
-    if (resetResult != ESP_OK) {
-      Log.printf(PSTR("Could not reset background task watchdog: %d\n"),
-                 static_cast<int>(resetResult));
-    }
-
-    vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(REFRESH_TIMER));
-  }
 }
 #endif
 
 #if MODBUS_TCP_SUPPORTED == 1
 bool modbusReadHoldingRegister(uint16_t address, uint16_t* value) {
-  lockInverter();
-  bool result = Inverter.ReadHoldingReg(address, value);
-  unlockInverter();
-  return result;
+  return Inverter.ReadHoldingReg(address, value);
 }
 
 bool modbusReadInputRegister(uint16_t address, uint16_t* value) {
-  lockInverter();
-  bool result = Inverter.ReadInputReg(address, value);
-  unlockInverter();
-  return result;
+  return Inverter.ReadInputReg(address, value);
 }
 
 bool modbusWriteHoldingRegister(uint16_t address, uint16_t value) {
-  lockInverter();
-  bool result = Inverter.WriteHoldingReg(address, value);
-  unlockInverter();
-  return result;
+  return Inverter.WriteHoldingReg(address, value);
 }
 #endif
 
@@ -926,9 +833,7 @@ void handleNTPSync() {
 
     strftime(buff, sizeof(buff), "%Y-%m-%d %H:%M:%S", &tm);
     req[F("value")] = buff;
-    lockInverter();
     Inverter.HandleCommand("datetime/set", req, res);
-    unlockInverter();
   }
 }
 #endif
@@ -1094,18 +999,6 @@ void setup() {
 
 #ifdef ESP32
   startWdt();
-  inverterMutex = xSemaphoreCreateMutex();
-  if (inverterMutex == nullptr) {
-    Log.println(F("Could not create inverter mutex; background task not started"));
-  } else {
-    backgroundTaskStarted = true;
-    const BaseType_t taskCreated = xTaskCreatePinnedToCore(
-        backgroundTaskCode, "inverterBackground", 8192, nullptr, 1, nullptr, 0);
-    if (taskCreated != pdPASS) {
-      backgroundTaskStarted = false;
-      Log.println(F("Could not create inverter background task"));
-    }
-  }
 #endif
 }
 
@@ -1148,9 +1041,7 @@ void loop() {
   WiFi_Reconnect();
 
 #if MQTT_SUPPORTED == 1
-  lockInverter();
   shineMqtt.loop();
-  unlockInverter();
 #endif
 
   httpServer.handleClient();
@@ -1159,22 +1050,19 @@ void loop() {
   if (modbusTCP.isEnabled()) modbusTCP.loop();
 #endif
 
-#ifdef ESP32
-  if (!backgroundTaskStarted && now - RefreshTimer > REFRESH_TIMER) {
+#if defined(ESP32)
+  if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
-    lockInverter();
     readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
-    unlockInverter();
 
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {
-      pingerFailed = true;
+      SetLED.on(LED_RED);
+      delay(3000);
+      ESP.restart();
     }
 #endif
-    readoutStatusPending = true;
-  }
 
-  if (readoutStatusPending.exchange(false)) {
     bool mqttOK = false;
 #if MQTT_SUPPORTED == 1
     mqttOK = shineMqtt.mqttConnected();
@@ -1185,14 +1073,6 @@ void loop() {
     SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
                         mqttOK);
   }
-
-#if PINGER_SUPPORTED == 1
-  if (pingerFailed) {
-    SetLED.on(LED_RED);
-    delay(3000);
-    ESP.restart();
-  }
-#endif
 #else
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
@@ -1240,26 +1120,20 @@ void loop() {
 
   if (User.bat_standby && now - BatteryStandbyTimer > BATTERY_STANDBY_TIMER) {
     BatteryStandbyTimer = now;
-    lockInverter();
     batteryStandby();
-    unlockInverter();
   }
 
   if (User.accharge && now - ACChargeControlTimer > ACCHARGE_CONTROL_TIMER) {
     ACChargeControlTimer = now;
-    lockInverter();
     acchargeControl();
     if (User.prioctrl) {
       priorityControl();
     }
-    unlockInverter();
   }
 
   if (User.surch && now - SurplusChargeTimer > SURPLUS_CHARGE_TIMER) {
     SurplusChargeTimer = now;
-    lockInverter();
     surplusCharge();
-    unlockInverter();
   }
 
 #ifdef ESP32
