@@ -779,8 +779,12 @@ void handleNotFound() {
 
 // --- Firmware-Update Handler ---
 
+static bool updateFailed = false;
+static bool updateCompleted = false;
+static size_t updateBytesWritten = 0;
+
 void handleUpdateFinished(ShineWebServer& httpServer) {
-  bool ok = !Update.hasError();
+  bool ok = updateCompleted && !updateFailed && !Update.hasError();
   String msg = ok ? String(F("Update successfull, rebooting..."))
                   : String(F("Update failed!"));
   httpServer.send(ok ? 200 : 500, F("text/plain"), msg);
@@ -796,24 +800,38 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
   HTTPUpload& upload = httpServer.upload();
 
   if (upload.status == UPLOAD_FILE_START) {
+    updateFailed = false;
+    updateCompleted = false;
+    updateBytesWritten = 0;
     size_t sketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(sketchSpace)) {
+      updateFailed = true;
       Update.printError(Serial);
     }
 
   } else if (upload.status == UPLOAD_FILE_WRITE) {
-    if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-      Update.printError(Serial);
+    if (!updateFailed) {
+      size_t written = Update.write(upload.buf, upload.currentSize);
+      updateBytesWritten += written;
+      if (written != upload.currentSize) {
+        updateFailed = true;
+        Update.printError(Serial);
+      }
     }
 #ifdef ESP32
     resetWdt();
 #endif
 
   } else if (upload.status == UPLOAD_FILE_END) {
-    if (!Update.end(true)) {
+    if (!updateFailed && updateBytesWritten > 0 && Update.end(true) &&
+        !Update.hasError()) {
+      updateCompleted = true;
+    } else {
+      updateFailed = true;
       Update.printError(Serial);
     }
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
+    updateFailed = true;
 #ifdef ESP32
     Update.abort();
 #endif
