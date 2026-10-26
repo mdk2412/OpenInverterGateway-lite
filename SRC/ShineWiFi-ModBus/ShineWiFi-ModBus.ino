@@ -106,9 +106,6 @@ std::atomic<bool> readoutSucceeded{false};
 SemaphoreHandle_t inverterMutex = nullptr;
 std::atomic<bool> backgroundTaskStarted{false};
 std::atomic<bool> readoutStatusPending{false};
-#if MQTT_SUPPORTED == 1
-std::atomic<bool> mqttConnectedStatus{false};
-#endif
 #if PINGER_SUPPORTED == 1
 std::atomic<bool> pingerFailed{false};
 #endif
@@ -851,9 +848,8 @@ boolean sendMqttJson(void) {
 #endif
   lockInverter();
   Inverter.CreateJson(doc, "", "");
-  boolean published = shineMqtt.mqttPublish(doc);
   unlockInverter();
-  return published;
+  return shineMqtt.mqttPublish(doc);
 }
 #endif
 
@@ -872,16 +868,7 @@ void backgroundTaskCode(void* parameter) {
   for (;;) {
     lockInverter();
     readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
-#if MQTT_SUPPORTED == 1
-    mqttConnectedStatus = shineMqtt.mqttConnected();
-#endif
     unlockInverter();
-
-#if MQTT_SUPPORTED == 1
-    if (readoutSucceeded && shineMqtt.mqttEnabled()) {
-      sendMqttJson();
-    }
-#endif
 
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {
@@ -1177,16 +1164,7 @@ void loop() {
     RefreshTimer = now;
     lockInverter();
     readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
-#if MQTT_SUPPORTED == 1
-    mqttConnectedStatus = shineMqtt.mqttConnected();
-#endif
     unlockInverter();
-
-#if MQTT_SUPPORTED == 1
-    if (readoutSucceeded && shineMqtt.mqttEnabled()) {
-      sendMqttJson();
-    }
-#endif
 
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {
@@ -1199,7 +1177,10 @@ void loop() {
   if (readoutStatusPending.exchange(false)) {
     bool mqttOK = false;
 #if MQTT_SUPPORTED == 1
-    mqttOK = mqttConnectedStatus;
+    mqttOK = shineMqtt.mqttConnected();
+    if (readoutSucceeded && shineMqtt.mqttEnabled()) {
+      sendMqttJson();
+    }
 #endif
     SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
                         mqttOK);
