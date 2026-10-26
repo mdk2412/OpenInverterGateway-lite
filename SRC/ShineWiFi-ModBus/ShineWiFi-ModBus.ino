@@ -215,12 +215,13 @@ bool loopTaskWdtEnabled = false;
 void startWdt() {
   Log.println(F("Configuring task watchdog"));
 
+  esp_task_wdt_config_t config = {};
+  config.timeout_ms = WDT_TIMEOUT * 1000;
+  config.idle_core_mask = 0;
+  config.trigger_panic = true;
+
   esp_err_t status = esp_task_wdt_status(nullptr);
   if (status == ESP_ERR_INVALID_STATE) {
-    esp_task_wdt_config_t config = {};
-    config.timeout_ms = WDT_TIMEOUT * 1000;
-    config.idle_core_mask = 0;
-    config.trigger_panic = true;
     const esp_err_t initResult = esp_task_wdt_init(&config);
     if (initResult != ESP_OK) {
       Log.printf(PSTR("Could not initialize task watchdog: %d\n"),
@@ -228,7 +229,14 @@ void startWdt() {
       return;
     }
     status = ESP_ERR_NOT_FOUND;
-  } else if (status != ESP_OK && status != ESP_ERR_NOT_FOUND) {
+  } else if (status == ESP_OK || status == ESP_ERR_NOT_FOUND) {
+    const esp_err_t reconfigureResult = esp_task_wdt_reconfigure(&config);
+    if (reconfigureResult != ESP_OK) {
+      Log.printf(PSTR("Could not reconfigure task watchdog: %d\n"),
+                 static_cast<int>(reconfigureResult));
+      return;
+    }
+  } else {
     Log.printf(PSTR("Could not check task watchdog status: %d\n"),
                static_cast<int>(status));
     return;
@@ -1178,7 +1186,6 @@ void loop() {
     ESP.restart();
   }
 #endif
-  resetWdt();
 #else
   if (now - RefreshTimer > REFRESH_TIMER) {
     RefreshTimer = now;
@@ -1247,4 +1254,8 @@ void loop() {
     surplusCharge();
     unlockInverter();
   }
+
+#ifdef ESP32
+  resetWdt();
+#endif
 }
