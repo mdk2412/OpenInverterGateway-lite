@@ -805,11 +805,19 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
     if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
       Update.printError(Serial);
     }
+#ifdef ESP32
+    resetWdt();
+#endif
 
   } else if (upload.status == UPLOAD_FILE_END) {
     if (!Update.end(true)) {
       Update.printError(Serial);
     }
+  } else if (upload.status == UPLOAD_FILE_ABORTED) {
+#ifdef ESP32
+    Update.abort();
+#endif
+    Update.printError(Serial);
   }
 }
 
