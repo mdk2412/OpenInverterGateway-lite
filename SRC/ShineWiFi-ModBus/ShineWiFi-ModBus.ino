@@ -756,7 +756,7 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
     size_t sketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(sketchSpace)) {
       updateFailed = true;
-      Update.printError(Serial);
+      Update.printError(Log);
     }
 
   } else if (upload.status == UPLOAD_FILE_WRITE) {
@@ -765,7 +765,7 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
       updateBytesWritten += written;
       if (written != upload.currentSize) {
         updateFailed = true;
-        Update.printError(Serial);
+        Update.printError(Log);
       }
     }
 #ifdef ESP32
@@ -778,14 +778,14 @@ void handleUpdateUpload(ShineWebServer& httpServer) {
       updateCompleted = true;
     } else {
       updateFailed = true;
-      Update.printError(Serial);
+      Update.printError(Log);
     }
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
     updateFailed = true;
 #ifdef ESP32
     Update.abort();
 #endif
-    Update.printError(Serial);
+    Update.printError(Log);
   }
 }
 
