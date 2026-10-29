@@ -151,45 +151,6 @@ UserConfig validateUserConfig(const UserConfig& in) {
   return out;
 }
 
-// VORWÄRTSDEKLARATIONEN (PROTOTYPES)
-
-bool saveSettingsToFile();
-void loadSettingsFromFile();
-void sendJson(JsonDocument& doc);
-void sendUiJsonSite(void);
-void sendMainPage(void);
-void startConfigAccessPoint(void);
-void rebootESP(void);
-void loadFirst(void);
-void batteryFirst(void);
-void gridFirst(void);
-void handlePostData();
-void handleSaveSettings(ShineWebServer& httpServer);
-void handleGetUserConfig(ShineWebServer& httpServer);
-void handleGetSettings(ShineWebServer& httpServer);
-void handleUpdateFinished(ShineWebServer& httpServer);
-void handleUpdateUpload(ShineWebServer& httpServer);
-void handleNotFound();
-bool sendSingleValue(void);
-
-#ifdef ENABLE_WEB_DEBUG
-void sendDebug(void);
-#endif
-
-#if MQTT_SUPPORTED == 1
-boolean sendMqttJson(void);
-#endif
-
-#if MODBUS_TCP_SUPPORTED == 1
-bool modbusReadHoldingRegister(uint16_t address, uint16_t* value);
-bool modbusReadInputRegister(uint16_t address, uint16_t* value);
-bool modbusWriteHoldingRegister(uint16_t address, uint16_t value);
-#endif
-
-#if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-void handleNTPSync();
-#endif
-
 #ifdef ESP32
 bool loopTaskWdtEnabled = false;
 
