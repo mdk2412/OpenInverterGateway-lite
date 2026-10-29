@@ -1050,11 +1050,11 @@ void loop() {
   if (modbusTCP.isEnabled()) modbusTCP.loop();
 #endif
 
+  if (now - RefreshTimer > REFRESH_TIMER) {
+    RefreshTimer = now;
+    readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
+
 #if defined(ESP32)
-  if (now - RefreshTimer > REFRESH_TIMER) {
-    RefreshTimer = now;
-    readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
-
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {
       SetLED.on(LED_RED);
@@ -1062,37 +1062,27 @@ void loop() {
       ESP.restart();
     }
 #endif
+#endif
 
     bool mqttOK = false;
 #if MQTT_SUPPORTED == 1
     mqttOK = shineMqtt.mqttConnected();
+#if defined(ESP32)
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
     }
 #endif
-    SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
-                        mqttOK);
-  }
-#else
-  if (now - RefreshTimer > REFRESH_TIMER) {
-    RefreshTimer = now;
-
-    readoutSucceeded = Inverter.ReadData(NUM_READ_RETRIES);
-
-    bool mqttOK = false;
-#if MQTT_SUPPORTED == 1
-    mqttOK = shineMqtt.mqttConnected();
 #endif
-
     SetLED.updateStatus(WiFi.status() == WL_CONNECTED, readoutSucceeded,
                         mqttOK);
 
-#if MQTT_SUPPORTED == 1
+#if MQTT_SUPPORTED == 1 && !defined(ESP32)
     if (readoutSucceeded && shineMqtt.mqttEnabled()) {
       sendMqttJson();
     }
 #endif
 
+#if !defined(ESP32)
 #if PINGER_SUPPORTED == 1
     if (!pinger.Ping(GATEWAY_IP)) {
       SetLED.on(LED_RED);
@@ -1100,8 +1090,8 @@ void loop() {
       ESP.restart();
     }
 #endif
-  }
 #endif
+  }
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
   if (!initialSyncDone && now > 60000) {
