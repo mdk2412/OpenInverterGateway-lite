@@ -14,7 +14,6 @@
 #else
 #include <Updater.h>
 #endif
-#include <vector>
 
 #ifdef ESP32
 #include <esp_task_wdt.h>
@@ -113,7 +112,6 @@ unsigned long ACChargeControlTimer = 0;
 unsigned long SurplusChargeTimer = 0;
 
 #if defined(DEFAULT_NTP_SERVER) && defined(DEFAULT_TZ_INFO)
-unsigned long NTPTimer = 0;
 unsigned long lastSync = 0;
 bool initialSyncDone = false;
 #endif
@@ -576,7 +574,6 @@ void handlePostData() {
 
   const bool is16 = (widthStr == "16b");
   const bool isInput = (typeStr == "I");
-  const bool isHolding = (typeStr == "H");
   const uint16_t reg = regStr.toInt();
 
   if (isRead) {
@@ -624,41 +621,39 @@ void handlePostData() {
     return;
   }
 
-  if (isWrite) {
-    if (!isHolding) {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing to Input Registers not possible!"));
-      httpServer.send(400, F("text/plain"), msg);
-      return;
-    }
-
-    if (!is16) {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing to 32-bit Registers not supported!"));
-      httpServer.send(400, F("text/plain"), msg);
-      return;
-    }
-
-    uint16_t val = httpServer.arg(F("val")).toInt();
-    bool ok = false;
-    for (int i = 0; i < NUM_WRITE_RETRIES; i++) {
-      ok = Inverter.WriteHoldingReg(reg, val);
-      if (ok) break;
-    }
-    if (ok) {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing Value %u to Holding Register %u succeeded"), val,
-                 reg);
-    } else {
-      snprintf_P(msg, sizeof(msg),
-                 PSTR("Writing Value %u to Holding Register %u failed!"), val,
-                 reg);
-    }
-
-    Log.printf(PSTR("Modbus Write: %s\n"), msg);
-    httpServer.send(ok ? 200 : 502, F("text/plain"), msg);
+  if (isInput) {
+    snprintf_P(msg, sizeof(msg),
+               PSTR("Writing to Input Registers not possible!"));
+    httpServer.send(400, F("text/plain"), msg);
     return;
   }
+
+  if (!is16) {
+    snprintf_P(msg, sizeof(msg),
+               PSTR("Writing to 32-bit Registers not supported!"));
+    httpServer.send(400, F("text/plain"), msg);
+    return;
+  }
+
+  uint16_t val = httpServer.arg(F("val")).toInt();
+  bool ok = false;
+  for (int i = 0; i < NUM_WRITE_RETRIES; i++) {
+    ok = Inverter.WriteHoldingReg(reg, val);
+    if (ok) break;
+  }
+  if (ok) {
+    snprintf_P(msg, sizeof(msg),
+               PSTR("Writing Value %u to Holding Register %u succeeded"), val,
+               reg);
+  } else {
+    snprintf_P(msg, sizeof(msg),
+               PSTR("Writing Value %u to Holding Register %u failed!"), val,
+               reg);
+  }
+
+  Log.printf(PSTR("Modbus Write: %s\n"), msg);
+  httpServer.send(ok ? 200 : 502, F("text/plain"), msg);
+  return;
 }
 
 bool sendSingleValue(void) {
