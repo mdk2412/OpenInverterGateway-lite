@@ -10,22 +10,35 @@ uint16_t calculateAcChargeTargetPowerRate() {
 
   int32_t off_set = User.ac_off_set * 10;
   int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
-  int32_t p_togrid =
-      Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
-  int32_t p_touser =
-      Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
+  int32_t p_togrid = Inverter._Protocol.InputRegisters[P3000_PTOGRID_TOTAL].value;
+  int32_t p_touser = Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
 
-  // Delta basierend auf den faktor-10-skalierten Registern
   int64_t delta = static_cast<int64_t>(p_chr) + p_togrid - p_touser + off_set;
   int32_t rawRate = (delta * 10) / max_power;
 
-  // 1. Tatsächliche Rate von p_chr im exakt gleichen Skalierungsformat ermitteln
-  int32_t p_chr_rate = (p_chr * 10) / max_power;
+  // Aktuelle p_chr-Rate im selben Maßstab
+  int32_t current_p_chr_rate = (p_chr * 10) / max_power;
 
-  // 2. Kappung: Darf maximal 5 Einheiten über der tatsächlichen p_chr-Rate liegen
-  int32_t cappedRate = std::min(rawRate, p_chr_rate + 5);
+  // --- HHYSTERESE / TOLERANZBAND FÜR DIE KAPPUNG ---
+  int32_t desired_cap = current_p_chr_rate + 5;
+  const int32_t hysteresis = 2; // 2 Prozentpunkte / Einheiten Toleranz
 
-  // 3. Auf den gültigen Bereich [0, 100] begrenzen und als uint16_t zurückgeben
+  static int32_t active_cap = -1;
+  if (active_cap < 0) {
+    active_cap = desired_cap; // Initialisierung beim ersten Start
+  } else {
+    // Die Grenze passt sich erst an, wenn der Zielwert das Hysterese-Fenster verlässt
+    if (desired_cap > active_cap + hysteresis) {
+      active_cap = desired_cap;
+    } else if (desired_cap < active_cap - hysteresis) {
+      active_cap = desired_cap;
+    }
+    // Dazwischen (innerhalb von ±2 Einheiten) bleibt active_cap eingefroren!
+  }
+
+  // Kappung anwenden
+  int32_t cappedRate = std::min(rawRate, active_cap);
+
   return static_cast<uint16_t>(std::max<int32_t>(0, std::min<int32_t>(cappedRate, 100)));
 }
 
