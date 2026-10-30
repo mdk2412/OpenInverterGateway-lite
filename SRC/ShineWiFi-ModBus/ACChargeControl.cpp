@@ -13,30 +13,7 @@ uint16_t calculateAcChargeTargetPowerRate() {
   int64_t delta = static_cast<int64_t>(p_chr) + p_togrid - p_touser + off_set;
   int32_t rawRate = (delta * 10) / max_power;
 
-  // Aktuelle p_chr-Rate im selben Maßstab
-  int32_t current_p_chr_rate = (p_chr * 10) / max_power;
-
-  // --- HHYSTERESE / TOLERANZBAND FÜR DIE KAPPUNG ---
-  int32_t desired_cap = current_p_chr_rate + 5;
-  const int32_t hysteresis = 2; // 2 Prozentpunkte / Einheiten Toleranz
-
-  static int32_t active_cap = -1;
-  if (active_cap < 0) {
-    active_cap = desired_cap; // Initialisierung beim ersten Start
-  } else {
-    // Die Grenze passt sich erst an, wenn der Zielwert das Hysterese-Fenster verlässt
-    if (desired_cap > active_cap + hysteresis) {
-      active_cap = desired_cap;
-    } else if (desired_cap < active_cap - hysteresis) {
-      active_cap = desired_cap;
-    }
-    // Dazwischen (innerhalb von ±2 Einheiten) bleibt active_cap eingefroren!
-  }
-
-  // Kappung anwenden
-  int32_t cappedRate = std::min(rawRate, active_cap);
-
-  return static_cast<uint16_t>(std::max<int32_t>(0, std::min<int32_t>(cappedRate, 100)));
+  return static_cast<uint16_t>(std::max<int32_t>(0, std::min<int32_t>(rawRate, 100)));
 }
 
 void acchargeControl() {
