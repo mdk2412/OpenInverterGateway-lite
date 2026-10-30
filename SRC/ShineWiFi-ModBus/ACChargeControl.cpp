@@ -4,9 +4,6 @@
 
 uint16_t calculateAcChargeTargetPowerRate() {
   int32_t max_power = User.ac_max_pow;
-  if (max_power <= 0) {
-    return 0;
-  }
 
   int32_t off_set = User.ac_off_set * 10;
   int32_t p_chr = Inverter._Protocol.InputRegisters[P3000_BDC_PCHR].value;
