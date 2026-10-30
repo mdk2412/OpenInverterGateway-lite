@@ -15,10 +15,18 @@ uint16_t calculateAcChargeTargetPowerRate() {
   int32_t p_touser =
       Inverter._Protocol.InputRegisters[P3000_PTOUSER_TOTAL].value;
 
-  int64_t delta = p_chr + p_togrid - p_touser + off_set;
+  // Delta basierend auf den faktor-10-skalierten Registern
+  int64_t delta = static_cast<int64_t>(p_chr) + p_togrid - p_touser + off_set;
   int32_t rawRate = (delta * 10) / max_power;
 
-  return std::max<int32_t>(0, std::min<int32_t>(rawRate, 100));
+  // 1. Tatsächliche Rate von p_chr im exakt gleichen Skalierungsformat ermitteln
+  int32_t p_chr_rate = (p_chr * 10) / max_power;
+
+  // 2. Kappung: Darf maximal 5 Einheiten über der tatsächlichen p_chr-Rate liegen
+  int32_t cappedRate = std::min(rawRate, p_chr_rate + 5);
+
+  // 3. Auf den gültigen Bereich [0, 100] begrenzen und als uint16_t zurückgeben
+  return static_cast<uint16_t>(std::max<int32_t>(0, std::min<int32_t>(cappedRate, 100)));
 }
 
 void acchargeControl() {
