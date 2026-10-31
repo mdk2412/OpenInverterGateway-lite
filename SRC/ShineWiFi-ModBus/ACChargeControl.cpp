@@ -17,6 +17,9 @@ uint16_t calculateAcChargeTargetPowerRate() {
 }
 
 void acchargeControl() {
+  static float avg_targetpowerrate = 0;
+  const float alpha = 0.2f;
+
   // --- User-Parameter laden ---
   // --- Register EINMAL auslesen ---
   int32_t priority = Inverter._Protocol.InputRegisters[P3000_PRIORITY].value;
@@ -45,7 +48,11 @@ void acchargeControl() {
       return;
     }
 
-    uint16_t targetpowerrate = calculateAcChargeTargetPowerRate();
+    uint16_t raw_targetpowerrate = calculateAcChargeTargetPowerRate();
+    avg_targetpowerrate +=
+      alpha * (raw_targetpowerrate - avg_targetpowerrate);
+    uint16_t targetpowerrate =
+      static_cast<uint16_t>(avg_targetpowerrate + 0.5f);
 
     if (current_rate != targetpowerrate) {
       JsonDocument req, res;
